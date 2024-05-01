@@ -224,7 +224,7 @@ class Amazonpolly {
         $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_scripts');
         $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
         $this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox');
-        $this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3);
+        $this->loader->add_action( 'rest_after_insert_post', $polly_service, 'save_post', 10, 3);
         $this->loader->add_action( 'amazon_polly_background_task_generate_post_audio', $polly_service, 'generate_audio', 10, 3);
 
 

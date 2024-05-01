@@ -33,7 +33,24 @@ class AmazonAI_PollyService {
 	 *
 	 * @since    1.0.0
 	 */
-	public function save_post( $post_id, $post, $updated ) {
+	public function save_post( $post, WP_REST_Request $request, $created ) {
+		static $single_run = 0;
+
+		if ( $single_run++ ) {
+			return;
+		}
+
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
+
+		$post_id = $post->ID;
+
+		// Check if it is an REST API request
+		if ( ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+
 		$common = $this->common;
 		$logger = new AmazonAI_Logger();
 		$logger->log(sprintf('%s Saving post ( id=%s )', __METHOD__, $post_id));
@@ -44,7 +61,7 @@ class AmazonAI_PollyService {
 		}
 
 		// Check to make sure this is not a new post creation.
-		if ( ! $updated ) {
+		if ( $created ) {
 			return;
 		}
 
