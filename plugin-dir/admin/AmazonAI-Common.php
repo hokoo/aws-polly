@@ -1489,6 +1489,10 @@ class AmazonAI_Common
 		return $text;
 	}
 
+	public function get_audio_hash( $post_id ): string {
+		return md5( get_post_field( 'post_modified', $post_id ) );
+	}
+
 	/**
 	 * Method retrievies post which ID was provided, and clean it.
 	 *

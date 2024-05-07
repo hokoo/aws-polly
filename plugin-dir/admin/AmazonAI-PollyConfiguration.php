@@ -82,6 +82,7 @@ class AmazonAI_PollyConfiguration {
         			add_settings_field( 'amazon_polly_player_label', __( 'Player label:', 'amazonpolly' ), array( $this, 'playerlabel_gui' ), 'amazon_ai_polly', 'amazon_ai_playersettings', array( 'label_for' => 'amazon_polly_player_label' ) );
         			add_settings_field( 'amazon_polly_defconf', __( 'New post default:', 'amazonpolly' ), array( $this, 'defconf_gui' ), 'amazon_ai_polly', 'amazon_ai_playersettings', array( '' => 'amazon_polly_defconf' ) );
         			add_settings_field( 'amazon_polly_autoplay', __( 'Autoplay:', 'amazonpolly' ), array( $this, 'autoplay_gui' ), 'amazon_ai_polly', 'amazon_ai_playersettings', array( 'label_for' => 'amazon_polly_autoplay' ) );
+        			add_settings_field( 'amazon_polly_coming_soon_text', __( 'Coming Soon Text:', 'amazonpolly' ), array( $this, 'coming_soon_gui' ), 'amazon_ai_polly', 'amazon_ai_playersettings', array( 'label_for' => 'amazon_polly_coming_soon' ) );
 
 
         			add_settings_section( 'amazon_ai_pollyadditional', __( 'Additional configuration', 'amazonpolly' ), array( $this, 'pollyadditional_gui' ), 'amazon_ai_polly');
@@ -115,6 +116,7 @@ class AmazonAI_PollyConfiguration {
         			register_setting('amazon_ai_polly', 'amazon_polly_player_label');
         			register_setting('amazon_ai_polly', 'amazon_polly_defconf');
         			register_setting('amazon_ai_polly', 'amazon_polly_autoplay');
+        			register_setting('amazon_ai_polly', 'amazon_polly_coming_soon_text');
 
         			register_setting('amazon_ai_polly', 'amazon_polly_update_all');
         			register_setting('amazon_ai_polly', 'amazon_polly_add_post_title');
@@ -395,6 +397,11 @@ class AmazonAI_PollyConfiguration {
 			echo '<input type="checkbox" name="amazon_polly_autoplay" id="amazon_polly_autoplay" ' . esc_attr( $checked ) . '> ';
 			echo '<p class="description" for="amazon_polly_autoplay">Automatically play audio content when page loads</p>';
 
+	}
+
+	public function coming_soon_gui() {
+		$coming_soon = get_option( 'amazon_polly_coming_soon_text' );
+		echo '<input type="text" class="regular-text" name="amazon_polly_coming_soon_text" id="amazon_polly_coming_soon_text" value="' . esc_attr( $coming_soon ) . '"> ';
 	}
 
 	/**
