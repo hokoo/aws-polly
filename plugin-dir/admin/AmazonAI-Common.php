@@ -1100,7 +1100,7 @@ class AmazonAI_Common
 	}
 
 	public function is_neural_supported_for_voice($voice) {
-		$neural_supported_voices = array("Olivia","Amy","Emma","Brian","Ivy","Joanna","Kendra","Kimberly","Salli","Joey","Justin","Kevin","Matthew","Camila","Lupe");
+		$neural_supported_voices = array("Olivia","Amy","Emma","Brian","Ivy","Joanna","Kendra","Kimberly","Salli","Joey","Justin","Kevin","Matthew","Camila","Lupe", "Seoyeon", "Gabrielle");
 
 		if (in_array($voice, $neural_supported_voices)) {
 			return true;
@@ -1112,7 +1112,7 @@ class AmazonAI_Common
 
 	public function is_neural_only_voice() {
 		$voice = $this->get_voice_id();
-		$neural_only_voices = array("Olivia","Kevin");
+		$neural_only_voices = array("Olivia","Kevin", "Gabrielle");
 		$logger = new AmazonAI_Logger();
 
 		$logger->log("Checking for neural: ".$voice);
