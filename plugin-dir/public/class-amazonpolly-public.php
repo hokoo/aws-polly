@@ -9,6 +9,8 @@
  * @subpackage Amazonpolly/public
  */
 
+use iTRON\WP_Lock\WP_Lock;
+
 /**
  * The public-facing functionality of the plugin.
  *
@@ -122,8 +124,21 @@ class Amazonpolly_Public {
 
 			// Check if Amazon Polly is enabled for specific post.
 			if ( get_post_meta( $post_id, 'amazon_polly_enable', true ) === '1' ) {
+				$audio_location = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
 
-				$audio_location    = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
+				// Check if audio file exists.
+				$result = wp_remote_head( $audio_location, ['sslverify' => false] );
+				if ( 200 !== wp_remote_retrieve_response_code( $result ) ) {
+					// File is absent, but maybe the generating is in progress?
+					$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
+					if ( $lock->lock_exists() ) {
+						// The audio will be available soon.
+						return $this->include_coming_soon() . $content;
+					}
+
+					return $content;
+				}
+
 				$selected_autoplay = get_option( 'amazon_polly_autoplay' );
 				$player_label      = get_option( 'amazon_polly_player_label' );
 
@@ -277,6 +292,11 @@ class Amazonpolly_Public {
 
 	}
 
+	private function include_coming_soon() {
+		$template = '<div id="amazon-polly-coming-soon">%s</div>';
+		$coming_soon_text = wpautop( get_option( 'amazon_polly_coming_soon_text' ) );
+		return sprintf( $template, $coming_soon_text );
+	}
 
 	/**
 	 * Method renders area for player.
