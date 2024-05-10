@@ -166,6 +166,9 @@ class Amazonpolly {
 		 */
 		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-helper.php';
 
+		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-CronHandler.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-CronData.php';
+
 		$this->loader = new Amazonpolly_Loader();
 	}
 
@@ -213,11 +216,13 @@ class Amazonpolly {
         $cloudfront_configuration = new AmazonAI_CloudFrontConfiguration($this->common, $cloudformation_service);
         $polly_service = new AmazonAI_PollyService($this->common);
         $translate_service = new AmazonAI_Translator($this->common);
+		$cron_handler = new AmazonAI_CronHandler( $polly_service, new AmazonAI_Logger() );
 
         $plugin_name = get_option('amazon_plugin_name');
         $this->loader->add_filter( "plugin_action_links_$plugin_name", $this->common, 'add_settings_link');
 
-        $this->loader->add_action( sprintf('admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION), $background_task, 'run');
+		$this->loader->add_action( sprintf('admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION), $background_task, 'run');
+		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HOOK, $background_task, 'handle_cron', 50, 3 );
 
         $this->loader->add_action( 'admin_print_footer_scripts', $this->common, 'add_quicktags');
         $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_styles');
@@ -225,7 +230,7 @@ class Amazonpolly {
         $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
         $this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox');
         $this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3);
-        $this->loader->add_action( 'amazon_polly_background_task_generate_post_audio', $polly_service, 'generate_audio', 10, 3);
+		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HANDLERS_HOOK . AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1);
 
 
 		$this->loader->add_action( 'before_delete_post', $this->common, 'delete_post' );

@@ -10,6 +10,8 @@ class AmazonAI_BackgroundTask {
 
 
   const ADMIN_POST_ACTION = 'amazon_polly_run_background_task';
+  const CRON_HOOK = 'aws_polly';
+  const CRON_HANDLERS_HOOK = 'amazon_polly_cron_';
 
   /**
    * Trigger an action in the background
@@ -52,6 +54,27 @@ class AmazonAI_BackgroundTask {
     $logger->log(sprintf('%s Triggering background task %s', __METHOD__, $task));
 
     return wp_remote_post($url, $request_args);
+  }
+
+  public function queue( string $task, $args = [], $unique = false ) {
+	  $cron_data = new AmazonAI_CronData( $task, $args, $unique );
+
+	  if ( $unique && wp_next_scheduled( self::CRON_HOOK, [$cron_data] ) ) {
+		  return;
+	  }
+
+	  wp_schedule_single_event( time() + MINUTE_IN_SECONDS * 1, self::CRON_HOOK, [$cron_data] );
+  }
+
+  public function handle_cron( AmazonAI_CronData $cron_data ) {
+	  try {
+		  $logger = new AmazonAI_Logger();
+		  $logger->log( sprintf( '%s Running cron task %s', __METHOD__, $cron_data->task ) );
+
+		  do_action_ref_array( self::CRON_HANDLERS_HOOK . $cron_data->task, $cron_data->data );
+	  } catch ( CronRechedulerException $e ) {
+		  $this->queue( $cron_data->task, $cron_data->data, $cron_data->unique );
+	  }
   }
 
   /**
