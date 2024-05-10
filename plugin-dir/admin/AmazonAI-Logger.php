@@ -1,4 +1,8 @@
 <?php
+
+use iTRON\AWS\Polly\Factory;
+use Psr\Log\LogLevel;
+
 /**
  * Logger for AWS AI plugin.
  *
@@ -6,15 +10,8 @@
  * @since      2.6.2
  *
  */
-class AmazonAI_Logger
-
-{
-
-	public function log($log) {
-
-		if (true === WP_DEBUG && apply_filters('amazon_polly_logging_enabled', false)) {
-			error_log($log);
-		}
+class AmazonAI_Logger {
+	public function log( $log ) {
+		Factory::getLogger()->log( LogLevel::DEBUG, $log );
 	}
-
 }

@@ -1,7 +1,27 @@
 {
+    "name": "hokoo/aws-polly",
+    "authors": [
+        {
+            "name": "Igor Tron",
+            "email": "root@itron.pro"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://wpackagist.org"
+        }
+    ],
     "require": {
         "aws/aws-sdk-php": "3.*",
         "symfony/polyfill-mbstring": "1.17",
-        "hokoo/wp-lock": "^1.1"
+        "hokoo/wp-lock": "^1.1",
+        "psr/log": "^1.1",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "iTRON\\AWS\\Polly\\": "src/"
+        }
     }
 }
