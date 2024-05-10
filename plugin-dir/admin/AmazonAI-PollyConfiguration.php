@@ -94,6 +94,7 @@ class AmazonAI_PollyConfiguration {
                     add_settings_field( 'amazon_ai_download_enabled', __( 'Enable download audio:', 'amazonpolly' ), array( $this, 'download_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_ai_download_enabled' ) );
 
                     add_settings_field('amazon_polly_s3', __('Store audio in Amazon S3:', 'amazonpolly'), array($this,'s3_gui'), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array('label_for' => 'amazon_polly_s3'));
+                    add_settings_field('amazon_polly_s3_bucket_name', __('Amazon S3 bucket name:', 'amazonpolly'), array($this,'s3_bucket_gui'), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array('label_for' => 'amazon_polly_s3_bucket_name'));
                     add_settings_field('amazon_polly_posttypes', __('Post types:', 'amazonpolly'), array($this,'posttypes_gui'), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array('label_for' => 'amazon_polly_posttypes'));
                     add_settings_field('amazon_polly_cloudfront', __('Amazon CloudFront (CDN) domain name:', 'amazonpolly'), array($this,'cloudfront_gui'), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array('label_for' => 'amazon_polly_cloudfront'));
                     add_settings_field('amazon_polly_poweredby', __('Display "Powered by AWS":', 'amazonpolly'), array($this,'poweredby_gui'), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array('label_for' => 'amazon_polly_poweredby'));
@@ -101,6 +102,7 @@ class AmazonAI_PollyConfiguration {
 
         			//Registration
                     register_setting('amazon_ai_polly', 'amazon_polly_s3');
+                    register_setting('amazon_ai_polly', 'amazon_polly_s3_bucket_name');
                     register_setting('amazon_ai_polly', 'amazon_polly_posttypes');
                     register_setting('amazon_ai_polly', 'amazon_polly_cloudfront');
                     register_setting('amazon_ai_polly', 'amazon_polly_poweredby');
@@ -239,7 +241,6 @@ class AmazonAI_PollyConfiguration {
      */
     function s3_gui()
     {
-        $s3_bucket_name = $this->common->get_s3_bucket_name();
         $is_s3_enabled = $this->common->is_s3_enabled();
         if ( $is_s3_enabled ) {
             $checked                = ' checked ';
@@ -249,11 +250,12 @@ class AmazonAI_PollyConfiguration {
             $bucket_name_visibility = 'display:none';
         }
         echo '<input type="checkbox" name="amazon_polly_s3" id="amazon_polly_s3" ' . esc_attr($checked) . ' > <p class="description"></p>';
-        if ( $is_s3_enabled ) {
-            echo '<label for="amazon_polly_s3" id="amazon_polly_s3_bucket_name_box" style="' . esc_attr($bucket_name_visibility) . '"> Your S3 bucket name is <b>' . esc_attr($s3_bucket_name) . '</b></label>';
-        }
         echo '<p class="description">Audio files are saved to and streamed from Amazon S3. For more information, see <a target="_blank" href="https://aws.amazon.com/s3">https://aws.amazon.com/s3</a></p>';
     }
+
+	function s3_bucket_gui() {
+		echo '<input type="text" class="regular-text" name="amazon_polly_s3_bucket_name" id="amazon_polly_s3_bucket_name" value="' . esc_attr( self::get_bucket_name() ) . '"> ';
+	}
 
     /**
      * Render the 'Enable Logging' input.
@@ -647,4 +649,13 @@ public function playerlabel_gui() {
 		//Empty
 	}
 
+	/**
+	 * Get S3 bucket name. The method uses filter 'amazon_polly_s3_bucket_name,
+	 * which allows to use customer S3 bucket name instead of default one.
+	 *
+	 * @since  1.0.6
+	 */
+	public static function get_bucket_name() {
+		return apply_filters( 'amazon_polly_s3_bucket_name', get_option( 'amazon_polly_s3_bucket_name' ) );
+	}
 }

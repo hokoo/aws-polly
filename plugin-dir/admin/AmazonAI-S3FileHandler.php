@@ -52,7 +52,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
       $common = $this->common;
 
       // Retrieve the name of the bucket where audio files are stored.
-      $s3_bucket  = $this->get_bucket_name();
+      $s3_bucket  = AmazonAI_PollyConfiguration::get_bucket_name();
       $prefix     = $this->get_prefix($post_id);
 
       // Delete main audio file.
@@ -90,7 +90,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
         $key = $this->get_prefix($post_id) . $file_name;
 
   			// We are storing audio file on Amazon S3.
-  			$s3BucketName = $this->get_bucket_name();
+  			$s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
   			$audio_location = 's3';
   			$result         = $this->s3_client->putObject(
   				array(
@@ -107,7 +107,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
 
     public function get_s3_object_link($post_id, $file_name) {
 
-      $s3BucketName = $this->get_bucket_name();
+      $s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
       $cloudfront_domain_name = apply_filters('amazon_polly_cloudfront_domain', get_option( 'amazon_polly_cloudfront' ));
       $key = $this->get_prefix($post_id) . $file_name;
 
@@ -125,63 +125,25 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
 
     }
 
-    public function check_if_s3_bucket_accessible() {
+	/**
+	 * @throws S3BucketNotAccException
+	 */
+	public function is_bucket_accessible(): bool {
+		$s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
 
-      $s3BucketName    = $this->get_bucket_name();
+		//Check if bucket is provided and can be access.
+		if ( empty( $s3BucketName ) ) {
+			return false;
+		}
 
-      // Check if user specified bucket name in using filter.
-      $s3BucketName = apply_filters( 'amazon_polly_s3_bucket_name', $s3BucketName );
+		try {
+			$this->s3_client->headBucket( array( 'Bucket' => $s3BucketName ) );
+		} catch ( Aws\S3\Exception\S3Exception $e ) {
+			throw new S3BucketNotAccException( 'S3 Bucket not Accessible' );
+		}
 
-      //Check if bucket is provided and can be access.
-      if ( empty( $s3BucketName ) ) {
-        return false;
-      } else {
-        try {
-          $result = $this->s3_client->headBucket(array('Bucket' => $s3BucketName));
-        } catch ( Aws\S3\Exception\S3Exception $e ) {
-          throw new S3BucketNotAccException('S3 Bucket not Accessible');
-        }
-      }
-
-      return true;
-    }
-
-    public function create_s3_bucket() {
-
-      $logger = new AmazonAI_Logger();
-      $logger->log(sprintf('%s Creating new S3 Bucket', __METHOD__));
-
-      $createNewBucket = true;
-
-      // If bucket was not provided (or was not accessible), we need to create new bucket.
-      // We will try to do it 10 times.
-      for ( $i = 0; $i <= 10; $i++ ) {
-        if ( $createNewBucket ) {
-          try {
-
-            $rand1 = wp_rand( 10000000000, 99999999999 );
-            $rand2 = md5( microtime() );
-            $name  = 'audio-for-wordpress-' . $rand1 . $rand2;
-            $name  = substr( $name, 0, 60 );
-
-            $result = $this->s3_client->createBucket( array( 'Bucket' => $name ) );
-  					update_option( 'amazon_polly_s3_bucket', $name );
-  					$createNewBucket = false;
-
-            $logger->log(sprintf('%s New S3 Bucket created ( name=%s )', __METHOD__, $name));
-
-  				} catch ( Aws\S3\Exception\S3Exception $e ) {
-            $logger->log(sprintf('%s Failed to Create new S3 Bucket! ( error=%s )', __METHOD__, $e));
-            error_log($e);
-  					update_option( 'amazon_polly_s3_bucket', '' );
-  					update_option( 'amazon_polly_s3', '' );
-
-            throw new S3BucketNotCreException('Could not create S3 Bucket');
-  				}
-        }
-  		}
-
-    }
+		return true;
+	}
 
 
         /**
@@ -200,20 +162,4 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
           );
 
         }
-
-
-        /**
-         * Get S3 bucket name. The method uses filter 'amazon_polly_s3_bucket_name,
-         * which allows to use customer S3 bucket name instead of default one.
-         *
-         * @since  1.0.6
-         */
-        public function get_bucket_name() {
-
-          $s3BucketName = get_option( 'amazon_polly_s3_bucket' );
-          $s3BucketName = apply_filters( 'amazon_polly_s3_bucket_name', $s3BucketName );
-
-          return $s3BucketName;
-        }
-
 }
