@@ -27,20 +27,25 @@ class AmazonAI_GeneralConfiguration
 
     public function amazon_ai_add_menu()
     {
-        $this->plugin_screen_hook_suffix = add_menu_page(__('AWS', 'amazon-ai'), __('AWS', 'amazon-ai'), 'manage_options', 'amazon_ai', array(
-            $this,
-            'amazonai_gui'
-        ), '
-
-		data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAMAAAC6V+0/AAABs1BMVEUAAAD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mQD/mAD/mQD/mQD/ng3/uU//mQD/mAD/mAD/nAj/xnH/x3P/mQD/mQH/qCb/sDj/mgP/ohf/piL/mQD/mAD/uEz/3an/tEP/oBL/v1//15v/v1//mQD/mQD/zH7/26X/zYH/1JT/z4X/vlv/z4X/mQD/mQD/wWT/rjX/z4b/0o7/0Yz/2qL/z4b/mQD/nQr/mgP/x3T/x3L/3ar/w2j/3ar/mQD/piH/ng3/yHX/wmb/1pf/zYL/mQD/x3P/rDH/xW7/0In/vlv/2aD/mQD/yXj/u1T/pBz/x3P/1pj/zYH/mQD/qiv/z4b/u1X/mQP/rDD/1ZX/mQD/mAD/nQz/pBr/nAf/rjb/w2n/mQD/mAD/mwX/vVv/3q3/mQH/pyP/mQD/mAD////QNrphAAAALnRSTlMAAAAmdBFp1P0HS776AjGh8gVx5T3vYWNjY1v+Jtc5svgMXM39GnziAS2a5Qcs8LydqQAAAMpJREFUGNNd0bFKA0EUheH/nwyYgIVBLIUoiEUELX0jn8k3sjTEFCK6CzaCCBYWgsqx2GXN2lyYjzNz4YwAoEqSdKdu1B6/SY9O1WPJU5LPgLirLvpkm+QjuqdHDm+mSd513xO3MA9504OlPfqTJNm8Vpz9Q9nGZPLVI49nf8lJcgcV5tPRovkLFWY7I5xBRcaIVFydj3AlleI4WYJyqFcDXifPiCzUi0vJzW2SlhSStillXUop61KaNulKxtP++n2G5gGXkk33G/wC8OuIazoN13oAAAAASUVORK5CYII=
-
-		');
-        $this->plugin_screen_hook_suffix = add_submenu_page('amazon_ai', 'General', 'General', 'manage_options', 'amazon_ai', array(
-            $this,
-            'amazonai_gui'
-        ));
-
-
+	    $this->plugin_screen_hook_suffix = add_menu_page( __( 'AWS', 'amazon-ai' ),
+		    __( 'AWS', 'amazon-ai' ),
+		    'manage_options',
+		    'amazon_ai',
+		    array(
+			    $this,
+			    'amazonai_gui'
+		    ),
+		    'dashicons-amazon'
+	    );
+	    $this->plugin_screen_hook_suffix = add_submenu_page( 'amazon_ai',
+		    'General',
+		    'General',
+		    'manage_options',
+		    'amazon_ai',
+		    array(
+			    $this,
+			    'amazonai_gui'
+		    ) );
     }
 
     public function amazonai_gui()
