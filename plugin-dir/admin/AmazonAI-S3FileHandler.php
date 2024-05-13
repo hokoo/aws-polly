@@ -52,7 +52,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
       $common = $this->common;
 
       // Retrieve the name of the bucket where audio files are stored.
-      $s3_bucket  = AmazonAI_PollyConfiguration::get_bucket_name();
+      $s3_bucket  = AmazonAI_GeneralConfiguration::get_bucket_name();
       $prefix     = $this->get_prefix($post_id);
 
       // Delete main audio file.
@@ -90,7 +90,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
         $key = $this->get_prefix($post_id) . $file_name;
 
   			// We are storing audio file on Amazon S3.
-  			$s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
+  			$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
   			$audio_location = 's3';
   			$result         = $this->s3_client->putObject(
   				array(
@@ -107,7 +107,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
 
     public function get_s3_object_link($post_id, $file_name) {
 
-      $s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
+      $s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
       $cloudfront_domain_name = apply_filters('amazon_polly_cloudfront_domain', get_option( 'amazon_polly_cloudfront' ));
       $key = $this->get_prefix($post_id) . $file_name;
 
@@ -129,7 +129,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
 	 * @throws S3BucketNotAccException
 	 */
 	public function is_bucket_accessible(): bool {
-		$s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
+		$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
 
 		//Check if bucket is provided and can be access.
 		if ( empty( $s3BucketName ) ) {

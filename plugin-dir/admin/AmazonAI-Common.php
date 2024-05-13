@@ -623,7 +623,7 @@ class AmazonAI_Common
 	public function get_s3_object_link($post_id, $language) {
 
 		$file_name	= 'amazon_polly_' . $post_id . $language . '.mp3';
-		$s3BucketName = AmazonAI_PollyConfiguration::get_bucket_name();
+		$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
 		$cloudfront_domain_name = apply_filters('amazon_polly_cloudfront_domain', get_option( 'amazon_polly_cloudfront' ));
 
 		if ( get_option('uploads_use_yearmonth_folders') ) {
