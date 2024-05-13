@@ -9,14 +9,14 @@
  * that starts the plugin.
  *
  * @link              amazon.com
- * @since             1.0.0
+ * @since             0.1.0
  * @package           Amazonpolly
  *
  * @wordpress-plugin
  * Plugin Name:       AWS for WordPress
  * Plugin URI:        https://wordpress.org/plugins/amazon-polly/
  * Description:       Create audio versions of your posts, translate them into other languages, and create podcasts. Integrate with Amazon Alexa to listen to your posts on Alexa-enabled devices. Use Amazon CloudFront to accelerate your website and provide a faster, more reliable viewing experience.
- * Version:           4.3.2
+ * Version:           0.1.0
  * Author:            AWS Labs, WP Engine
  * Author URI:        https://aws.amazon.com/
  * License:           GPL-3.0 ONLY
