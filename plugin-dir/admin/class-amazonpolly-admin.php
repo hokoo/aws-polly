@@ -379,7 +379,7 @@ class Amazonpolly_Admin {
 			$selected_region = 'us-east-1';
 		}
 
-		if ( empty( get_option( 'amazon_polly_access_key' ) ) ) {
+		if ( empty( AmazonAI_GeneralConfiguration::get_aws_access_key() ) ) {
 
 			// Set AWS SDK settings.
 			$aws_sdk_config = array(
@@ -394,8 +394,8 @@ class Amazonpolly_Admin {
 				'region'      => $selected_region,
 				'version'     => 'latest',
 				'credentials' => array(
-					'key'    => get_option( 'amazon_polly_access_key' ),
-					'secret' => get_option( 'amazon_polly_secret_key' ),
+					'key'    => AmazonAI_GeneralConfiguration::get_aws_access_key(),
+					'secret' => AmazonAI_GeneralConfiguration::get_aws_secret_key(),
 				),
 			);
 

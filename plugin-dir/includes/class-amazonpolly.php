@@ -262,9 +262,6 @@ class Amazonpolly {
 
         $this->loader->add_filter( 'wp_kses_allowed_html', $this->common, 'allowed_tags_kses');
         $this->loader->add_filter( 'tiny_mce_before_init', $this->common, 'allowed_tags_tinymce');
-				$this->loader->add_filter( "pre_update_option_amazon_polly_secret_key_fake", $this->common, 'aws_configuration_update', 10, 2 );
-
-
 
         $this->loader->add_action('wp_ajax_display_stack_details_creation', $cloudfront_configuration, 'display_stack_details_creation');
         $this->loader->add_action('wp_ajax_begin_cloudformation', $cloudformation_service, 'begin_cloudformation');

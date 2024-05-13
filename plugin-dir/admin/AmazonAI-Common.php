@@ -741,19 +741,13 @@ class AmazonAI_Common
 	}
 
 	/**
+	 * @todo Move to AmazonAI_GeneralConfiguration
 	 * Returns the name of the AWS region, which should be used by the plugin.
 	 *
 	 * @since    2.5.0
 	 */
-	public function get_aws_region()
-	{
-		$region = apply_filters('amazon_polly_aws_region', get_option('amazon_polly_region'));
-		if (empty($region)) {
-			update_option('amazon_polly_region', 'us-east-1');
-			$region = 'us-east-1';
-		}
-
-		return $region;
+	public function get_aws_region() {
+		return AmazonAI_GeneralConfiguration::get_option( 's3_region' );
 	}
 
 	public function if_translatable_enabled_for_language($language_code) {
@@ -1203,8 +1197,8 @@ class AmazonAI_Common
 			'ua_append' => ['request-source/aws-for-wordpress']
 		];
 		$credentials = false;
-		$aws_access_key = get_option('amazon_polly_access_key');
-		$aws_secret_key = get_option('amazon_polly_secret_key');
+		$aws_access_key = AmazonAI_GeneralConfiguration::get_aws_access_key();
+		$aws_secret_key = AmazonAI_GeneralConfiguration::get_aws_secret_key();
 
 		if ($aws_access_key && $aws_secret_key) {
 			$credentials = [
@@ -1876,20 +1870,4 @@ class AmazonAI_Common
         array_push( $links, $settings_link );
         return $links;
     }
-
-		public function aws_configuration_update($new_value, $old_value) {
-
-			$default_value = '********************';
-
-			if ( !isset($new_value) ) {
-				$new_value = $default_value;
-			}
-
-			if ($new_value != $default_value) {
-				update_option('amazon_polly_secret_key', $new_value);
-			}
-
-			return $default_value;
-    }
-
 }
