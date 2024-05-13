@@ -13,6 +13,10 @@
  * @subpackage Amazonpolly/includes
  */
 
+use iTRON\AWS\Polly\Factory;
+use iTRON\AWS\Polly\Integrations\StreamConnector;
+use iTRON\AWS\Polly\Loggers\Stream;
+
 /**
  * The core plugin class.
  *
@@ -219,6 +223,7 @@ class Amazonpolly {
 		$cron_handler = new AmazonAI_CronHandler( $polly_service, new AmazonAI_Logger() );
 
         $plugin_name = get_option('amazon_plugin_name');
+		$this->loader->add_action( 'init', $this, 'load_integrations', 5 );
         $this->loader->add_filter( "plugin_action_links_$plugin_name", $this->common, 'add_settings_link');
 
 		$this->loader->add_action( sprintf('admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION), $background_task, 'run');
@@ -360,4 +365,10 @@ class Amazonpolly {
 		return $this->version;
 	}
 
+	public function load_integrations() {
+		if ( is_a( Factory::getLogger(), Stream::class ) ) {
+			// When Stream plugin is enabled, this filter fires at the init hook with priority = 9.
+			add_filter( 'wp_stream_connectors', fn( $connectors ) => array_merge( $connectors, [ new StreamConnector() ] ) );
+		}
+	}
 }
