@@ -239,7 +239,6 @@ class AmazonAI_PollyConfiguration {
      */
     function s3_gui()
     {
-        $s3_bucket_name = $this->common->get_s3_bucket_name();
         $is_s3_enabled = $this->common->is_s3_enabled();
         if ( $is_s3_enabled ) {
             $checked                = ' checked ';
@@ -249,9 +248,6 @@ class AmazonAI_PollyConfiguration {
             $bucket_name_visibility = 'display:none';
         }
         echo '<input type="checkbox" name="amazon_polly_s3" id="amazon_polly_s3" ' . esc_attr($checked) . ' > <p class="description"></p>';
-        if ( $is_s3_enabled ) {
-            echo '<label for="amazon_polly_s3" id="amazon_polly_s3_bucket_name_box" style="' . esc_attr($bucket_name_visibility) . '"> Your S3 bucket name is <b>' . esc_attr($s3_bucket_name) . '</b></label>';
-        }
         echo '<p class="description">Audio files are saved to and streamed from Amazon S3. For more information, see <a target="_blank" href="https://aws.amazon.com/s3">https://aws.amazon.com/s3</a></p>';
     }
 
@@ -646,5 +642,4 @@ public function playerlabel_gui() {
 	function pollyadditional_gui() {
 		//Empty
 	}
-
 }

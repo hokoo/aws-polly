@@ -623,7 +623,7 @@ class AmazonAI_Common
 	public function get_s3_object_link($post_id, $language) {
 
 		$file_name	= 'amazon_polly_' . $post_id . $language . '.mp3';
-		$s3BucketName = $this->get_s3_bucket_name();
+		$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
 		$cloudfront_domain_name = apply_filters('amazon_polly_cloudfront_domain', get_option( 'amazon_polly_cloudfront' ));
 
 		if ( get_option('uploads_use_yearmonth_folders') ) {
@@ -649,36 +649,16 @@ class AmazonAI_Common
 	 * Validates if AWS configuration is correct and AWS can be reached.
 	 *
 	 * @since    2.5.0
+	 * @return bool
 	 */
-	public function validate_amazon_polly_access()
-	{
+	public function validate_amazon_polly_access(): bool {
 		try {
-			$this->check_aws_access();
+			$this->is_s3_enabled() && $this->check_aws_access() && $this->s3_handler->is_bucket_accessible();
+		}
 
-			// Checks if S3 should be used for storing files.
-
-			$is_s3_enabled = $this->is_s3_enabled();
-			if ($is_s3_enabled) {
-				try {
-
-					// Checks if S3 bucket can be access.
-
-					$accessible = $this->s3_handler->check_if_s3_bucket_accessible();
-					if (!$accessible) {
-						$this->s3_handler->create_s3_bucket();
-						$this->show_error_notice("notice-info", "The S3 bucket was successfully created.");
-					}
-				}
-
-				catch(S3BucketNotAccException $e) {
-					$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed. Creating a new S3 bucket.");
-
-					// If S3 bucket is not accessible, we will try to create new one.
-
-					$this->s3_handler->create_s3_bucket();
-					$this->show_error_notice("notice-info", "The S3 bucket was successfully created.");
-				}
-			}
+		catch (S3BucketNotAccException $e) {
+			$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed.");
+			return false;
 		}
 
 		catch(CredsException $e) {
@@ -809,18 +789,6 @@ class AmazonAI_Common
 		else {
 			return ' checked ';
 		}
-	}
-
-	/**
-	 * Get S3 bucket name. The method uses filter 'amazon_polly_s3_bucket_name,
-	 * which allows to use customer S3 bucket name instead of default one.
-	 *
-	 * @since  1.0.6
-	 */
-	public function get_s3_bucket_name()
-	{
-		$s3_bucket_name = $this->s3_handler->get_bucket_name();
-		return $s3_bucket_name;
 	}
 
 	public function get_polly_voices()

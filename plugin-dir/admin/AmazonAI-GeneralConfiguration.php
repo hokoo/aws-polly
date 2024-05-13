@@ -90,10 +90,16 @@ class AmazonAI_GeneralConfiguration
         ), 'amazon_ai', 'amazon_ai_general', array(
             'label_for' => 'amazon_polly_secret_key_fake'
         ));
-
+	    add_settings_field( 'amazon_polly_s3_bucket_name',
+		    __( 'Amazon S3 bucket name:', 'amazonpolly' ),
+		    array( $this, 's3_bucket_gui' ),
+		    'amazon_ai',
+		    'amazon_ai_general',
+		    array( 'label_for' => 'amazon_polly_s3_bucket_name' ) );
 
         register_setting('amazon_ai', 'amazon_polly_access_key');
         register_setting('amazon_ai', 'amazon_polly_secret_key_fake');
+	    register_setting('amazon_ai', 'amazon_polly_s3_bucket_name');
 
           add_settings_field('amazon_polly_region', __('AWS Region:', 'amazonpolly'), array(
               $this,
@@ -184,5 +190,17 @@ class AmazonAI_GeneralConfiguration
         //Empty
     }
 
+	function s3_bucket_gui() {
+		echo '<input type="text" class="regular-text" name="amazon_polly_s3_bucket_name" id="amazon_polly_s3_bucket_name" value="' . esc_attr( self::get_bucket_name() ) . '"> ';
+	}
 
+	/**
+	 * Get S3 bucket name. The method uses filter 'amazon_polly_s3_bucket_name,
+	 * which allows to use customer S3 bucket name instead of default one.
+	 *
+	 * @since  1.0.6
+	 */
+	public static function get_bucket_name() {
+		return apply_filters( 'amazon_polly_s3_bucket_name', get_option( 'amazon_polly_s3_bucket_name' ) );
+	}
 }
