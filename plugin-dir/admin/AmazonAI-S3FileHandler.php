@@ -112,9 +112,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
       $key = $this->get_prefix($post_id) . $file_name;
 
       if ( empty( $cloudfront_domain_name ) ) {
-
-        $common = $this->common;
-        $selected_region = $common->get_aws_region();
+        $selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
 
         $audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
       } else {

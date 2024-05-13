@@ -599,7 +599,7 @@ class AmazonAI_Common
 						'ca-central-1',
 						'eu-central-1'
 					);
-					$selected_region = $this->get_aws_region();
+					$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
 					if (in_array($selected_region, $supported_regions)) {
 						if ('checked' == trim($start_value)) {
 							if ($translate_accessible) {
@@ -634,7 +634,7 @@ class AmazonAI_Common
 
 		if ( empty( $cloudfront_domain_name ) ) {
 
-			$selected_region = $this->get_aws_region();
+			$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
 
 			$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
 		} else {
@@ -747,7 +747,7 @@ class AmazonAI_Common
 	 * @since    2.5.0
 	 */
 	public function get_aws_region() {
-		return AmazonAI_GeneralConfiguration::get_option( 's3_region' );
+		return AmazonAI_GeneralConfiguration::get_aws_region();
 	}
 
 	public function if_translatable_enabled_for_language($language_code) {
@@ -1019,7 +1019,7 @@ class AmazonAI_Common
 
 		public function is_conversational_supported_in_region() {
 
-			$selected_region = $this->get_aws_region();
+			$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
 			$conversational_supported_regions = array("us-east-1","us-west-2","eu-west-1");
 
 			if (in_array($selected_region, $conversational_supported_regions)) {
@@ -1031,7 +1031,7 @@ class AmazonAI_Common
 
 	public function is_neural_supported_in_region() {
 
-		$selected_region = $this->get_aws_region();
+		$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
 		$neural_supported_regions = array("us-east-1","us-west-2","ap-northeast-2","ap-southeast-1","ap-southeast-2","ap-northeast-1","ca-central-1","eu-central-1","eu-west-1","eu-west-2","us-gov-west-1");
 
 		if (in_array($selected_region, $neural_supported_regions)) {
@@ -1192,7 +1192,7 @@ class AmazonAI_Common
 	private function get_aws_sdk_config($region = null)
 	{
 		$aws_sdk_config = [
-			'region' => $this->get_aws_region(),
+			'region' => AmazonAI_GeneralConfiguration::get_aws_region(),
 			'version' => 'latest',
 			'ua_append' => ['request-source/aws-for-wordpress']
 		];

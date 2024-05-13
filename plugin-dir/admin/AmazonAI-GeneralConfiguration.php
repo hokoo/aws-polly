@@ -227,7 +227,7 @@ class AmazonAI_GeneralConfiguration
 			return self::get_overloaded( $option_name );
 		}
 
-		return get_option( self::OPTION_PREFIX . $option_name );
+		return (string) get_option( self::OPTION_PREFIX . $option_name );
 	}
 
 	/**
@@ -246,5 +246,9 @@ class AmazonAI_GeneralConfiguration
 
 	public static function get_aws_secret_key() {
 		return self::get_option( 's3_secret_key' );
+	}
+
+	public static function get_aws_region() {
+		return self::get_option( 's3_region' ) ?: 'us-east-1';
 	}
 }

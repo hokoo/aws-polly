@@ -356,7 +356,7 @@ class AmazonAI_TranslateConfiguration
                     'us-west-2',
                     'eu-west-1'
                 );
-                $selected_region      = $this->common->get_aws_region();
+                $selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
                 if (in_array($selected_region, $supported_regions)) {
                     echo '<input type="checkbox" name="amazon_polly_trans_enabled" id="amazon_polly_trans_enabled" ' . $this->common->checked_validator('amazon_polly_trans_enabled') . '> ';
                     if ('checked' == trim($start_value)) {
