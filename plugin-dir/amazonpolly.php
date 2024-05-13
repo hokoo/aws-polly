@@ -9,7 +9,7 @@
  * that starts the plugin.
  *
  * @link              amazon.com
- * @since             0.2.1
+ * @since             0.2.2
  * @package           Amazonpolly
  *
  * @wordpress-plugin
