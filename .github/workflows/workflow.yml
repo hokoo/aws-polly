@@ -33,10 +33,12 @@ jobs:
 
       # Zip the plugin directory
       - name: Zip the plugin directory
-        run: zip -r aws-polly-wp-plugin.zip aws-polly
+        run: |
+          zip -r -q aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly \ 
+          echo "Zipped to aws-polly-wp-plugin-${{ github.ref_name }}.zip"
 
       - name: Upload Release Artifact
         uses: AButler/upload-release-assets@v3.0
         with:
-          files: ./aws-polly-wp-plugin.zip
+          files: ./aws-polly-wp-plugin-${{ github.ref_name }}.zip
           repo-token: ${{ secrets.GITHUB_TOKEN }}
