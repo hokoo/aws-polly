@@ -111,7 +111,11 @@ class Amazonpolly_Public {
 		}
 
 
-		$post_id = $GLOBALS['post']->ID;
+		$post_id = isset( $GLOBALS['post'] ) ? $GLOBALS['post']->ID : null;
+		if ( ! $post_id ) {
+			return $content;
+		}
+
 		$common = $this->common;
 
 		$source_language = $common->get_post_source_language($post_id);
@@ -120,101 +124,108 @@ class Amazonpolly_Public {
 
 
 		// Check if Amazon Polly is enabled in WP, if yes then...
-		if ( $common->is_polly_enabled() ) {
+		if ( ! $common->is_polly_enabled() ) {
+			return $content;
+		}
 
-			// Check if Amazon Polly is enabled for specific post.
-			if ( get_post_meta( $post_id, 'amazon_polly_enable', true ) === '1' ) {
-				$audio_location = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
+		// Check if Amazon Polly is enabled for specific post.
+		if ( get_post_meta( $post_id, 'amazon_polly_enable', true ) !== '1' ) {
+			return $content;
+		}
 
-				// Check if audio file exists.
-				$result = wp_remote_head( $audio_location, ['sslverify' => false] );
-				if ( 200 !== wp_remote_retrieve_response_code( $result ) ) {
-					// File is absent, but maybe the generating is in progress?
-					$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
-					if ( $lock->lock_exists() ) {
-						// The audio will be available soon.
-						return $this->include_coming_soon() . $content;
-					}
+		$audio_location = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
 
-					return $content;
-				}
+		// Check if audio file exists.
+		$result = wp_remote_head( $audio_location, ['sslverify' => false] );
+		if ( 200 !== wp_remote_retrieve_response_code( $result ) ) {
+			// File is absent, but maybe the generating is planned or in progress?
+			$lock            = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
+			$background_task = new AmazonAI_BackgroundTask();
 
-				$selected_autoplay = get_option( 'amazon_polly_autoplay' );
-				$player_label      = get_option( 'amazon_polly_player_label' );
+			if ( $lock->lock_exists() || $background_task->has_queued_audio( $post_id ) ) {
+				// The audio will be available soon.
+				return $this->include_coming_soon() . $content;
+			}
 
-				// Checks if this is single post view and if there is autoplay options selected.
-				if ( is_singular() && ! empty( $selected_autoplay ) ) {
-					$autoplay = 'autoplay';
-				} else {
-					$autoplay = '';
-				}
+			return $content;
+		}
+
+		$selected_autoplay = get_option( 'amazon_polly_autoplay' );
+		$player_label      = get_option( 'amazon_polly_player_label' );
+
+		// Checks if this is single post view and if there is autoplay options selected.
+		if ( is_singular() && ! empty( $selected_autoplay ) ) {
+			$autoplay = 'autoplay';
+		} else {
+			$autoplay = '';
+		}
 
 
-				// Prepare "Power By" label.
-				$voice_by_part = '';
-				if ( $common->is_poweredby_enabled() ) {
-					if ( is_singular() ) {
-						$image  = __('<img src="https://d12ee1u74lotna.cloudfront.net/images/Voiced_by_Amazon_Polly_EN.png" width="100" alt="Voiced by Amazon Polly" >', $this->plugin_name);
-					/**
-					 * Filters the voiced by Polly image HTML
-					 *
-					 * @param string $image Voiced by Polly image HTML
-					 * @param string $locale The current page locale
-					 */
-					$image  = apply_filters('amazon_polly_voiced_by_html', $image, get_locale());
+		// Prepare "Power By" label.
+		$voice_by_part = '';
+		if ( $common->is_poweredby_enabled() ) {
+			if ( is_singular() ) {
+				$image  = __('<img src="https://d12ee1u74lotna.cloudfront.net/images/Voiced_by_Amazon_Polly_EN.png" width="100" alt="Voiced by Amazon Polly" >', $this->plugin_name);
+			/**
+			 * Filters the voiced by Polly image HTML
+			 *
+			 * @param string $image Voiced by Polly image HTML
+			 * @param string $locale The current page locale
+			 */
+			$image  = apply_filters('amazon_polly_voiced_by_html', $image, get_locale());
             $voice_by_part = '<a href="https://aws.amazon.com/polly/" target="_blank" rel="noopener noreferrer">' . $image . '</a>';
-					}
-				}
+			}
+		}
 
-				// Removing Amazon Polly special tags.
-				$content = $content;
-				$content = preg_replace( '/-AMAZONPOLLY-ONLYAUDIO-START-[\S\s]*?-AMAZONPOLLY-ONLYAUDIO-END-/', '', $content );
-				$content = str_replace( '-AMAZONPOLLY-ONLYWORDS-START-', '', $content );
-				$content = str_replace( '-AMAZONPOLLY-ONLYWORDS-END-', '', $content );
+		// Removing Amazon Polly special tags.
+		$content = $content;
+		$content = preg_replace( '/-AMAZONPOLLY-ONLYAUDIO-START-[\S\s]*?-AMAZONPOLLY-ONLYAUDIO-END-/', '', $content );
+		$content = str_replace( '-AMAZONPOLLY-ONLYWORDS-START-', '', $content );
+		$content = str_replace( '-AMAZONPOLLY-ONLYWORDS-END-', '', $content );
 
-				// Create player area.
-				if ( is_singular() ) {
+		// Create player area.
+		if ( is_singular() ) {
 
-					// By default we will show default player.
-					$audio_part = $this->include_audio_player( 'src', $audio_location, $autoplay );
+			// By default we will show default player.
+			$audio_part = $this->include_audio_player( 'src', $audio_location, $autoplay );
 
-					// Checks if Translate functionaliy is turned on.
-					if ($common->is_translation_enabled() ) {
-						// Checks if other than default langue is choosen.
-						if(isset($_GET['amazonai-language'])) {
+			// Checks if Translate functionaliy is turned on.
+			if ($common->is_translation_enabled() ) {
+				// Checks if other than default langue is choosen.
+				if(isset($_GET['amazonai-language'])) {
 
-							// Retrievie selected language.
-							$selected_language = $_GET['amazonai-language'];
+					// Retrievie selected language.
+					$selected_language = $_GET['amazonai-language'];
 
-							if ( $source_language != $selected_language ) {
+					if ( $source_language != $selected_language ) {
 
-								$audio_part = '';
-								foreach ($common->get_all_polly_languages() as $language_code) {
-									if ($language_code === $selected_language) {
-										$audio_part = $this->include_audio_player( $selected_language, $audio_location, $autoplay );
-									}
-								}
+						$audio_part = '';
+						foreach ($common->get_all_polly_languages() as $language_code) {
+							if ($language_code === $selected_language) {
+								$audio_part = $this->include_audio_player( $selected_language, $audio_location, $autoplay );
 							}
 						}
 					}
-
-					$subscribe_part = $this->get_subscribe_part();
-
-
-					$polly_content = '
-					<table id="amazon-polly-audio-table">
-						<tr>
-						<td id="amazon-polly-audio-tab">
-							<div id="amazon-ai-player-label">' . $player_label . '</div>
-							' . $audio_part . '
-							<div id="amazon-polly-subscribe-tab">' . $subscribe_part . '</div>
-							<div id="amazon-polly-by-tab">' . $voice_by_part . '</div>
-						</td>
-						</tr>
-					</table>';
 				}
 			}
+
+			$subscribe_part = $this->get_subscribe_part();
+
+
+			$polly_content = '
+			<table id="amazon-polly-audio-table">
+				<tr>
+				<td id="amazon-polly-audio-tab">
+					<div id="amazon-ai-player-label">' . $player_label . '</div>
+					' . $audio_part . '
+					<div id="amazon-polly-subscribe-tab">' . $subscribe_part . '</div>
+					<div id="amazon-polly-by-tab">' . $voice_by_part . '</div>
+				</td>
+				</tr>
+			</table>';
 		}
+
+
 
 
 		// Will create 'translate' options and content part. If enabled.

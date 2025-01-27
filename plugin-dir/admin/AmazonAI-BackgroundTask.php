@@ -66,6 +66,16 @@ class AmazonAI_BackgroundTask {
 	  wp_schedule_single_event( time() + MINUTE_IN_SECONDS * 1, self::CRON_HOOK, [$cron_data] );
   }
 
+  public function queue_audio( int $post_id ) {
+	  $this->queue( AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, [$post_id], true );
+  }
+
+  public function has_queued_audio( int $post_id ) {
+	  $cron_data = new AmazonAI_CronData( AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, [$post_id], true );
+
+	  return wp_next_scheduled( self::CRON_HOOK, [$cron_data] );
+  }
+
   public function handle_cron( AmazonAI_CronData $cron_data ) {
 	  try {
 		  $logger = new AmazonAI_Logger();
