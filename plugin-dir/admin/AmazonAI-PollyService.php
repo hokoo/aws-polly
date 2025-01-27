@@ -85,7 +85,7 @@ class AmazonAI_PollyService {
 		if( ! ( wp_is_post_revision( $post_id) || wp_is_post_autosave( $post_id ) ) ) {
 			$logger->log(sprintf('%s Starting background task process ( id=%s )', __METHOD__, $post_id));
 			$background_task = new AmazonAI_BackgroundTask();
-			$background_task->queue(self::GENERATE_POST_AUDIO_TASK, [ $post_id ], true );
+			$background_task->queue_audio( $post_id );
 		}
 	}
 
