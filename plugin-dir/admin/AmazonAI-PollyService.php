@@ -475,6 +475,14 @@ class AmazonAI_PollyService {
 
 		}
 
+		// Saving the duration of an audio file as the string 00:00.
+		$getID3 = new getID3;
+		$file_info = $getID3->analyze( $file_temp_full_name );
+		$playtime_string = $file_info['playtime_string'] ?? '';
+		if ( $playtime_string ) {
+			update_post_meta( $post_id, 'amazon_polly_audio_playtime', $playtime_string );
+		}
+
 		// Saving audio file in final destination.
 		$fileHandler = $common->get_file_handler();
 		$audio_location_link = $fileHandler->save($wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name);
