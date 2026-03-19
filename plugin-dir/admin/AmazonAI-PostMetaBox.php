@@ -103,23 +103,34 @@ class AmazonAI_PostMetaBox {
       echo '<p><input type="checkbox" name="amazon_polly_enable" id="amazon_polly_enable" value="1"  ' . esc_attr($polly_checked) . '/><label for="amazon_polly_enable">Enable Text-To-Speech (Amazon Polly)</label> </p>';
       echo '<div id="amazon_polly_post_options" style="' . esc_attr($post_options_visibility) . '">';
 
-      try {
-        $language_code = $this->common->get_post_source_language( $post->ID );
-        $post_voice_id = get_post_meta($post->ID, 'amazon_polly_voice_id', true);
-        $global_voice_id = $this->common->resolve_polly_voice_id( $language_code, $this->common->get_voice_id(), 'Matthew' );
-        $voice_id = $this->common->resolve_polly_voice_id( $language_code, $post_voice_id, $global_voice_id );
-        $compatible_voices = $this->common->get_compatible_polly_voices( $language_code );
+	      try {
+	        $language_code = $this->common->get_post_source_language( $post->ID );
+	        $post_voice_id = get_post_meta($post->ID, 'amazon_polly_voice_id', true);
+	        $is_post_voice_override_disabled = $this->common->is_post_voice_override_disabled();
+	        $global_voice_id = $this->common->resolve_polly_voice_id( $language_code, $this->common->get_voice_id(), 'Matthew' );
+	        $voice_id = $is_post_voice_override_disabled
+	          ? $global_voice_id
+	          : $this->common->resolve_polly_voice_id( $language_code, $post_voice_id, $global_voice_id );
 
-        if ( $voice_id !== $post_voice_id ) {
-          update_post_meta( $post->ID, 'amazon_polly_voice_id', $voice_id );
-        }
+	        if ( $is_post_voice_override_disabled && ! empty( $post_voice_id ) ) {
+	          delete_post_meta( $post->ID, 'amazon_polly_voice_id' );
+	        }
 
-        if ( empty( $compatible_voices ) ) {
-          echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
-        } else {
-          echo '<p>Voice name: <select name="amazon_polly_voice_id" id="amazon_polly_voice_id" >';
-          if ( ! $this->render_voice_options( $language_code, $voice_id ) ) {
-            echo '</select></p>';
+	        $compatible_voices = $this->common->get_compatible_polly_voices( $language_code );
+
+	        if ( ! $is_post_voice_override_disabled && $voice_id !== $post_voice_id ) {
+	          update_post_meta( $post->ID, 'amazon_polly_voice_id', $voice_id );
+	        }
+
+	        if ( empty( $compatible_voices ) ) {
+	          echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
+	        } elseif ( $is_post_voice_override_disabled ) {
+	          echo '<p>Voice name: <strong>' . esc_html( $voice_id ) . '</strong></p>';
+	          echo '<p class="description">Custom per-post voice selection is disabled in plugin settings. This post will use the global voice.</p>';
+	        } else {
+	          echo '<p>Voice name: <select name="amazon_polly_voice_id" id="amazon_polly_voice_id" >';
+	          if ( ! $this->render_voice_options( $language_code, $voice_id ) ) {
+	            echo '</select></p>';
             echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
             echo '</div>';
             return;

@@ -1049,6 +1049,14 @@ class AmazonAI_Common
 		return $voice_id;
 	}
 
+	public function is_post_voice_override_disabled() {
+		return ! empty( get_option( 'amazon_polly_disable_post_voice_override', '' ) );
+	}
+
+	public function is_post_voice_override_disabled_checked() {
+		return $this->is_post_voice_override_disabled() ? ' checked ' : '';
+	}
+
 	/**
 	 * @todo Move to AmazonAI_GeneralConfiguration
 	 * Returns the name of the AWS region, which should be used by the plugin.

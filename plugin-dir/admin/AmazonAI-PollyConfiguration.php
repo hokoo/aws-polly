@@ -60,8 +60,10 @@ class AmazonAI_PollyConfiguration {
         register_setting('amazon_ai_polly', 'amazon_ai_polly_enable');
 
         if ($this->common->is_polly_enabled() ) {
-            if ($this->common->validate_amazon_polly_access()) {
-	                if ($this->common->is_language_supported_for_polly()) {
+	            if ($this->common->validate_amazon_polly_access()) {
+		                if ($this->common->is_language_supported_for_polly()) {
+	                  add_settings_field( 'amazon_polly_disable_post_voice_override', __( 'Lock post voice to global setting:', 'amazonpolly' ), array( $this, 'disable_post_voice_override_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_disable_post_voice_override' ) );
+	                  register_setting('amazon_ai_polly', 'amazon_polly_disable_post_voice_override');
 	                  add_settings_field( 'amazon_polly_voice_id', __( 'Voice name:', 'amazonpolly' ), array( $this, 'voices_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_voice_id' ) );
 	                  register_setting('amazon_ai_polly', 'amazon_polly_voice_id');
 
@@ -85,10 +87,10 @@ class AmazonAI_PollyConfiguration {
         			add_settings_field( 'amazon_polly_coming_soon_text', __( 'Coming Soon Text:', 'amazonpolly' ), array( $this, 'coming_soon_gui' ), 'amazon_ai_polly', 'amazon_ai_playersettings', array( 'label_for' => 'amazon_polly_coming_soon' ) );
 
 
-        			add_settings_section( 'amazon_ai_pollyadditional', __( 'Additional configuration', 'amazonpolly' ), array( $this, 'pollyadditional_gui' ), 'amazon_ai_polly');
+                    add_settings_section( 'amazon_ai_pollyadditional', __( 'Additional configuration', 'amazonpolly' ), array( $this, 'pollyadditional_gui' ), 'amazon_ai_polly');
 //        			add_settings_field( 'amazon_polly_update_all', __( 'Bulk update all posts:', 'amazonpolly' ), array( $this, 'update_all_gui' ),'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_polly_update_all' ) );
-        			add_settings_field( 'amazon_polly_add_post_title', __( 'Add post title to audio:', 'amazonpolly' ), array( $this, 'add_post_title_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_polly_add_post_title' ) );
-        			add_settings_field( 'amazon_polly_add_post_excerpt', __( 'Add post excerpt to audio:', 'amazonpolly' ), array( $this, 'add_post_excerpt_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_polly_add_post_excerpt' ) );
+                    add_settings_field( 'amazon_polly_add_post_title', __( 'Add post title to audio:', 'amazonpolly' ), array( $this, 'add_post_title_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_polly_add_post_title' ) );
+                    add_settings_field( 'amazon_polly_add_post_excerpt', __( 'Add post excerpt to audio:', 'amazonpolly' ), array( $this, 'add_post_excerpt_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_polly_add_post_excerpt' ) );
                     add_settings_field( 'amazon_ai_medialibrary_enabled', __( 'Enable Media Library support:', 'amazonpolly' ), array( $this, 'medialibrary_enabled_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_ai_medialibrary_enabled' ) );
                     add_settings_field( 'amazon_ai_skip_tags', __( 'Skip tags:', 'amazonpolly' ), array( $this, 'skiptags_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_ai_skip_tags' ) );
                     add_settings_field( 'amazon_ai_download_enabled', __( 'Enable download audio:', 'amazonpolly' ), array( $this, 'download_gui' ), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array( 'label_for' => 'amazon_ai_download_enabled' ) );
@@ -119,8 +121,8 @@ class AmazonAI_PollyConfiguration {
         			register_setting('amazon_ai_polly', 'amazon_polly_coming_soon_text');
 
 //        			register_setting('amazon_ai_polly', 'amazon_polly_update_all');
-        			register_setting('amazon_ai_polly', 'amazon_polly_add_post_title');
-        			register_setting('amazon_ai_polly', 'amazon_polly_add_post_excerpt');
+                    register_setting('amazon_ai_polly', 'amazon_polly_add_post_title');
+                    register_setting('amazon_ai_polly', 'amazon_polly_add_post_excerpt');
                     register_setting('amazon_ai_polly', 'amazon_ai_medialibrary_enabled');
                     register_setting('amazon_ai_polly', 'amazon_ai_skip_tags');
                     register_setting('amazon_ai_polly', 'amazon_ai_download_enabled');
@@ -652,6 +654,11 @@ public function playerlabel_gui() {
 			$speed = $this->common->get_audio_speed();
 			echo '<input type="number" name="amazon_polly_speed" id="amazon_polly_speed" value="' . esc_attr( $speed ) . '">';
 
+	}
+
+	public function disable_post_voice_override_gui() {
+		echo '<input type="checkbox" name="amazon_polly_disable_post_voice_override" id="amazon_polly_disable_post_voice_override"' . $this->common->is_post_voice_override_disabled_checked() . '> ';
+		echo '<p class="description">When enabled, posts cannot override the global Polly voice. Existing per-post voice selections are ignored.</p>';
 	}
 
 
