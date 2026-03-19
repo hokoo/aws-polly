@@ -124,6 +124,44 @@ class AmazonAI_TranslateConfiguration
   		//Empty
   	}
 
+    private function render_voice_options( $language_code, $selected_voice_id, $disabled ) {
+        $neural_requested = $this->common->is_polly_neural_requested();
+        $voice_groups = $this->common->get_grouped_polly_voices( $language_code );
+        $has_voices = false;
+
+        foreach ( $voice_groups as $group_key => $group ) {
+            if ( empty( $group['voices'] ) ) {
+                continue;
+            }
+
+            $has_voices = true;
+            echo '<optgroup label="' . esc_attr( $group['label'] ) . '">';
+            foreach ( $group['voices'] as $voice ) {
+                $is_neural_only = 'neural_only' === $group_key;
+                $is_disabled = $is_neural_only && ! $neural_requested;
+
+                echo '<option value="' . esc_attr($voice['Id']) . '"';
+                echo ' data-supported-engines="' . esc_attr( implode( ',', $voice['SupportedEngines'] ?? [] ) ) . '"';
+                echo ' data-neural-only="' . esc_attr( $is_neural_only ? '1' : '0' ) . '"';
+                echo ' data-standard-supported="' . esc_attr( $this->common->is_standard_supported_for_voice( $voice ) ? '1' : '0' ) . '"';
+                if ( $is_disabled ) {
+                    echo ' disabled="disabled"';
+                }
+                if ( ! empty( $disabled ) ) {
+                    echo ' disabled="disabled"';
+                }
+                if (strcmp($selected_voice_id, $voice['Id']) === 0) {
+                    echo ' selected="selected"';
+                }
+
+                echo '>' . esc_attr($voice['LanguageName']) . ' - ' . esc_attr($voice['Id']) . ' [' . esc_attr( $this->common->get_polly_voice_capability_label( $voice ) ) . ']</option>';
+            }
+            echo '</optgroup>';
+        }
+
+        return $has_voices;
+    }
+
 
     /**
      * Render the translation target languages input.
@@ -131,11 +169,10 @@ class AmazonAI_TranslateConfiguration
      * @param           string $language_label  Label which should be used for this language.
      * @param           string $language_name   Name (in english) of this language.
      * @param           string $lanuage Language code.
-     * @param           string $voice_list  List of available voices.
      * @param           string $src_lang    Source Language (code).
      * @since  2.0.0
      */
-    private function show_translate_option($src_lang, $voice_list, $lanuage, $language_name, $language_label, $selected_display_value)
+    private function show_translate_option($src_lang, $lanuage, $language_name, $language_label, $selected_display_value)
     {
 
         if (empty($src_lang)) {
@@ -163,23 +200,19 @@ class AmazonAI_TranslateConfiguration
 
         echo '<tr>';
         echo '<td><input type="checkbox" name="' . $lan_option . '" id="' . $lan_option . '" ' . $this->common->check_if_language_is_checked($lanuage, $src_lang) . ' ' . $disabled . '>' . $language_name . ' </td><td>';
-        $voice_id = get_option($lan_voice_option);
+        $available_voices = $this->common->get_compatible_polly_voices( $lanuage );
+        $voice_id = $this->common->sync_polly_voice_option( $lan_voice_option, $lanuage );
 
         if ( $src_lang != $lanuage ) {
           if ($this->common->is_audio_for_translations_enabled()) {
-            echo '&emsp;&emsp;Voice: <select name="' . $lan_voice_option . '" id="' . $lan_voice_option . '" ' . $disabled . '>';
-            foreach ($voice_list['Voices'] as $voice) {
-                if (strpos($voice['LanguageName'], $language_name) !== false) {
-                    echo '<option value="' . esc_attr($voice['Id']) . '" ';
-                    if (strcmp($voice_id, $voice['Id']) === 0) {
-                        echo 'selected="selected"';
-                    }
-
-                    echo '>' . esc_attr($voice['LanguageName']) . ' - ' . esc_attr($voice['Id']) . '</option>';
-                }
+            if ( ! empty( $available_voices ) ) {
+                echo '&emsp;&emsp;Voice: <select name="' . $lan_voice_option . '" id="' . $lan_voice_option . '" ' . $disabled . '>';
+                $this->render_voice_options( $lanuage, $voice_id, $disabled );
+                echo '</select>';
+                echo '&emsp;&emsp;<span class="description">Neural-only voices require the global Neural setting.</span>';
+            } else {
+                echo '&emsp;&emsp;<span class="description">No supported voices available with the current Neural setting and AWS region.</span>';
             }
-
-            echo '</select>';
           }
         }
         echo '</td>';
@@ -266,36 +299,22 @@ class AmazonAI_TranslateConfiguration
      */
     public function translations_gui()
     {
-        /**
-         * Compare two voices for ordering purpose.
-         *
-         * @param           string $voice1                First voice.
-         * @param           string $voice2                Second voice.
-         * @since  1.0.0
-         */
-        function sort_voices($voice1, $voice2)
-        {
-            return strcmp($voice1['LanguageName'], $voice2['LanguageName']);
-        }
-
         $translate_enabled = $this->common->is_translation_enabled();
-            if ($translate_enabled) {
-                $src_lang   = $this->common->get_source_language();
-                $voice_list = $this->common->get_polly_voices();
-                usort($voice_list['Voices'], 'sort_voices');
-                echo '<table>';
+        if ($translate_enabled) {
+            $src_lang = $this->common->get_source_language();
+            echo '<table>';
 
-                foreach ($this->common->get_all_translatable_languages() as $language_code) {
-                  $language_name = $this->common->get_language_name($language_code);
-                  $language_label = $this->common->get_language_label($language_code);
-                  $selected_display_value = $this->common->get_language_display($language_code);
-                  $this->show_translate_option($src_lang, $voice_list, $language_code, $language_name, $language_label, $selected_display_value);
-                }
-
-                echo '</table>';
-            } else {
-                echo '<p class="description">Amazon Translate needs to be enabled</p>';
+            foreach ($this->common->get_all_translatable_languages() as $language_code) {
+              $language_name = $this->common->get_language_name($language_code);
+              $language_label = $this->common->get_language_label($language_code);
+              $selected_display_value = $this->common->get_language_display($language_code);
+              $this->show_translate_option($src_lang, $language_code, $language_name, $language_label, $selected_display_value);
             }
+
+            echo '</table>';
+        } else {
+            echo '<p class="description">Amazon Translate needs to be enabled</p>';
+        }
 
     }
 

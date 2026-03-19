@@ -9,6 +9,8 @@
 class AmazonAI_Common
 
 {
+	const POLLY_VOICES_TRANSIENT_PREFIX = 'amazon_polly_voices_';
+	const POLLY_VOICES_TRANSIENT_TTL = 43200;
 
 	// Information about languages supported by the AWS plugin
 	private $languages = [
@@ -263,6 +265,313 @@ class AmazonAI_Common
 		return $supported_languages;
 	}
 
+	private function get_polly_voices_transient_key() {
+		return self::POLLY_VOICES_TRANSIENT_PREFIX . md5( (string) $this->get_aws_region() );
+	}
+
+	private function sort_polly_voices_list( array &$voices ) {
+		usort(
+			$voices,
+			static function ( $voice1, $voice2 ) {
+				$label1 = sprintf( '%s %s', $voice1['LanguageName'] ?? '', $voice1['Id'] ?? '' );
+				$label2 = sprintf( '%s %s', $voice2['LanguageName'] ?? '', $voice2['Id'] ?? '' );
+
+				return strcmp( $label1, $label2 );
+			}
+		);
+	}
+
+	private function fetch_polly_voices_from_api() {
+		$voices = [];
+		$args = [
+			'IncludeAdditionalLanguageCodes' => true,
+		];
+		$next_token = null;
+
+		do {
+			if ( $next_token ) {
+				$args['NextToken'] = $next_token;
+			} else {
+				unset( $args['NextToken'] );
+			}
+
+			$result = $this->polly_client->describeVoices( $args );
+			$result_voices = $result['Voices'] ?? [];
+
+			if ( is_array( $result_voices ) ) {
+				$voices = array_merge( $voices, $result_voices );
+			}
+
+			$next_token = $result['NextToken'] ?? null;
+		} while ( ! empty( $next_token ) );
+
+		$this->sort_polly_voices_list( $voices );
+
+		return [
+			'Voices' => $voices,
+		];
+	}
+
+	private function get_language_match_data( $language_code ) {
+		$language_code = strtolower( (string) $language_code );
+		$primary_language = strtok( $language_code, '-' );
+		$match_data = [
+			'exact' => [],
+			'roots' => [],
+		];
+
+		if ( ! empty( $language_code ) ) {
+			$match_data['exact'][] = $language_code;
+		}
+
+		if ( ! empty( $primary_language ) ) {
+			$match_data['roots'][] = $primary_language;
+		}
+
+		$aliases = [
+			'ar' => [
+				'exact' => [ 'arb' ],
+				'roots' => [ 'arb' ],
+			],
+			'no' => [
+				'exact' => [ 'nb-no' ],
+				'roots' => [ 'nb' ],
+			],
+			'zh' => [
+				'exact' => [ 'cmn-cn', 'yue-cn' ],
+				'roots' => [ 'cmn', 'yue' ],
+			],
+		];
+
+		if ( isset( $aliases[ $language_code ] ) ) {
+			$match_data['exact'] = array_merge( $match_data['exact'], $aliases[ $language_code ]['exact'] );
+			$match_data['roots'] = array_merge( $match_data['roots'], $aliases[ $language_code ]['roots'] );
+		}
+
+		$match_data['exact'] = array_values( array_unique( array_filter( $match_data['exact'] ) ) );
+		$match_data['roots'] = array_values( array_unique( array_filter( $match_data['roots'] ) ) );
+
+		return $match_data;
+	}
+
+	private function is_polly_language_code_match( $voice_language_code, array $match_data ) {
+		$voice_language_code = strtolower( (string) $voice_language_code );
+		$voice_language_root = strtok( $voice_language_code, '-' );
+
+		if ( in_array( $voice_language_code, $match_data['exact'], true ) ) {
+			return true;
+		}
+
+		return in_array( $voice_language_root, $match_data['roots'], true );
+	}
+
+	private function voice_matches_language( array $voice, $language_code ) {
+		$match_data = $this->get_language_match_data( $language_code );
+		$voice_language_codes = [];
+
+		if ( ! empty( $voice['LanguageCode'] ) ) {
+			$voice_language_codes[] = $voice['LanguageCode'];
+		}
+
+		if ( ! empty( $voice['AdditionalLanguageCodes'] ) && is_array( $voice['AdditionalLanguageCodes'] ) ) {
+			$voice_language_codes = array_merge( $voice_language_codes, $voice['AdditionalLanguageCodes'] );
+		}
+
+		foreach ( $voice_language_codes as $voice_language_code ) {
+			if ( $this->is_polly_language_code_match( $voice_language_code, $match_data ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function get_supported_synthesis_engines( array $voice ) {
+		$supported_engines = $voice['SupportedEngines'] ?? [ 'standard' ];
+
+		if ( ! is_array( $supported_engines ) ) {
+			$supported_engines = [ 'standard' ];
+		}
+
+		$supported_engines = array_values(
+			array_intersect(
+				$supported_engines,
+				[ 'standard', 'neural' ]
+			)
+		);
+
+		if ( empty( $supported_engines ) && empty( $voice['SupportedEngines'] ) ) {
+			$supported_engines = [ 'standard' ];
+		}
+
+		return $supported_engines;
+	}
+
+	public function is_standard_supported_for_voice( $voice ) {
+		$voice_data = is_array( $voice ) ? $voice : $this->get_polly_voice( $voice );
+
+		if ( is_array( $voice_data ) ) {
+			return in_array( 'standard', $this->get_supported_synthesis_engines( $voice_data ), true );
+		}
+
+		return ! $this->is_neural_only_voice( $voice );
+	}
+
+	public function get_polly_voice_capability( $voice ) {
+		$voice_data = is_array( $voice ) ? $voice : $this->get_polly_voice( $voice );
+
+		if ( is_array( $voice_data ) ) {
+			$supported_engines = $this->get_supported_synthesis_engines( $voice_data );
+
+			if ( in_array( 'standard', $supported_engines, true ) && in_array( 'neural', $supported_engines, true ) ) {
+				return 'standard_neural';
+			}
+
+			if ( in_array( 'neural', $supported_engines, true ) ) {
+				return 'neural_only';
+			}
+		}
+
+		return 'standard';
+	}
+
+	public function get_polly_voice_capability_label( $voice ) {
+		switch ( $this->get_polly_voice_capability( $voice ) ) {
+			case 'standard_neural':
+				return 'Standard + Neural';
+			case 'neural_only':
+				return 'Neural only';
+			default:
+				return 'Standard';
+		}
+	}
+
+	public function is_polly_neural_requested() {
+		return ! empty( get_option( 'amazon_polly_neural', '' ) );
+	}
+
+	public function is_voice_compatible_with_neural_setting( $voice, $neural_requested = null ) {
+		if ( null === $neural_requested ) {
+			$neural_requested = $this->is_polly_neural_requested();
+		}
+
+		if ( $neural_requested ) {
+			return true;
+		}
+
+		return $this->is_standard_supported_for_voice( $voice );
+	}
+
+	public function get_available_polly_voices( $language_code = null ) {
+		if ( empty( $language_code ) ) {
+			$language_code = $this->get_source_language();
+		}
+
+		$voices = $this->get_polly_voices();
+		$available_voices = [];
+
+		foreach ( $voices['Voices'] ?? [] as $voice ) {
+			if ( ! $this->voice_matches_language( $voice, $language_code ) ) {
+				continue;
+			}
+
+			if ( empty( $this->get_supported_synthesis_engines( $voice ) ) ) {
+				continue;
+			}
+
+			$available_voices[] = $voice;
+		}
+
+		$this->sort_polly_voices_list( $available_voices );
+
+		return $available_voices;
+	}
+
+	public function get_compatible_polly_voices( $language_code = null, $neural_requested = null ) {
+		$compatible_voices = [];
+
+		foreach ( $this->get_available_polly_voices( $language_code ) as $voice ) {
+			if ( ! $this->is_voice_compatible_with_neural_setting( $voice, $neural_requested ) ) {
+				continue;
+			}
+
+			$compatible_voices[] = $voice;
+		}
+
+		return $compatible_voices;
+	}
+
+	public function get_grouped_polly_voices( $language_code = null ) {
+		$groups = [
+			'standard' => [
+				'label' => 'Standard Voices',
+				'voices' => [],
+			],
+			'standard_neural' => [
+				'label' => 'Standard + Neural Voices',
+				'voices' => [],
+			],
+			'neural_only' => [
+				'label' => 'Neural-only Voices',
+				'voices' => [],
+			],
+		];
+
+		foreach ( $this->get_available_polly_voices( $language_code ) as $voice ) {
+			$groups[ $this->get_polly_voice_capability( $voice ) ]['voices'][] = $voice;
+		}
+
+		return $groups;
+	}
+
+	public function get_polly_voice( $voice_id ) {
+		try {
+			foreach ( $this->get_polly_voices()['Voices'] ?? [] as $voice ) {
+				if ( ! empty( $voice['Id'] ) && $voice['Id'] === $voice_id ) {
+					return $voice;
+				}
+			}
+		} catch ( Exception $e ) {
+			return null;
+		}
+
+		return null;
+	}
+
+	public function resolve_polly_voice_id( $language_code, $requested_voice_id = '', $fallback_voice_id = '', array $args = [] ) {
+		$neural_requested = $args['neural_requested'] ?? $this->is_polly_neural_requested();
+		$available_voices = $this->get_compatible_polly_voices( $language_code, $neural_requested );
+
+		if ( empty( $available_voices ) ) {
+			return '';
+		}
+
+		$available_voice_ids = array_column( $available_voices, 'Id' );
+
+		foreach ( [ $requested_voice_id, $fallback_voice_id ] as $candidate_voice_id ) {
+			$candidate_voice_id = (string) $candidate_voice_id;
+			if ( ! empty( $candidate_voice_id ) && in_array( $candidate_voice_id, $available_voice_ids, true ) ) {
+				return $candidate_voice_id;
+			}
+		}
+
+		return (string) $available_voices[0]['Id'];
+	}
+
+	public function sync_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = [] ) {
+		$current_voice_id = (string) get_option( $option_name, '' );
+		$resolved_voice_id = $this->resolve_polly_voice_id( $language_code, $current_voice_id, $fallback_voice_id, $args );
+
+		if ( $resolved_voice_id !== $current_voice_id ) {
+			if ( '' === $resolved_voice_id ) {
+				delete_option( $option_name );
+			} else {
+				update_option( $option_name, $resolved_voice_id );
+			}
+		}
+
+		return $resolved_voice_id;
+	}
 
 	public function get_source_language_name() {
 
@@ -740,6 +1049,14 @@ class AmazonAI_Common
 		return $voice_id;
 	}
 
+	public function is_post_voice_override_disabled() {
+		return ! empty( get_option( 'amazon_polly_disable_post_voice_override', '' ) );
+	}
+
+	public function is_post_voice_override_disabled_checked() {
+		return $this->is_post_voice_override_disabled() ? ' checked ' : '';
+	}
+
 	/**
 	 * @todo Move to AmazonAI_GeneralConfiguration
 	 * Returns the name of the AWS region, which should be used by the plugin.
@@ -785,9 +1102,20 @@ class AmazonAI_Common
 		}
 	}
 
-	public function get_polly_voices()
+	public function get_polly_voices( $force_refresh = false )
 	{
-		$voices = $this->polly_client->describeVoices();
+		$transient_key = $this->get_polly_voices_transient_key();
+
+		if ( ! $force_refresh ) {
+			$voices = get_transient( $transient_key );
+			if ( is_array( $voices ) && isset( $voices['Voices'] ) ) {
+				return $voices;
+			}
+		}
+
+		$voices = $this->fetch_polly_voices_from_api();
+		set_transient( $transient_key, $voices, self::POLLY_VOICES_TRANSIENT_TTL );
+
 		return $voices;
 	}
 
@@ -932,65 +1260,104 @@ class AmazonAI_Common
 		}
 	}
 
-	public function is_polly_neural_enabled() {
-		$option_value = get_option('amazon_polly_neural', '');
-		if (empty($option_value) && !$this->is_neural_only_voice()) {
+		public function is_polly_neural_enabled() {
+			return $this->is_polly_neural_requested() ? ' checked ' : '';
+		}
+
+		public function normalize_polly_speaking_style( $style ) {
+			$style = (string) $style;
+
+			if ( in_array( $style, [ 'news', 'conversational' ], true ) ) {
+				return $style;
+			}
+
 			return '';
 		}
-		else {
-			return ' checked ';
-		}
-	}
 
-	public function is_polly_news_enabled() {
-
-		if (!$this->is_polly_neural_enabled()) {
-			return false;
-		}
-
-		$option_value = get_option('amazon_polly_news', '');
-		if (empty($option_value)) {
-			return false;
-		}
-		else {
-			return ' checked ';
-		}
-	}
-
-
-		public function is_polly_conversational_enabled() {
-
-			if (!$this->is_polly_neural_enabled()) {
-				return false;
+		public function get_requested_polly_speaking_style() {
+			$style = get_option( 'amazon_polly_speaking_style', null );
+			if ( null !== $style ) {
+				return $this->normalize_polly_speaking_style( $style );
 			}
 
-			if ($this->is_polly_news_enabled()) {
-				return false;
+			if ( ! empty( get_option( 'amazon_polly_news', '' ) ) ) {
+				return 'news';
 			}
 
-			$option_value = get_option('amazon_polly_conversational', '');
-			if (empty($option_value)) {
+			if ( ! empty( get_option( 'amazon_polly_conversational', '' ) ) ) {
+				return 'conversational';
+			}
+
+			return '';
+		}
+
+		private function sync_legacy_polly_speaking_style_options( $style ) {
+			update_option( 'amazon_polly_news', 'news' === $style ? 'on' : '' );
+			update_option( 'amazon_polly_conversational', 'conversational' === $style ? 'on' : '' );
+		}
+
+		public function sync_polly_speaking_style( $style = null, $persist_style_option = true ) {
+			if ( null === $style ) {
+				$style = $this->get_requested_polly_speaking_style();
+			}
+
+			$style = $this->normalize_polly_speaking_style( $style );
+
+			if ( $persist_style_option ) {
+				update_option( 'amazon_polly_speaking_style', $style );
+			}
+
+			$this->sync_legacy_polly_speaking_style_options( $style );
+
+			return $style;
+		}
+
+		public function get_active_polly_speaking_style( $voice = null, $neural_requested = null ) {
+			if ( null === $voice ) {
+				$voice = $this->get_voice_id();
+			}
+
+			if ( null === $neural_requested ) {
+				$neural_requested = $this->is_polly_neural_requested();
+			}
+
+			if ( ! $neural_requested ) {
 				return '';
 			}
-			else {
-				return ' checked ';
+
+			$style = $this->get_requested_polly_speaking_style();
+			if ( 'news' === $style && $this->is_news_style_for_voice( $voice ) ) {
+				return 'news';
 			}
+
+			if ( 'conversational' === $style && $this->is_conversational_style_for_voice( $voice ) ) {
+				return 'conversational';
+			}
+
+			return '';
 		}
 
-		public function should_conversational_style_be_used($voice) {
+		public function is_polly_news_enabled() {
 
-			if ( !$this->is_conversational_style_for_voice($voice)) {
-				return false;
+			return 'news' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
+		}
+
+
+			public function is_polly_conversational_enabled() {
+
+				return 'conversational' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
 			}
 
-			if ($this->should_news_style_be_used($voice)) {
-				return false;
-			}
+			public function should_conversational_style_be_used($voice) {
 
-			if ($this->is_polly_conversational_enabled()) {
-				$engine = $this->get_polly_engine($voice);
-				if ('neural' == $engine) {
-					return true;
+				if ( !$this->is_conversational_style_for_voice($voice)) {
+					return false;
+				}
+
+				if ( 'conversational' === $this->get_requested_polly_speaking_style() ) {
+					$engine = $this->get_polly_engine($voice);
+					if ('neural' == $engine) {
+						return true;
 				}
 				return false;
 			}
@@ -999,16 +1366,16 @@ class AmazonAI_Common
 		}
 
 
-	public function should_news_style_be_used($voice) {
+		public function should_news_style_be_used($voice) {
 
-		if ( !$this->is_news_style_for_voice($voice)) {
-			return false;
-		}
+			if ( !$this->is_news_style_for_voice($voice)) {
+				return false;
+			}
 
-		if ($this->is_polly_news_enabled()) {
-			$engine = $this->get_polly_engine($voice);
-			if ('neural' == $engine) {
-				return true;
+			if ( 'news' === $this->get_requested_polly_speaking_style() ) {
+				$engine = $this->get_polly_engine($voice);
+				if ('neural' == $engine) {
+					return true;
 			}
 			return false;
 		}
@@ -1062,6 +1429,11 @@ class AmazonAI_Common
 	}
 
 	public function is_neural_supported_for_voice($voice) {
+		$voice_data = $this->get_polly_voice( $voice );
+		if ( is_array( $voice_data ) ) {
+			return in_array( 'neural', $this->get_supported_synthesis_engines( $voice_data ), true );
+		}
+
 		$neural_supported_voices = array("Olivia","Amy","Emma","Brian","Ivy","Joanna","Kendra","Kimberly","Salli","Joey","Justin","Kevin","Matthew","Camila","Lupe", "Seoyeon", "Gabrielle");
 
 		if (in_array($voice, $neural_supported_voices)) {
@@ -1072,12 +1444,25 @@ class AmazonAI_Common
 
 	}
 
-	public function is_neural_only_voice() {
-		$voice = $this->get_voice_id();
+	public function is_neural_only_voice( $voice = null ) {
+		if ( null === $voice ) {
+			$voice = $this->get_voice_id();
+		}
+
 		$neural_only_voices = array("Olivia","Kevin", "Gabrielle");
 		$logger = new AmazonAI_Logger();
+		$voice_data = $this->get_polly_voice( $voice );
 
 		$logger->log("Checking for neural: ".$voice);
+
+		if ( is_array( $voice_data ) ) {
+			$supported_engines = $this->get_supported_synthesis_engines( $voice_data );
+			$is_neural_only = in_array( 'neural', $supported_engines, true ) && ! in_array( 'standard', $supported_engines, true );
+
+			$logger->log("Neural only: " . ( $is_neural_only ? "TRUE" : "FALSE" ));
+
+			return $is_neural_only;
+		}
 
 		if (in_array($voice, $neural_only_voices)) {
 			$logger->log("Neural only: TRUE");
@@ -1090,7 +1475,6 @@ class AmazonAI_Common
 	}
 
 	public function get_polly_engine($voice) {
-
 		if (!$this->is_neural_supported_in_region()) {
 			return 'standard';
 		}
@@ -1100,9 +1484,11 @@ class AmazonAI_Common
 		}
 
 
-		if ($this->is_polly_neural_enabled()) {
+		if ( $this->is_polly_neural_requested() ) {
 			return 'neural';
 		}
+
+		return 'standard';
 
 	}
 
@@ -1173,7 +1559,7 @@ class AmazonAI_Common
 	private function check_aws_access()
 	{
 		try {
-			$voice_list = $this->polly_client->describeVoices();
+			$voice_list = $this->get_polly_voices( true );
 			update_option('amazon_polly_valid_keys', '1');
 			return true;
 		}
