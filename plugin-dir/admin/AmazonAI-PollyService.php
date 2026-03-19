@@ -78,6 +78,15 @@ class AmazonAI_PollyService {
 			// Update post voice ID
 			if ( isset( $_POST['amazon_polly_voice_id']) ) {
 				$voice_id = sanitize_text_field(wp_unslash($_POST['amazon_polly_voice_id']));
+				try {
+					$voice_id = $common->resolve_polly_voice_id(
+						$common->get_post_source_language( $post_id ),
+						$voice_id,
+						$common->get_voice_id()
+					);
+				} catch ( Exception $e ) {
+					$logger->log(sprintf('%s Unable to validate selected voice while saving post ( id=%s ): %s', __METHOD__, $post_id, $e->getMessage()));
+				}
 				update_post_meta( $post_id, 'amazon_polly_voice_id', $voice_id);
 			}
 		}
@@ -138,9 +147,35 @@ class AmazonAI_PollyService {
 		$common = $this->common;
 		$is_polly_enabled = (bool) get_post_meta($post_id, 'amazon_polly_enable', true);
 		$voice_id = get_post_meta($post_id, 'amazon_polly_voice_id', true);
+		$source_language = $common->get_post_source_language( $post_id );
 
 		try {
 			if ( $is_polly_enabled ) {
+				$resolved_voice_id = $common->resolve_polly_voice_id(
+					$source_language,
+					$voice_id,
+					$common->get_voice_id()
+				);
+
+				if ( $resolved_voice_id !== $voice_id ) {
+					$logger->log(
+						sprintf(
+							'%s Voice adjusted for post ( id=%s ): requested=%s resolved=%s language=%s',
+							__METHOD__,
+							$post_id,
+							$voice_id ?: '[empty]',
+							$resolved_voice_id ?: '[empty]',
+							$source_language
+						)
+					);
+					update_post_meta( $post_id, 'amazon_polly_voice_id', $resolved_voice_id );
+				}
+
+				$voice_id = $resolved_voice_id;
+				if ( empty( $voice_id ) ) {
+					throw new Exception( 'No supported Amazon Polly voices are available for this post language in the selected AWS region.' );
+				}
+
 				$audio_hash   = get_post_meta( $post_id, 'amazon_polly_audio_hash', true );
 				$current_hash = $common->get_audio_hash( $post_id );
 
@@ -177,7 +212,6 @@ class AmazonAI_PollyService {
 				update_post_meta( $post_id, 'amazon_polly_audio_hash', $current_hash );
 
 				// Checking what was the source language of text and updating options for translate operations.
-				$source_language = $common->get_source_language();
 				update_post_meta( $post_id, 'amazon_polly_transcript_' . $source_language, $clean_text );
 				update_post_meta( $post_id, 'amazon_polly_transcript_source_lan', $source_language );
 			} // Remove audio files and post meta (if existing) if Polly is not enabled
@@ -324,11 +358,34 @@ class AmazonAI_PollyService {
 		// The last parameter of method specify language for which we are creating audio
 		foreach ($common->get_all_translatable_languages() as $language_code) {
 			if ( $language_code == $lang ) {
-				$voice_id = get_option( 'amazon_polly_trans_langs_' . $language_code . '_voice' );
+				$voice_id = $common->sync_polly_voice_option( 'amazon_polly_trans_langs_' . $language_code . '_voice', $language_code, $voice_id );
 			}
 		}
 
+		$voice_language = empty( $lang ) ? $common->get_post_source_language( $post_id ) : $lang;
+		$resolved_voice_id = $common->resolve_polly_voice_id( $voice_language, $voice_id );
+
+		if ( $resolved_voice_id !== $voice_id ) {
+			$logger->log(
+				sprintf(
+					'%s Voice adjusted before synthesis: requested=%s resolved=%s language=%s post_id=%s',
+					__METHOD__,
+					$voice_id ?: '[empty]',
+					$resolved_voice_id ?: '[empty]',
+					$voice_language,
+					$post_id
+				)
+			);
+
+			if ( empty( $lang ) ) {
+				update_post_meta( $post_id, 'amazon_polly_voice_id', $resolved_voice_id );
+			}
+		}
+
+		$voice_id = $resolved_voice_id;
+
 		if ( empty($voice_id) ) {
+			$logger->log(sprintf('%s No supported voice available for language %s. Skipping audio generation.', __METHOD__, $voice_language));
 			return;
 		}
 

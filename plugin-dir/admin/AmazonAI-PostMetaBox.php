@@ -30,6 +30,40 @@ class AmazonAI_PostMetaBox {
     $this->display_translate_gui($post);
   }
 
+  private function render_voice_options( $language_code, $selected_voice_id ) {
+    $neural_requested = $this->common->is_polly_neural_requested();
+    $voice_groups = $this->common->get_grouped_polly_voices( $language_code );
+    $has_voices = false;
+
+    foreach ( $voice_groups as $group_key => $group ) {
+      if ( empty( $group['voices'] ) ) {
+        continue;
+      }
+
+      $has_voices = true;
+      echo '<optgroup label="' . esc_attr( $group['label'] ) . '">';
+      foreach ( $group['voices'] as $voice ) {
+        $is_neural_only = 'neural_only' === $group_key;
+        $is_disabled = $is_neural_only && ! $neural_requested;
+
+        echo '<option value="' . esc_attr($voice['Id']) . '"';
+        echo ' data-supported-engines="' . esc_attr( implode( ',', $voice['SupportedEngines'] ?? [] ) ) . '"';
+        echo ' data-neural-only="' . esc_attr( $is_neural_only ? '1' : '0' ) . '"';
+        echo ' data-standard-supported="' . esc_attr( $this->common->is_standard_supported_for_voice( $voice ) ? '1' : '0' ) . '"';
+        if ( $is_disabled ) {
+          echo ' disabled="disabled"';
+        }
+        if ( strcmp($selected_voice_id, $voice['Id']) === 0 ) {
+          echo ' selected="selected"';
+        }
+        echo '>' . esc_attr($voice['LanguageName']) . ' - ' . esc_attr($voice['Id']) . ' [' . esc_attr( $this->common->get_polly_voice_capability_label( $voice ) ) . ']</option>';
+      }
+      echo '</optgroup>';
+    }
+
+    return $has_voices;
+  }
+
   /**
    * Display Polly GUI on page for saving new post.
    *
@@ -69,36 +103,33 @@ class AmazonAI_PostMetaBox {
       echo '<p><input type="checkbox" name="amazon_polly_enable" id="amazon_polly_enable" value="1"  ' . esc_attr($polly_checked) . '/><label for="amazon_polly_enable">Enable Text-To-Speech (Amazon Polly)</label> </p>';
       echo '<div id="amazon_polly_post_options" style="' . esc_attr($post_options_visibility) . '">';
 
-      if (! function_exists('sort_polly_voices')) {
-        function sort_polly_voices($voice1, $voice2) {
-          return strcmp($voice1['LanguageName'], $voice2['LanguageName']);
+      try {
+        $language_code = $this->common->get_post_source_language( $post->ID );
+        $post_voice_id = get_post_meta($post->ID, 'amazon_polly_voice_id', true);
+        $global_voice_id = $this->common->resolve_polly_voice_id( $language_code, $this->common->get_voice_id(), 'Matthew' );
+        $voice_id = $this->common->resolve_polly_voice_id( $language_code, $post_voice_id, $global_voice_id );
+        $compatible_voices = $this->common->get_compatible_polly_voices( $language_code );
+
+        if ( $voice_id !== $post_voice_id ) {
+          update_post_meta( $post->ID, 'amazon_polly_voice_id', $voice_id );
         }
-      }
 
-      $voice_id = $this->common->get_voice_id();
-      $voices = $this->common->get_polly_voices();
-      $language_name = $this->common->get_source_language_name();
-
-      $voice_id = get_post_meta($post->ID, 'amazon_polly_voice_id', true);
-      $global_voice_id = $this->common->get_voice_id();
-
-      if (0 === strcmp($voice_id, '') && '' !== $global_voice_id) {
-        $voice_id = $global_voice_id;
-      }
-
-      usort($voices['Voices'], 'sort_polly_voices');
-
-      echo '<p>Voice name: <select name="amazon_polly_voice_id" id="amazon_polly_voice_id" >';
-      foreach ($voices['Voices'] as $voice) {
-        if (strpos($voice['LanguageName'], $language_name) !== false) {
-          echo '<option value="' . esc_attr($voice['Id']) . '" ';
-          if (strcmp($voice_id, $voice['Id']) === 0) {
-            echo 'selected="selected"';
+        if ( empty( $compatible_voices ) ) {
+          echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
+        } else {
+          echo '<p>Voice name: <select name="amazon_polly_voice_id" id="amazon_polly_voice_id" >';
+          if ( ! $this->render_voice_options( $language_code, $voice_id ) ) {
+            echo '</select></p>';
+            echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
+            echo '</div>';
+            return;
           }
-          echo '>' . esc_attr($voice['LanguageName']) . ' - ' . esc_attr($voice['Id']) . '</option>';
+          echo '</select></p>';
+          echo '<p class="description">Neural-only voices require the global Neural setting to stay enabled.</p>';
         }
+      } catch ( Exception $e ) {
+        echo '<p class="description">Unable to load supported Amazon Polly voices right now.</p>';
       }
-      echo '</select></p>';
 
       echo '</div>';
     }
