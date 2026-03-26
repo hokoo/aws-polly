@@ -19,3 +19,6 @@ Don't forget update your hosts file
 
 ## Development
 WP plugin directory `plugin-dir`.
+
+## Docs
+- TTS overview: [docs/text-to-speech-en.md](docs/text-to-speech-en.md)
