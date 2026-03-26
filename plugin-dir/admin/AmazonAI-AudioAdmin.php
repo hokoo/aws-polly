@@ -254,7 +254,7 @@ class AmazonAI_AudioAdmin {
 
 	public function render_settings_button(): void {
 		$screen = get_current_screen();
-		if ( ! $screen || 'aws_page_amazon_ai_polly' !== $screen->id ) {
+		if ( ! $screen || 'aws-tts_page_amazon_ai_polly' !== $screen->id ) {
 			return;
 		}
 
