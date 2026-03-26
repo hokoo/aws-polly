@@ -34,7 +34,7 @@ jobs:
       # Zip the plugin directory
       - name: Zip the plugin directory
         run: |
-          zip -r -q aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly \ 
+          zip -r -q aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly
           echo "Zipped to aws-polly-wp-plugin-${{ github.ref_name }}.zip"
 
       - name: Upload Release Artifact
