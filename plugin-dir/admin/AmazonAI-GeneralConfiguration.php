@@ -30,8 +30,8 @@ class AmazonAI_GeneralConfiguration
 
     public function amazon_ai_add_menu()
     {
-	    $this->plugin_screen_hook_suffix = add_menu_page( __( 'AWS', 'amazon-ai' ),
-		    __( 'AWS', 'amazon-ai' ),
+	    $this->plugin_screen_hook_suffix = add_menu_page( __( 'AWS TTS', 'amazon-ai' ),
+		    __( 'AWS TTS', 'amazon-ai' ),
 		    'manage_options',
 		    'amazon_ai',
 		    array(
