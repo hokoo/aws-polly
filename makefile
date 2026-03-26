@@ -11,7 +11,7 @@ docker.build.php:
 	docker-compose -p aws-polly-wp up -d --build php
 
 php.log:
-	docker-compose -p aws-polly-wp exec php sh -c "tail -f /var/log/nginx/aws-polly.local.error.log"
+	docker-compose -p aws-polly-wp exec php sh -c "grc tail -f /var/log/php/error.log"
 
 clear.all:
 	bash ./install/clear.sh

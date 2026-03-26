@@ -45,6 +45,8 @@ services:
       PHP_EXTENSIONS_DISABLE: $EXTENSIONS_DISABLE
     volumes:
       - ./:/srv/web/
+      - ./dev/php-fpm/php.ini:/usr/local/etc/php/conf.d/zzzz-php-overrides.ini
+      - ./dev/php-fpm/grc.php.log.conf:/home/wodby/.grc/grc.conf
     networks:
       - aws-polly-wp
 
