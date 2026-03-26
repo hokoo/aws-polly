@@ -13,10 +13,10 @@
  * @package           Amazonpolly
  *
  * @wordpress-plugin
- * Plugin Name:       AWS for WordPress
+ * Plugin Name:       AWS Text-to-Speech
  * Plugin URI:        https://wordpress.org/plugins/amazon-polly/
- * Description:       Create audio versions of your posts, translate them into other languages, and create podcasts. Integrate with Amazon Alexa to listen to your posts on Alexa-enabled devices. Use Amazon CloudFront to accelerate your website and provide a faster, more reliable viewing experience.
- * Version:           0.3
+ * Description:       Create audio versions of your posts using Amazon Polly text-to-speech service.
+ * Version:           0.4
  * Author:            AWS Labs, WP Engine
  * Author URI:        https://aws.amazon.com/
  * License:           GPL-3.0 ONLY
@@ -56,11 +56,6 @@ register_deactivation_hook( __FILE__, 'deactivate_amazonpolly' );
  * admin-specific hooks, and public-facing site hooks.
  */
 require plugin_dir_path( __FILE__ ) . 'includes/class-amazonpolly.php';
-
-/*
- * Log error messages for CloudFront setup in this file
- */
-update_option('aws_cloudfront_logfile',plugin_dir_path(__FILE__).'amazon_ai_cloudfront.log');
 
 /**
  * Begins execution of the plugin.

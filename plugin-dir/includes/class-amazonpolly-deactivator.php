@@ -30,7 +30,6 @@ class Amazonpolly_Deactivator {
 	 */
 	public static function deactivate() {
 
-		// Flush the permalinks to disable the "amazon-pollycast" route.
 		flush_rewrite_rules();
 	}
 

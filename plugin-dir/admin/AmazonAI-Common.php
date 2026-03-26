@@ -15,74 +15,68 @@ class AmazonAI_Common
 	// Information about languages supported by the AWS plugin
 	private $languages = [
 
-		['code' => 'af', 'name' => 'Afrikaans', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'sq', 'name' => 'Albanian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'am', 'name' => 'Amharic', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ar', 'name' => 'Arabic', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'az', 'name' => 'Azerbaijani', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'bn', 'name' => 'Bengali', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'bs', 'name' => 'Bosnian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'bg', 'name' => 'Bulgarian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'fr-CA', 'name' => 'Canadian French', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'da', 'name' => 'Danish', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'nl', 'name' => 'Dutch', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'zh', 'name' => 'Chinese', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'hr', 'name' => 'Croatian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'cs', 'name' => 'Czech', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'fa-AF', 'name' => 'Dari', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'en', 'name' => 'English', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'et', 'name' => 'Estonian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'fi', 'name' => 'Finish', 'translatable' => '1', 'polly' => ''],
-		['code' => 'fr', 'name' => 'French', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'ka', 'name' => 'Georgian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'de', 'name' => 'German', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'el', 'name' => 'Greek', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ha', 'name' => 'Hausa', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'he', 'name' => 'Hebrew', 'translatable' => '1', 'polly' => ''],
-		['code' => 'hi', 'name' => 'Hindi', 'translatable' => '1', 'polly' => ''],
-		['code' => 'hu', 'name' => 'Hungarian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'is', 'name' => 'Icelandic', 'translatable' => '0', 'polly' => '1'],
-		['code' => 'it', 'name' => 'Italian', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'id', 'name' => 'Indonesian', 'translatable' => '1', 'polly' => ''],
-		['code' => 'ja', 'name' => 'Japanese', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'ko', 'name' => 'Korean', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'lv', 'name' => 'Latvian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ms', 'name' => 'Malay', 'translatable' => '1', 'polly' => ''],
-		['code' => 'no', 'name' => 'Norwegian', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'fa', 'name' => 'Persian', 'translatable' => '1', 'polly' => ''],
-		['code' => 'pl', 'name' => 'Polish', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'pt', 'name' => 'Portuguese', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'ps', 'name' => 'Pushto', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ro', 'name' => 'Romanian', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'sr', 'name' => 'Serbian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'sk', 'name' => 'Slovak', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'sl', 'name' => 'Slovenian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'so', 'name' => 'Somali', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'sw', 'name' => 'Swahili', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ru', 'name' => 'Russian', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'es', 'name' => 'Spanish', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'sv', 'name' => 'Swedish', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'tl', 'name' => 'Tagalog', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ta', 'name' => 'Tamil', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'th', 'name' => 'Thai', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'tr', 'name' => 'Turkish', 'translatable' => '1', 'polly' => '1'],
-		['code' => 'uk', 'name' => 'Ukrainian', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'ur', 'name' => 'Urdu', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'vi', 'name' => 'Vietnamese', 'translatable' => '1', 'polly' => '0'],
-		['code' => 'cy', 'name' => 'Welsh', 'translatable' => '', 'polly' => '1']
+		['code' => 'af', 'name' => 'Afrikaans','polly' => '0'],
+		['code' => 'sq', 'name' => 'Albanian','polly' => '0'],
+		['code' => 'am', 'name' => 'Amharic','polly' => '0'],
+		['code' => 'ar', 'name' => 'Arabic','polly' => '1'],
+		['code' => 'az', 'name' => 'Azerbaijani','polly' => '0'],
+		['code' => 'bn', 'name' => 'Bengali','polly' => '0'],
+		['code' => 'bs', 'name' => 'Bosnian','polly' => '0'],
+		['code' => 'bg', 'name' => 'Bulgarian','polly' => '0'],
+		['code' => 'fr-CA', 'name' => 'Canadian French','polly' => '0'],
+		['code' => 'da', 'name' => 'Danish','polly' => '1'],
+		['code' => 'nl', 'name' => 'Dutch','polly' => '1'],
+		['code' => 'zh', 'name' => 'Chinese','polly' => '1'],
+		['code' => 'hr', 'name' => 'Croatian','polly' => '0'],
+		['code' => 'cs', 'name' => 'Czech','polly' => '0'],
+		['code' => 'fa-AF', 'name' => 'Dari','polly' => '1'],
+		['code' => 'en', 'name' => 'English','polly' => '1'],
+		['code' => 'et', 'name' => 'Estonian','polly' => '0'],
+		['code' => 'fi', 'name' => 'Finish','polly' => ''],
+		['code' => 'fr', 'name' => 'French','polly' => '1'],
+		['code' => 'ka', 'name' => 'Georgian','polly' => '0'],
+		['code' => 'de', 'name' => 'German','polly' => '1'],
+		['code' => 'el', 'name' => 'Greek','polly' => '0'],
+		['code' => 'ha', 'name' => 'Hausa','polly' => '0'],
+		['code' => 'he', 'name' => 'Hebrew','polly' => ''],
+		['code' => 'hi', 'name' => 'Hindi','polly' => ''],
+		['code' => 'hu', 'name' => 'Hungarian','polly' => '0'],
+		['code' => 'is', 'name' => 'Icelandic','polly' => '1'],
+		['code' => 'it', 'name' => 'Italian','polly' => '1'],
+		['code' => 'id', 'name' => 'Indonesian','polly' => ''],
+		['code' => 'ja', 'name' => 'Japanese','polly' => '1'],
+		['code' => 'ko', 'name' => 'Korean','polly' => '1'],
+		['code' => 'lv', 'name' => 'Latvian','polly' => '0'],
+		['code' => 'ms', 'name' => 'Malay','polly' => ''],
+		['code' => 'no', 'name' => 'Norwegian','polly' => '1'],
+		['code' => 'fa', 'name' => 'Persian','polly' => ''],
+		['code' => 'pl', 'name' => 'Polish','polly' => '1'],
+		['code' => 'pt', 'name' => 'Portuguese','polly' => '1'],
+		['code' => 'ps', 'name' => 'Pushto','polly' => '0'],
+		['code' => 'ro', 'name' => 'Romanian','polly' => '1'],
+		['code' => 'sr', 'name' => 'Serbian','polly' => '0'],
+		['code' => 'sk', 'name' => 'Slovak','polly' => '0'],
+		['code' => 'sl', 'name' => 'Slovenian','polly' => '0'],
+		['code' => 'so', 'name' => 'Somali','polly' => '0'],
+		['code' => 'sw', 'name' => 'Swahili','polly' => '0'],
+		['code' => 'ru', 'name' => 'Russian','polly' => '1'],
+		['code' => 'es', 'name' => 'Spanish','polly' => '1'],
+		['code' => 'sv', 'name' => 'Swedish','polly' => '1'],
+		['code' => 'tl', 'name' => 'Tagalog','polly' => '0'],
+		['code' => 'ta', 'name' => 'Tamil','polly' => '0'],
+		['code' => 'th', 'name' => 'Thai','polly' => '0'],
+		['code' => 'tr', 'name' => 'Turkish','polly' => '1'],
+		['code' => 'uk', 'name' => 'Ukrainian','polly' => '0'],
+		['code' => 'ur', 'name' => 'Urdu','polly' => '0'],
+		['code' => 'vi', 'name' => 'Vietnamese','polly' => '0'],
+		['code' => 'cy', 'name' => 'Welsh', 'polly' => '1']
 	];
 
 	private $sdk;
-	private $sdk_use1; // SDK with region fixed as us-east-1
 	private $polly_client;
-	private $translate_client;
 	private $s3_handler;
 	private $local_file_handler;
-	private $translate;
 	private $logger;
-	private $cloudformation_client;
-	private $cloudfront_client;
-	private $acm_client;
 
 	/**
 	 * Creates SDK objects for the plugin.
@@ -111,31 +105,6 @@ class AmazonAI_Common
 
 
 
-	public function get_subscribe_link() {
-
-        $value = get_option( 'amazon_polly_podcast_button_link' );
-
-		if (empty($value)) {
-			$value = esc_attr( get_feed_link( 'amazon-pollycast' ) );
-		}
-
-		return esc_attr($value);
-
-	}
-
-
-	public function get_podcast_author() {
-
-		$value = get_option( 'amazon_polly_podcast_author' );
-
-		if( empty($value) ) {
-			$value = 'Author';
-		}
-
-		return $value;
-
-	}
-
 	public function clean_paragraph($paragraph) {
 
 		$clean_text = $paragraph;
@@ -159,29 +128,6 @@ class AmazonAI_Common
 	  $clean_text = str_replace('>', ' ', $clean_text);
 
 		return $clean_text;
-	}
-
-	public function get_feed_size() {
-		$feedsize = get_option( 'amazon_polly_podcast_feedsize' );
-
-		$value = intval( $feedsize );
-
-		if ( empty( $value ) ) {
-			$value = 20;
-		}
-
-		if ( intval( $value ) < 1 ) {
-			$value = 1;
-		}
-
-		if ( intval( $value ) > 1000 ) {
-			$value = 1000;
-		}
-
-		update_option( 'amazon_polly_podcast_feedsize', $value );
-
-		return $value;
-
 	}
 
 	public function get_language_name($provided_langauge_code) {
@@ -209,44 +155,6 @@ class AmazonAI_Common
 		return $supported_languages;
 	}
 
-	public function get_all_translatable_languages() {
-		$supported_languages = [];
-
-		foreach ($this->languages as $language_data) {
-			$language_code = $language_data['code'];
-			$is_language_supported = $language_data['translatable'];
-
-			if ( !empty($is_language_supported) ) {
-				array_push($supported_languages, $language_code);
-			}
-		}
-
-		return $supported_languages;
-	}
-
-	public function get_language_display($language_code) {
-
-		$language_display_option = 'amazon_polly_trans_langs_' . $language_code . '_display';
-		$value = get_option( $language_display_option );
-		if ( empty($value) ) {
-			$value = 'Flag';
-		}
-
-		return $value;
-
-	}
-
-	public function get_language_label($language_code) {
-
-		$language_label_option = 'amazon_polly_trans_langs_' . $language_code . '_label';
-		$value = get_option( $language_label_option );
-		if ( empty($value) ) {
-			$value = strtoupper( $language_code );
-		}
-
-		return $value;
-
-	}
 
 	public function get_all_polly_languages() {
 
@@ -592,55 +500,13 @@ class AmazonAI_Common
 		$aws_sdk_config = $this->get_aws_sdk_config();
 		$this->sdk = new Aws\Sdk($aws_sdk_config);
 		$this->polly_client = $this->sdk->createPolly();
-		$this->translate_client = $this->sdk->createTranslate();
 
 		$this->s3_handler = new AmazonAI_S3FileHandler($this);
 		$this->local_file_handler = new AmazonAI_LocalFileHandler($this);
 
         $this->s3_handler->set_s3_client($this->sdk->createS3());
-        $this->translate = new AmazonAI_Translator($this);
-
-        $aws_sdk_config_use1 = $this->get_aws_sdk_config_use1();
-        $this->sdk_use1 = new Aws\Sdk($aws_sdk_config_use1);
-        //Client for running Cloudformation actions
-        $this->cloudformation_client = $this->sdk_use1->createCloudFormation();
-        //Client for running CloudFront actions
-        $this->cloudfront_client = $this->sdk_use1->createCloudFront();
-        //Client for running ACM actions
-        $this->acm_client = $this->sdk_use1->createAcm();
     }
 
-
-    /**
-     * Method returns SDK Client which is reponsible for calling functions associated with Cloudformation
-     *
-     * @since       4.0.0
-     */
-    public function get_cloudformation_client() {
-        return $this->cloudformation_client;
-    }
-
-    /**
-     * Method returns SDK Client which is reponsible for calling functions associated with AWS Certificate Manager
-     *
-     * @since       4.0.0
-     */
-    public function get_acm_client() {
-        return $this->acm_client;
-    }
-
-    /**
-     * Method returns SDK Client which is reponsible for calling functions associated with CloudFront distribution
-     *
-     * @since       4.0.0
-     */
-    public function get_cloudfront_client() {
-        return $this->cloudfront_client;
-    }
-
-	public function get_translate_client() {
-		return $this->translate_client;
-	}
 
 	/**
 	 * Method returns file handler which is reponsible for communicating with proper storage location.
@@ -740,19 +606,6 @@ class AmazonAI_Common
 		}
 
 		return $result;
-	}
-
-	public function deactive_translation_for_post($post_id) {
-
-		delete_post_meta($post_id, 'amazon_ai_source_language');
-
-		$languages_code = array_column($this->languages, 'code');
-		foreach ( $languages_code as $language_code ) {
-			delete_post_meta($post_id, 'amazon_polly_transcript_' . $language_code);
-			delete_post_meta($post_id, 'amazon_polly_transcript_title_' . $language_code);
-		}
-
-		$this->delete_post($post_id);
 	}
 
 	/**
@@ -863,77 +716,10 @@ class AmazonAI_Common
     return false;
   }
 
-	public function is_audio_for_translations_enabled() {
-		if ( $this->is_polly_enabled() ) {
-			$value = $this->checked_validator('amazon_ai_audio_for_translation_enabled');
-			if ('checked' == trim($value)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-	}
-
-	public function validate_amazon_translate_access() {
-		try {
-			$this->translate->is_translate_accessible($this->translate_client);
-			return true;
-		} catch(TranslateAccessException $e) {
-			$this->show_error_notice("notice-error", "Amazon Translate service is not reachable.");
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Render the enable Translation input.
-	 *
-	 * @since  2.0.0
-	 */
-	public function is_translation_enabled()
-	{
-
-					$start_value = $this->checked_validator('amazon_polly_trans_enabled');
-					$translate_accessible = true;
-					$supported_regions = array(
-						'us-east-1',
-						'us-east-2',
-						'us-west-2',
-						'eu-west-1',
-						'ap-south-1',
-						'ap-northeast-2',
-						'ap-southeast-1',
-						'ap-northeast-1',
-						'ca-central-1',
-						'eu-central-1'
-					);
-					$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
-					if (in_array($selected_region, $supported_regions)) {
-						if ('checked' == trim($start_value)) {
-							if ($translate_accessible) {
-
-								// If we are returning true - translate is enabled, S3 should also be enabled.
-								if (!$this->is_s3_enabled()) {
-									update_option( 'amazon_polly_s3', 'on' );
-								}
-
-								return true;
-							}
-						}
-					}
-
-
-
-		return false;
-	}
-
-
 	public function get_s3_object_link($post_id, $language) {
 
 		$file_name	= 'amazon_polly_' . $post_id . $language . '.mp3';
 		$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
-		$cloudfront_domain_name = apply_filters('amazon_polly_cloudfront_domain', get_option( 'amazon_polly_cloudfront' ));
 
 		if ( get_option('uploads_use_yearmonth_folders') ) {
 			$key = get_the_date( 'Y', $post_id ) . '/' . get_the_date( 'm', $post_id ) . '/' . $file_name;
@@ -941,14 +727,8 @@ class AmazonAI_Common
 			$key = $file_name;
 		}
 
-		if ( empty( $cloudfront_domain_name ) ) {
-
-			$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
-
-			$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
-		} else {
-			$audio_location_link = 'https://' . $cloudfront_domain_name . '/' . $key;
-		}
+		$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
+		$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
 
 		return $audio_location_link;
 
@@ -992,21 +772,11 @@ class AmazonAI_Common
 
 	public function deactivate_all() {
 		$this->deactivate_polly();
-		$this->deactivate_translate();
-		$this->deactivate_podcast();
 	}
 
 
 	public function deactivate_polly() {
 		update_option( 'amazon_ai_polly_enable', '' );
-	}
-
-	public function deactivate_translate() {
-		update_option( 'amazon_polly_trans_enabled', '' );
-	}
-
-	public function deactivate_podcast() {
-		update_option( 'amazon_polly_podcast_enabled', '' );
 	}
 
 
@@ -1067,41 +837,6 @@ class AmazonAI_Common
 		return AmazonAI_GeneralConfiguration::get_aws_region();
 	}
 
-	public function if_translatable_enabled_for_language($language_code) {
-		$source_language_code = $this->get_source_language();
-		$value = $this->check_if_language_is_checked($language_code, $source_language_code);
-		if (empty($value)) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-
-	/**
-	 * Checks if checkbox should be checked for specific language.
-	 *
-	 * @since  2.0.0
-	 */
-	public function check_if_language_is_checked($language_code, $source_language_code)
-	{
-		#Some translations between languages are not supported by the service.
-		#Details: https://docs.aws.amazon.com/translate/latest/dg/pairs.html
-		if (!$this->is_translation_supported($source_language_code, $language_code)) {
-			return '';
-		}
-
-		$option = 'amazon_polly_trans_langs_' . $language_code;
-
-		$value = get_option($option, '');
-
-		if (empty($value)) {
-			return '';
-		}
-		else {
-			return ' checked ';
-		}
-	}
-
 	public function get_polly_voices( $force_refresh = false )
 	{
 		$transient_key = $this->get_polly_voices_transient_key();
@@ -1132,24 +867,6 @@ class AmazonAI_Common
 		update_option('amazon_polly_posttypes', $posttypes);
 
 		return $posttypes;
-	}
-
-	/**
-	 * Checks if pollycast is enabled.
-	 *
-	 * @since  1.0.7
-	 */
-	public function is_podcast_enabled()
-	{
-		$value = get_option('amazon_polly_podcast_enabled', 'on');
-		if (empty($value)) {
-			$result = false;
-		}
-		else {
-			$result = true;
-		}
-
-		return $result;
 	}
 
 	/**
@@ -1229,19 +946,6 @@ class AmazonAI_Common
 
 		return false;
 	}
-
-	public function is_rss2namespace_enabled()
-	{
-		$value = get_option('podcast_rss2namespace', 'on');
-		if (empty($value)) {
-			$result = false;
-		}
-		else {
-			$result = true;
-		}
-		return false;
-	}
-
 
 	/**
 	 * Utility function which checks if checkbox for option input should be checked.
@@ -1512,28 +1216,6 @@ class AmazonAI_Common
 	}
 
 	/**
-	 * Checks if 'Show Subscribe button' is enabled.
-	 *
-	 * @since  2.6.3
-	 */
-	public function is_subscribe_button_enabled()
-	{
-		if ($this->is_podcast_enabled()) {
-			$value = get_option('amazon_polly_podcast_button');
-			if (empty($value)) {
-				$result = false;
-			}
-			else {
-				$result = true;
-			}
-		} else {
-			$result = false;
-		}
-
-		return $result;
-	}
-
-	/**
 	 * Checks if S3 storage is enabled.
 	 *
 	 * @since  1.0.7
@@ -1603,17 +1285,6 @@ class AmazonAI_Common
 
 		return $aws_sdk_config;
 	}
-
-  /**
-      * Returns AWS SDK configuration to allow connection with AWS account and region us-east-1.
-      *
-      * @since    4.0.0
-      */
-    private function get_aws_sdk_config_use1()
-    {
-        return $this->get_aws_sdk_config('us-east-1');
-    }
-
 
 	/**
 	 * Calculate the total price of converting all posts into audio.
@@ -2116,28 +1787,6 @@ class AmazonAI_Common
 
 	}
 
-	/**
-	 * Checks if checkbox should be checked for specific language.
-	 *
-	 * @since  2.0.0
-	 */
-	public function is_language_translatable( $provided_language_code ) {
-
-		foreach ($this->languages as $language_data) {
-			$language_code = $language_data['code'];
-			$is_language_supported = $language_data['translatable'];
-
-			if ( !empty($is_language_supported) ) {
-				if ($provided_language_code === $language_code) {
-					return $is_language_supported;
-				}
-			}
-		}
-
-		return false;
-	}
-
-
     /**
      * Register the stylesheets for the admin area.
      *
@@ -2166,29 +1815,6 @@ class AmazonAI_Common
 		wp_localize_script( 'jquery', 'pollyajax', $nonce_array );
 
     }
-    /**
-     * Register JavaScript and CSS for the CloudFront page
-     *
-     * @since           4.0.0
-     */
-    public function enqueue_custom_scripts() {
-        wp_register_script( 'amazon_cf_script', plugin_dir_url( __FILE__ ) . 'js/amazon_cf.js', array( 'jquery' ), null, false );
-
-        wp_enqueue_script( 'amazon_cf_script' );
-        wp_enqueue_style( 'amazon_cf_style', plugin_dir_url( __FILE__ ) . 'css/amazon_cf.css', array(), null, 'all' );
-
-        wp_localize_script( 'amazon_cf_script', 'amazon_cf_ajax', array( 'ajax_url' => admin_url('admin-ajax.php')) );
-
-    }
-
-	public function is_translation_supported($source_language, $target_language) {
-
-		if (( 'ko'== $source_language ) && ( 'he' == $target_language )) {
-			return false;
-		}
-
-		return true;
-	}
 
 	/**
 	 * Register meta box for 'Enable Amazon Polly' on post creation form.
@@ -2216,40 +1842,6 @@ class AmazonAI_Common
 			// Priority of the box.
 		);
 	}
-
-    /**
-     * Validates if AWS configuration is correct and AWS can be reached for CloudFront page
-     *
-     * @since    4.0.0
-     */
-    public function validate_cloudfront_access() {
-        try {
-            $this->check_aws_access();
-        }
-        catch(CredsException $e) {
-            $this->show_error_notice("notice-error", "Can't connect to AWS. Check your AWS credentials.");
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks if a CloudFront distribution has been created
-     *
-     * @since           4.0.0
-     */
-    public function is_cloudfront_deployed() {
-        return get_option('amazon_stack_state') == 'ready';
-    }
-
-    /**
-     * Checks if the URL Rewrite after CloudFront distribution deployment is enabled
-     *
-     * @since           4.0.0
-     */
-    public function is_cloudfront_enabled() {
-        return get_option('amazon_cloudfront_enabled') == 'checked';
-    }
 
     public function add_settings_link($links) {
         $settings_link = '<a href="admin.php?page=amazon_ai">Settings</a>';
