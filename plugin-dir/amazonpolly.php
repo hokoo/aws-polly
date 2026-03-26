@@ -16,11 +16,12 @@
  * Plugin Name:       AWS Text-to-Speech
  * Plugin URI:        https://wordpress.org/plugins/amazon-polly/
  * Description:       Create audio versions of your posts using Amazon Polly text-to-speech service.
- * Version:           0.4
+ * Version:           0.5
  * Author:            AWS Labs, WP Engine
  * Author URI:        https://aws.amazon.com/
  * License:           GPL-3.0 ONLY
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
+ * Requires PHP:      8.1
  * Text Domain:       amazonpolly
  * Domain Path:       /languages
  */
