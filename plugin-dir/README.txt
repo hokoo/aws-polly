@@ -2,7 +2,7 @@
 Contributors: awslabs, tstachlewski, wpengine, stevenkword, troylar
 Tags: AWS, Amazon Web Services, WP Engine, Cloud, Text-to-Speech, Amazon Polly, Amazon Translate, Translate, Translation, Podcast, AI, Amazon CloudFront
 Requires at least: 3.0.1
-Requires PHP: 5.6
+Requires PHP: 8.1
 Tested up to: 6.7
 Stable tag: 0.2.3
 License: GPLv3 ONLY

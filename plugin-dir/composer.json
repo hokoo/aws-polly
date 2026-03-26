@@ -13,6 +13,7 @@
         }
     ],
     "require": {
+        "php": ">=8.1",
         "aws/aws-sdk-php": "3.*",
         "symfony/polyfill-mbstring": "1.17",
         "hokoo/wp-lock": "^1.1",
