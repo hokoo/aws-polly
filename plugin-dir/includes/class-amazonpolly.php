@@ -32,7 +32,7 @@ class Amazonpolly {
 
 	public function __construct() {
 		$this->plugin_name = 'amazonpolly';
-		$this->version     = '0.4';
+		$this->version     = '0.5';
 		$this->load_dependencies();
 
 		$this->common = new AmazonAI_Common();
@@ -99,7 +99,8 @@ class Amazonpolly {
 		$this->loader->add_action( 'admin_print_footer_scripts', $this->common, 'add_quicktags');
 		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_styles');
 		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_scripts');
-		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
+		// Removed: method enqueue_custom_scripts does not exist in AmazonAI_Common.
+		// $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
 		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox');
 		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3);
 		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HANDLERS_HOOK . AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1);
