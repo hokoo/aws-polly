@@ -138,6 +138,7 @@ class Amazonpolly {
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PodcastConfiguration.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PollyConfiguration.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-TranslateConfiguration.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-AudioAdmin.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the public-facing
@@ -257,6 +258,25 @@ class Amazonpolly {
 		$this->loader->add_action( 'admin_menu', $alexa_configuration, 'amazon_ai_add_menu' );
 
         $this->loader->add_action( 'admin_menu', $cloudfront_configuration, 'amazon_ai_add_menu');
+
+		// Audio admin: columns, meta box, filter, bulk actions, settings button.
+		$audio_admin = new AmazonAI_AudioAdmin( $this->common );
+
+		foreach ( $this->common->get_posttypes_array() as $post_type ) {
+			$this->loader->add_filter( "manage_{$post_type}_posts_columns", $audio_admin, 'add_columns' );
+			$this->loader->add_action( "manage_{$post_type}_posts_custom_column", $audio_admin, 'render_column', 10, 2 );
+			$this->loader->add_filter( "manage_edit-{$post_type}_sortable_columns", $audio_admin, 'sortable_columns' );
+			$this->loader->add_filter( "bulk_actions-edit-{$post_type}", $audio_admin, 'add_bulk_actions' );
+			$this->loader->add_filter( "handle_bulk_actions-edit-{$post_type}", $audio_admin, 'handle_bulk_action', 10, 3 );
+		}
+
+		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_sorting' );
+		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_filter' );
+		$this->loader->add_action( 'restrict_manage_posts', $audio_admin, 'render_filter_dropdown' );
+		$this->loader->add_action( 'add_meta_boxes', $audio_admin, 'add_audio_meta_box' );
+		$this->loader->add_action( 'admin_head', $audio_admin, 'column_styles' );
+		$this->loader->add_action( 'admin_footer', $audio_admin, 'render_settings_button' );
+		$this->loader->add_action( 'admin_notices', $audio_admin, 'bulk_action_notice' );
 
         $plugin = plugin_basename( plugin_dir_path( dirname( __FILE__)) . 'amazonpolly.php');
 
