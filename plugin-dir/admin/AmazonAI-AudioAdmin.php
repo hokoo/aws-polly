@@ -6,6 +6,8 @@
  * @subpackage Amazonpolly/admin
  */
 
+use iTRON\WP_Lock\WP_Lock;
+
 class AmazonAI_AudioAdmin {
 	private const AUDIO_SORT_META_ALIAS = 'amazon_polly_audio_sort_meta';
 	private const VOICE_SORT_META_ALIAS = 'amazon_polly_voice_sort_meta';
@@ -14,6 +16,7 @@ class AmazonAI_AudioAdmin {
 	 * @var AmazonAI_Common
 	 */
 	private $common;
+	private array $audio_status_cache = [];
 
 	public function __construct( AmazonAI_Common $common ) {
 		$this->common = $common;
@@ -44,11 +47,18 @@ class AmazonAI_AudioAdmin {
 
 	public function render_column( string $column, int $post_id ): void {
 		if ( 'polly_audio' === $column ) {
-			$link = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
-			if ( ! empty( $link ) ) {
-				echo '<span style="color:#46b450;" title="' . esc_attr( $link ) . '">&#9835; Yes</span>';
+			$status = $this->get_audio_status( $post_id );
+
+			if ( 'yes' === $status['status'] ) {
+				echo '<span style="color:#46b450;" title="' . esc_attr( $status['title'] ) . '">&#9835; Yes</span>';
+			} elseif ( 'generating' === $status['status'] ) {
+				if ( 'running' === $status['phase'] ) {
+					echo '<span style="color:#996800;" title="' . esc_attr( $status['title'] ) . '">&#8635; Running</span>';
+				} else {
+					echo '<span style="color:#996800;" title="' . esc_attr( $status['title'] ) . '">&#8226; Queued</span>';
+				}
 			} else {
-				echo '<span style="color:#a00;">&#10005; No</span>';
+				echo '<span style="color:#a00;" title="' . esc_attr( $status['title'] ) . '">&#10005; No</span>';
 			}
 		}
 
@@ -153,7 +163,7 @@ class AmazonAI_AudioAdmin {
 			return;
 		}
 		echo '<style>
-			.column-polly_audio { width: 70px; text-align: center; }
+			.column-polly_audio { width: 120px; text-align: center; }
 			.column-polly_voice { width: 100px; }
 		</style>';
 	}
@@ -176,11 +186,12 @@ class AmazonAI_AudioAdmin {
 	}
 
 	public function render_audio_meta_box( \WP_Post $post ): void {
-		$link     = get_post_meta( $post->ID, 'amazon_polly_audio_link_location', true );
+		$status   = $this->get_audio_status( $post->ID );
+		$link     = $status['link'];
 		$voice    = get_post_meta( $post->ID, 'amazon_polly_voice_id', true );
 		$playtime = get_post_meta( $post->ID, 'amazon_polly_audio_playtime', true );
 
-		if ( ! empty( $link ) ) {
+		if ( 'yes' === $status['status'] ) {
 			echo '<p style="color:#46b450;font-weight:bold;">&#9835; Audio available</p>';
 			if ( ! empty( $voice ) ) {
 				echo '<p><strong>Voice:</strong> ' . esc_html( $voice ) . '</p>';
@@ -190,17 +201,21 @@ class AmazonAI_AudioAdmin {
 			}
 			echo '<p><a href="' . esc_url( $link ) . '" target="_blank" class="button button-small">Open audio file &rarr;</a></p>';
 		} else {
-			echo '<p style="color:#a00;font-weight:bold;">&#10005; Audio not available</p>';
-			$enabled = get_post_meta( $post->ID, 'amazon_polly_enable', true );
-			if ( '1' === $enabled ) {
-				$bg_task = new AmazonAI_BackgroundTask();
-				if ( $bg_task->has_queued_audio( $post->ID ) ) {
-					echo '<p><em>Audio generation is queued&hellip;</em></p>';
+			if ( 'generating' === $status['status'] ) {
+				if ( 'running' === $status['phase'] ) {
+					echo '<p style="color:#996800;font-weight:bold;">&#8635; Audio running</p>';
+					echo '<p><em>Audio generation is currently running.</em></p>';
 				} else {
-					echo '<p><em>Polly is enabled but audio has not been generated yet.</em></p>';
+					echo '<p style="color:#996800;font-weight:bold;">&#8226; Audio queued</p>';
+					echo '<p><em>Audio generation is queued and will start via WP-Cron.</em></p>';
 				}
 			} else {
-				echo '<p><em>Enable Amazon Polly for this post to generate audio.</em></p>';
+				echo '<p style="color:#a00;font-weight:bold;">&#10005; Audio not available</p>';
+				if ( 'enabled' === $status['phase'] ) {
+					echo '<p><em>Polly is enabled but audio has not been generated yet.</em></p>';
+				} else {
+					echo '<p><em>Enable Amazon Polly for this post to generate audio.</em></p>';
+				}
 			}
 		}
 	}
@@ -296,6 +311,66 @@ class AmazonAI_AudioAdmin {
 			" LEFT JOIN {$wpdb->postmeta} AS {$alias} ON ({$wpdb->posts}.ID = {$alias}.post_id AND {$alias}.meta_key = %s)",
 			$meta_key
 		);
+	}
+
+	private function get_audio_status( int $post_id ): array {
+		if ( isset( $this->audio_status_cache[ $post_id ] ) ) {
+			return $this->audio_status_cache[ $post_id ];
+		}
+
+		$link = (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
+
+		if ( '' !== $link ) {
+			return $this->audio_status_cache[ $post_id ] = [
+				'status' => 'yes',
+				'phase'  => 'ready',
+				'link'   => $link,
+				'title'  => $link,
+			];
+		}
+
+		$enabled = '1' === (string) get_post_meta( $post_id, 'amazon_polly_enable', true );
+
+		// Compute this dynamically from queue/lock state to avoid stale persisted statuses.
+		if ( $enabled ) {
+			$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
+			if ( $lock->lock_exists() ) {
+				return $this->audio_status_cache[ $post_id ] = [
+					'status' => 'generating',
+					'phase'  => 'running',
+					'link'   => '',
+					'title'  => 'Audio generation is currently running.',
+				];
+			}
+
+			if ( $this->get_background_task()->has_queued_audio( $post_id ) ) {
+				return $this->audio_status_cache[ $post_id ] = [
+					'status' => 'generating',
+					'phase'  => 'queued',
+					'link'   => '',
+					'title'  => 'Audio generation is queued and will start via WP-Cron.',
+				];
+			}
+		}
+
+		return $this->audio_status_cache[ $post_id ] = [
+			'status' => 'no',
+			'phase'  => $enabled ? 'enabled' : 'disabled',
+			'link'   => '',
+			'title'  => $enabled
+				? 'Polly is enabled, but audio has not been generated yet.'
+				: 'Audio is not available.',
+		];
+	}
+
+	private function get_background_task(): AmazonAI_BackgroundTask {
+		static $background_task = null;
+
+		if ( null === $background_task ) {
+			$background_task = new AmazonAI_BackgroundTask();
+		}
+
+		return $background_task;
 	}
 
 	// =========================================================================
