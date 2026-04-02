@@ -86,16 +86,17 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
         // Adding audio info to media library (If Media Library was selected)
         $common = $this->common;
         if ($common->is_medialibrary_enabled()) {
+          $temp_media_library_file = $file_final_full_name . '_temp';
 
           //One more time creating temp file, before deleting previous attachment
-          $wp_filesystem->move( $file_final_full_name, $file_final_full_name + "_temp", true );
+          $wp_filesystem->move( $file_final_full_name, $temp_media_library_file, true );
           // Deleting old media library attachment.
 
           $media_library_att_id = get_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', true );
           wp_delete_attachment( $media_library_att_id, true );
 
           // Getting back to proper name
-          $wp_filesystem->move($file_final_full_name + "_temp", $file_final_full_name, true );
+          $wp_filesystem->move( $temp_media_library_file, $file_final_full_name, true );
 
           // Adding media library
           $this->add_media_library( $file_final_full_name, $post_id );

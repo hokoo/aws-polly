@@ -240,7 +240,7 @@ class AmazonAI_PollyService {
 			 * @param int $post_id The post id to generate audio files for
 			 */
 			do_action('amazon_polly_post_generate_audio', $post_id, $is_polly_enabled);
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$logger->log( sprintf( '%s Error: %s', __METHOD__, $e->getMessage() ) );
 		} finally {
 			$lock->release();
