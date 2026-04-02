@@ -7,6 +7,8 @@
  */
 
 class AmazonAI_AudioAdmin {
+	private const AUDIO_SORT_META_ALIAS = 'amazon_polly_audio_sort_meta';
+	private const VOICE_SORT_META_ALIAS = 'amazon_polly_voice_sort_meta';
 
 	/**
 	 * @var AmazonAI_Common
@@ -62,27 +64,87 @@ class AmazonAI_AudioAdmin {
 	}
 
 	public function sortable_columns( array $columns ): array {
-		$columns['polly_audio'] = 'polly_audio';
-		$columns['polly_voice'] = 'polly_voice';
+		$columns['polly_audio'] = [ 'polly_audio', false ];
+		$columns['polly_voice'] = [ 'polly_voice', false ];
 		return $columns;
 	}
 
 	public function handle_sorting( \WP_Query $query ): void {
-		if ( ! is_admin() || ! $query->is_main_query() ) {
+		if ( ! $this->is_supported_posts_query( $query ) ) {
 			return;
 		}
 
 		$orderby = $query->get( 'orderby' );
 
-		if ( 'polly_audio' === $orderby ) {
-			$query->set( 'meta_key', 'amazon_polly_audio_link_location' );
-			$query->set( 'orderby', 'meta_value' );
+		if ( 'polly_audio' !== $orderby && 'polly_voice' !== $orderby ) {
+			return;
 		}
 
-		if ( 'polly_voice' === $orderby ) {
-			$query->set( 'meta_key', 'amazon_polly_voice_id' );
-			$query->set( 'orderby', 'meta_value' );
+		$query->set( 'order', $this->normalize_sort_order( $query->get( 'order' ) ) );
+	}
+
+	public function apply_sorting_clauses( array $clauses, \WP_Query $query ): array {
+		global $wpdb;
+
+		if ( ! $this->is_supported_posts_query( $query ) ) {
+			return $clauses;
 		}
+
+		$orderby = $query->get( 'orderby' );
+		if ( 'polly_audio' !== $orderby && 'polly_voice' !== $orderby ) {
+			return $clauses;
+		}
+
+		$order = $this->normalize_sort_order( $query->get( 'order' ) );
+		$clauses['distinct'] = 'DISTINCT';
+
+		$clauses['join'] = $this->add_sort_meta_join(
+			$clauses['join'],
+			self::AUDIO_SORT_META_ALIAS,
+			'amazon_polly_audio_link_location'
+		);
+
+		$audio_presence = sprintf(
+			"CASE WHEN %s.meta_value IS NULL OR %s.meta_value = '' THEN 0 ELSE 1 END",
+			self::AUDIO_SORT_META_ALIAS,
+			self::AUDIO_SORT_META_ALIAS
+		);
+
+		if ( 'polly_audio' === $orderby ) {
+			$clauses['orderby'] = sprintf(
+				'%s %s, %s.post_title ASC, %s.ID ASC',
+				$audio_presence,
+				$order,
+				$wpdb->posts,
+				$wpdb->posts
+			);
+			return $clauses;
+		}
+
+		$clauses['join'] = $this->add_sort_meta_join(
+			$clauses['join'],
+			self::VOICE_SORT_META_ALIAS,
+			'amazon_polly_voice_id'
+		);
+
+		$voice_missing = sprintf(
+			"CASE WHEN %s.meta_value IS NULL OR %s.meta_value = '' THEN 1 ELSE 0 END",
+			self::VOICE_SORT_META_ALIAS,
+			self::VOICE_SORT_META_ALIAS
+		);
+
+		// Voice sorting always keeps posts with generated audio at the top.
+		$clauses['orderby'] = sprintf(
+			'%s DESC, %s ASC, %s.meta_value %s, %s.post_title ASC, %s.ID ASC',
+			$audio_presence,
+			$voice_missing,
+			self::VOICE_SORT_META_ALIAS,
+			$order,
+			$wpdb->posts,
+			$wpdb->posts
+		);
+
+		return $clauses;
 	}
 
 	public function column_styles(): void {
@@ -197,6 +259,43 @@ class AmazonAI_AudioAdmin {
 		}
 
 		$query->set( 'meta_query', $meta_query );
+	}
+
+	private function is_supported_posts_query( \WP_Query $query ): bool {
+		if ( ! is_admin() || ! $query->is_main_query() ) {
+			return false;
+		}
+
+		$post_type = $query->get( 'post_type' );
+
+		if ( is_array( $post_type ) ) {
+			return false;
+		}
+
+		if ( empty( $post_type ) ) {
+			$post_type = isset( $_GET['post_type'] )
+				? sanitize_key( wp_unslash( $_GET['post_type'] ) )
+				: 'post';
+		}
+
+		return in_array( $post_type, $this->get_post_types(), true );
+	}
+
+	private function normalize_sort_order( $order ): string {
+		return 'DESC' === strtoupper( (string) $order ) ? 'DESC' : 'ASC';
+	}
+
+	private function add_sort_meta_join( string $join, string $alias, string $meta_key ): string {
+		global $wpdb;
+
+		if ( false !== strpos( $join, " {$alias} " ) ) {
+			return $join;
+		}
+
+		return $join . $wpdb->prepare(
+			" LEFT JOIN {$wpdb->postmeta} AS {$alias} ON ({$wpdb->posts}.ID = {$alias}.post_id AND {$alias}.meta_key = %s)",
+			$meta_key
+		);
 	}
 
 	// =========================================================================

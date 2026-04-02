@@ -126,6 +126,7 @@ class Amazonpolly {
 		}
 
 		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_sorting' );
+		$this->loader->add_filter( 'posts_clauses', $audio_admin, 'apply_sorting_clauses', 10, 2 );
 		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_filter' );
 		$this->loader->add_action( 'restrict_manage_posts', $audio_admin, 'render_filter_dropdown' );
 		$this->loader->add_action( 'add_meta_boxes', $audio_admin, 'add_audio_meta_box' );
