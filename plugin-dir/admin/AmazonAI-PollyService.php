@@ -70,11 +70,6 @@ class AmazonAI_PollyService {
 			if ( isset($_POST[self::NONCE_NAME]) && wp_verify_nonce($_POST[self::NONCE_NAME], 'amazon-polly') ) {
 				update_post_meta( $post_id, 'amazon_polly_enable', (int) isset($_POST['amazon_polly_enable']));
 
-				// If disabling post translation
-				if ( isset($_POST['amazon_ai_deactive_translation']) ) {
-					$common->deactive_translation_for_post($post_id);
-				}
-
 				if ( $common->is_post_voice_override_disabled() ) {
 					delete_post_meta( $post_id, 'amazon_polly_voice_id' );
 				}
@@ -366,12 +361,13 @@ class AmazonAI_PollyService {
 		// Creating new standard common object for interacting with other methods of the plugin.
 		$common = $this->common;
 
-		// This part will be called only in case of translate opration and converting
-		// text into other languages (only then the last parameter is not empty).
-		// The last parameter of method specify language for which we are creating audio
-		foreach ($common->get_all_translatable_languages() as $language_code) {
-			if ( $language_code == $lang ) {
-				$voice_id = $common->sync_polly_voice_option( 'amazon_polly_trans_langs_' . $language_code . '_voice', $language_code, $voice_id );
+		// Translation support was removed from the plugin, so this branch only matters
+		// for legacy flows that still pass a target language explicitly.
+		if ( ! empty( $lang ) ) {
+			foreach ( $common->get_all_polly_languages() as $language_code ) {
+				if ( $language_code === $lang ) {
+					$voice_id = $common->sync_polly_voice_option( 'amazon_polly_trans_langs_' . $language_code . '_voice', $language_code, $voice_id );
+				}
 			}
 		}
 
