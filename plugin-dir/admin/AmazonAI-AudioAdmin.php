@@ -100,8 +100,29 @@ class AmazonAI_AudioAdmin {
 			return $clauses;
 		}
 
+		$audio_filter = $this->get_audio_filter_value( $query );
 		$orderby = $query->get( 'orderby' );
-		if ( 'polly_audio' !== $orderby && 'polly_voice' !== $orderby ) {
+		$is_audio_sort = 'polly_audio' === $orderby;
+		$is_voice_sort = 'polly_voice' === $orderby;
+
+		if ( ! $is_audio_sort && ! $is_voice_sort && '' === $audio_filter ) {
+			return $clauses;
+		}
+
+		if ( '' !== $audio_filter ) {
+			$audio_filter_subquery = $wpdb->prepare(
+				"SELECT 1 FROM {$wpdb->postmeta} AS amazon_polly_audio_filter_meta WHERE amazon_polly_audio_filter_meta.post_id = {$wpdb->posts}.ID AND amazon_polly_audio_filter_meta.meta_key = %s AND amazon_polly_audio_filter_meta.meta_value <> ''",
+				'amazon_polly_audio_link_location'
+			);
+
+			if ( 'no_audio' === $audio_filter ) {
+				$clauses['where'] .= " AND NOT EXISTS ({$audio_filter_subquery})";
+			} elseif ( 'has_audio' === $audio_filter ) {
+				$clauses['where'] .= " AND EXISTS ({$audio_filter_subquery})";
+			}
+		}
+
+		if ( ! $is_audio_sort && ! $is_voice_sort ) {
 			return $clauses;
 		}
 
@@ -240,40 +261,14 @@ class AmazonAI_AudioAdmin {
 	}
 
 	public function handle_filter( \WP_Query $query ): void {
-		if ( ! is_admin() || ! $query->is_main_query() ) {
+		if ( ! $this->is_supported_posts_query( $query ) ) {
 			return;
 		}
 
-		if ( empty( $_GET['polly_audio_filter'] ) ) {
-			return;
+		$filter = $this->get_audio_filter_value();
+		if ( '' !== $filter ) {
+			$query->set( 'amazon_polly_audio_filter', $filter );
 		}
-
-		$filter = sanitize_text_field( $_GET['polly_audio_filter'] );
-
-		$meta_query = $query->get( 'meta_query' ) ?: [];
-
-		if ( 'no_audio' === $filter ) {
-			$meta_query[] = [
-				'relation' => 'OR',
-				[
-					'key'     => 'amazon_polly_audio_link_location',
-					'compare' => 'NOT EXISTS',
-				],
-				[
-					'key'     => 'amazon_polly_audio_link_location',
-					'value'   => '',
-					'compare' => '=',
-				],
-			];
-		} elseif ( 'has_audio' === $filter ) {
-			$meta_query[] = [
-				'key'     => 'amazon_polly_audio_link_location',
-				'value'   => '',
-				'compare' => '!=',
-			];
-		}
-
-		$query->set( 'meta_query', $meta_query );
 	}
 
 	private function is_supported_posts_query( \WP_Query $query ): bool {
@@ -371,6 +366,20 @@ class AmazonAI_AudioAdmin {
 		}
 
 		return $background_task;
+	}
+
+	private function get_audio_filter_value( ?\WP_Query $query = null ): string {
+		$filter = '';
+
+		if ( null !== $query ) {
+			$filter = (string) $query->get( 'amazon_polly_audio_filter' );
+		}
+
+		if ( '' === $filter && isset( $_GET['polly_audio_filter'] ) ) {
+			$filter = sanitize_key( wp_unslash( $_GET['polly_audio_filter'] ) );
+		}
+
+		return in_array( $filter, [ 'no_audio', 'has_audio' ], true ) ? $filter : '';
 	}
 
 	// =========================================================================
