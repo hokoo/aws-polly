@@ -328,6 +328,7 @@ class AmazonAI_PollyService {
 		if ( $lang == '' ) {
 			update_post_meta( $post_id, 'amazon_polly_audio_link_location', $audio_location_link );
 			update_post_meta( $post_id, 'amazon_polly_audio_location', "s3" );
+			update_post_meta( $post_id, 'amazon_polly_generated_voice_id', $voice_id );
 		} else {
 			update_post_meta( $post_id, 'amazon_polly_translation_' . $lang, '1' );
 		}
@@ -566,6 +567,7 @@ class AmazonAI_PollyService {
 		if ( $lang == '' ) {
 			update_post_meta( $post_id, 'amazon_polly_audio_link_location', $audio_location_link );
 			update_post_meta( $post_id, 'amazon_polly_audio_location', $fileHandler->get_type() );
+			update_post_meta( $post_id, 'amazon_polly_generated_voice_id', $voice_id );
 		} else {
 			update_post_meta( $post_id, 'amazon_polly_translation_' . $lang, '1' );
 		}

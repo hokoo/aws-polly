@@ -11,12 +11,14 @@ use iTRON\WP_Lock\WP_Lock;
 class AmazonAI_AudioAdmin {
 	private const AUDIO_SORT_META_ALIAS = 'amazon_polly_audio_sort_meta';
 	private const VOICE_SORT_META_ALIAS = 'amazon_polly_voice_sort_meta';
+	private const GENERATED_VOICE_SORT_META_ALIAS = 'amazon_polly_generated_voice_sort_meta';
 
 	/**
 	 * @var AmazonAI_Common
 	 */
 	private $common;
 	private array $audio_status_cache = [];
+	private array $display_voice_cache = [];
 
 	public function __construct( AmazonAI_Common $common ) {
 		$this->common = $common;
@@ -63,9 +65,8 @@ class AmazonAI_AudioAdmin {
 		}
 
 		if ( 'polly_voice' === $column ) {
-			$voice = get_post_meta( $post_id, 'amazon_polly_voice_id', true );
-			$link  = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
-			if ( ! empty( $voice ) && ! empty( $link ) ) {
+			$voice = $this->get_display_voice( $post_id );
+			if ( ! empty( $voice ) && 'yes' === $this->get_audio_status( $post_id )['status'] ) {
 				echo esc_html( $voice );
 			} else {
 				echo '&mdash;';
@@ -128,7 +129,6 @@ class AmazonAI_AudioAdmin {
 
 		$order = $this->normalize_sort_order( $query->get( 'order' ) );
 		$clauses['distinct'] = 'DISTINCT';
-
 		$clauses['join'] = $this->add_sort_meta_join(
 			$clauses['join'],
 			self::AUDIO_SORT_META_ALIAS,
@@ -141,7 +141,7 @@ class AmazonAI_AudioAdmin {
 			self::AUDIO_SORT_META_ALIAS
 		);
 
-		if ( 'polly_audio' === $orderby ) {
+		if ( $is_audio_sort ) {
 			$clauses['orderby'] = sprintf(
 				'%s %s, %s.post_title ASC, %s.ID ASC',
 				$audio_presence,
@@ -158,18 +158,30 @@ class AmazonAI_AudioAdmin {
 			'amazon_polly_voice_id'
 		);
 
-		$voice_missing = sprintf(
-			"CASE WHEN %s.meta_value IS NULL OR %s.meta_value = '' THEN 1 ELSE 0 END",
-			self::VOICE_SORT_META_ALIAS,
+		$clauses['join'] = $this->add_sort_meta_join(
+			$clauses['join'],
+			self::GENERATED_VOICE_SORT_META_ALIAS,
+			'amazon_polly_generated_voice_id'
+		);
+
+		$voice_value = sprintf(
+			'COALESCE(NULLIF(%1$s.meta_value, \'\'), NULLIF(%2$s.meta_value, \'\'))',
+			self::GENERATED_VOICE_SORT_META_ALIAS,
 			self::VOICE_SORT_META_ALIAS
+		);
+
+		$voice_missing = sprintf(
+			"CASE WHEN %s IS NULL OR %s = '' THEN 1 ELSE 0 END",
+			$voice_value,
+			$voice_value
 		);
 
 		// Voice sorting always keeps posts with generated audio at the top.
 		$clauses['orderby'] = sprintf(
-			'%s DESC, %s ASC, %s.meta_value %s, %s.post_title ASC, %s.ID ASC',
+			'%s DESC, %s ASC, %s %s, %s.post_title ASC, %s.ID ASC',
 			$audio_presence,
 			$voice_missing,
-			self::VOICE_SORT_META_ALIAS,
+			$voice_value,
 			$order,
 			$wpdb->posts,
 			$wpdb->posts
@@ -209,7 +221,7 @@ class AmazonAI_AudioAdmin {
 	public function render_audio_meta_box( \WP_Post $post ): void {
 		$status   = $this->get_audio_status( $post->ID );
 		$link     = $status['link'];
-		$voice    = get_post_meta( $post->ID, 'amazon_polly_voice_id', true );
+		$voice    = $this->get_display_voice( $post->ID );
 		$playtime = get_post_meta( $post->ID, 'amazon_polly_audio_playtime', true );
 
 		if ( 'yes' === $status['status'] ) {
@@ -356,6 +368,35 @@ class AmazonAI_AudioAdmin {
 				? 'Polly is enabled, but audio has not been generated yet.'
 				: 'Audio is not available.',
 		];
+	}
+
+	private function get_display_voice( int $post_id ): string {
+		if ( isset( $this->display_voice_cache[ $post_id ] ) ) {
+			return $this->display_voice_cache[ $post_id ];
+		}
+
+		foreach ( [ 'amazon_polly_generated_voice_id', 'amazon_polly_voice_id' ] as $meta_key ) {
+			$voice = (string) get_post_meta( $post_id, $meta_key, true );
+			if ( '' !== $voice ) {
+				return $this->display_voice_cache[ $post_id ] = $voice;
+			}
+		}
+
+		if ( 'yes' !== $this->get_audio_status( $post_id )['status'] ) {
+			return $this->display_voice_cache[ $post_id ] = '';
+		}
+
+		try {
+			$voice = $this->common->resolve_polly_voice_id(
+				$this->common->get_post_source_language( $post_id ),
+				'',
+				$this->common->get_voice_id()
+			);
+		} catch ( Exception $e ) {
+			$voice = '';
+		}
+
+		return $this->display_voice_cache[ $post_id ] = (string) $voice;
 	}
 
 	private function get_background_task(): AmazonAI_BackgroundTask {
