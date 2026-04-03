@@ -101,27 +101,9 @@ class AmazonAI_AudioAdmin {
 			return $clauses;
 		}
 
-		$audio_filter = $this->get_audio_filter_value( $query );
 		$orderby = $query->get( 'orderby' );
 		$is_audio_sort = 'polly_audio' === $orderby;
 		$is_voice_sort = 'polly_voice' === $orderby;
-
-		if ( ! $is_audio_sort && ! $is_voice_sort && '' === $audio_filter ) {
-			return $clauses;
-		}
-
-		if ( '' !== $audio_filter ) {
-			$audio_filter_subquery = $wpdb->prepare(
-				"SELECT 1 FROM {$wpdb->postmeta} AS amazon_polly_audio_filter_meta WHERE amazon_polly_audio_filter_meta.post_id = {$wpdb->posts}.ID AND amazon_polly_audio_filter_meta.meta_key = %s AND amazon_polly_audio_filter_meta.meta_value <> ''",
-				'amazon_polly_audio_link_location'
-			);
-
-			if ( 'no_audio' === $audio_filter ) {
-				$clauses['where'] .= " AND NOT EXISTS ({$audio_filter_subquery})";
-			} elseif ( 'has_audio' === $audio_filter ) {
-				$clauses['where'] .= " AND EXISTS ({$audio_filter_subquery})";
-			}
-		}
 
 		if ( ! $is_audio_sort && ! $is_voice_sort ) {
 			return $clauses;
@@ -279,7 +261,15 @@ class AmazonAI_AudioAdmin {
 
 		$filter = $this->get_audio_filter_value();
 		if ( '' !== $filter ) {
+			$this->common->backfill_legacy_audio_states();
 			$query->set( 'amazon_polly_audio_filter', $filter );
+			$query->set(
+				'meta_query',
+				$this->merge_meta_query_clause(
+					$query->get( 'meta_query' ),
+					$this->build_audio_filter_meta_query( $filter )
+				)
+			);
 		}
 	}
 
@@ -325,9 +315,11 @@ class AmazonAI_AudioAdmin {
 			return $this->audio_status_cache[ $post_id ];
 		}
 
+		$state = $this->common->get_post_audio_state( $post_id );
 		$link = (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
+		$enabled = '1' === (string) get_post_meta( $post_id, 'amazon_polly_enable', true );
 
-		if ( '' !== $link ) {
+		if ( AmazonAI_Common::AUDIO_STATE_READY === $state && '' !== $link ) {
 			return $this->audio_status_cache[ $post_id ] = [
 				'status' => 'yes',
 				'phase'  => 'ready',
@@ -336,10 +328,35 @@ class AmazonAI_AudioAdmin {
 			];
 		}
 
-		$enabled = '1' === (string) get_post_meta( $post_id, 'amazon_polly_enable', true );
+		if ( AmazonAI_Common::AUDIO_STATE_RUNNING === $state ) {
+			return $this->audio_status_cache[ $post_id ] = [
+				'status' => 'generating',
+				'phase'  => 'running',
+				'link'   => '',
+				'title'  => 'Audio generation is currently running.',
+			];
+		}
 
-		// Compute this dynamically from queue/lock state to avoid stale persisted statuses.
-		if ( $enabled ) {
+		if ( AmazonAI_Common::AUDIO_STATE_QUEUED === $state ) {
+			return $this->audio_status_cache[ $post_id ] = [
+				'status' => 'generating',
+				'phase'  => 'queued',
+				'link'   => '',
+				'title'  => 'Audio generation is queued and will start via WP-Cron.',
+			];
+		}
+
+		// Legacy fallback for posts that have not been transitioned to the canonical audio state yet.
+		if ( '' === $state && '' !== $link ) {
+			return $this->audio_status_cache[ $post_id ] = [
+				'status' => 'yes',
+				'phase'  => 'ready',
+				'link'   => $link,
+				'title'  => $link,
+			];
+		}
+
+		if ( $enabled && ! in_array( $state, [ AmazonAI_Common::AUDIO_STATE_READY, AmazonAI_Common::AUDIO_STATE_RUNNING, AmazonAI_Common::AUDIO_STATE_QUEUED ], true ) ) {
 			$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
 			if ( $lock->lock_exists() ) {
 				return $this->audio_status_cache[ $post_id ] = [
@@ -358,6 +375,15 @@ class AmazonAI_AudioAdmin {
 					'title'  => 'Audio generation is queued and will start via WP-Cron.',
 				];
 			}
+		}
+
+		if ( AmazonAI_Common::AUDIO_STATE_ERROR === $state ) {
+			return $this->audio_status_cache[ $post_id ] = [
+				'status' => 'no',
+				'phase'  => $enabled ? 'enabled' : 'disabled',
+				'link'   => '',
+				'title'  => 'The last audio generation attempt failed.',
+			];
 		}
 
 		return $this->audio_status_cache[ $post_id ] = [
@@ -423,6 +449,40 @@ class AmazonAI_AudioAdmin {
 		return in_array( $filter, [ 'no_audio', 'has_audio' ], true ) ? $filter : '';
 	}
 
+	private function build_audio_filter_meta_query( string $filter ): array {
+		$state_key = $this->common->get_audio_state_meta_key();
+
+		if ( 'has_audio' === $filter ) {
+			return [
+				[
+					'key'     => $state_key,
+					'value'   => AmazonAI_Common::AUDIO_STATE_READY,
+					'compare' => '=',
+				],
+			];
+		}
+
+		return [
+			[
+				'key'     => $state_key,
+				'value'   => AmazonAI_Common::AUDIO_STATE_READY,
+				'compare' => '!=',
+			],
+		];
+	}
+
+	private function merge_meta_query_clause( $meta_query, array $clause ): array {
+		if ( ! is_array( $meta_query ) || [] === $meta_query ) {
+			return [ $clause ];
+		}
+
+		return [
+			'relation' => 'AND',
+			$meta_query,
+			$clause,
+		];
+	}
+
 	// =========================================================================
 	// Bulk action: Generate audio
 	// =========================================================================
@@ -446,7 +506,7 @@ class AmazonAI_AudioAdmin {
 
 			$voice = get_post_meta( $post_id, 'amazon_polly_voice_id', true );
 			if ( empty( $voice ) ) {
-				$global_voice = get_option( 'amazon_polly_voice_id', '' );
+				$global_voice = $this->common->get_voice_id();
 				if ( ! empty( $global_voice ) ) {
 					update_post_meta( $post_id, 'amazon_polly_voice_id', $global_voice );
 				}

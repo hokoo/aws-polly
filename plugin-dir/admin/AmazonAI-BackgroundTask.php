@@ -68,6 +68,11 @@ class AmazonAI_BackgroundTask {
 
   public function queue_audio( int $post_id ) {
 	  $this->queue( AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, [$post_id], true );
+
+	  $common = new AmazonAI_Common();
+	  if ( ! $common->has_post_audio( $post_id ) ) {
+		  $common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_QUEUED );
+	  }
   }
 
   public function has_queued_audio( int $post_id ) {

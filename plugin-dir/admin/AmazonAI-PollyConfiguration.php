@@ -14,6 +14,7 @@ class AmazonAI_PollyConfiguration {
 	 * @var AmazonAI_Common
 	 */
 	private $common;
+	private $polly_access_available = null;
 
 	/**
 	 * AmazonAI_PollyConfiguration constructor.
@@ -22,6 +23,14 @@ class AmazonAI_PollyConfiguration {
 	 */
 	public function __construct(AmazonAI_Common $common) {
 		$this->common = $common;
+	}
+
+	private function can_render_polly_settings(): bool {
+		if ( null === $this->polly_access_available ) {
+			$this->polly_access_available = $this->common->validate_amazon_polly_access( false, true );
+		}
+
+		return (bool) $this->polly_access_available;
 	}
 
 	public function amazon_ai_add_menu() {
@@ -59,13 +68,13 @@ class AmazonAI_PollyConfiguration {
         add_settings_field('amazon_ai_polly_enable', __('Enable text-to-speech support:', 'amazonpolly'), array($this,'polly_enabled_gui'), 'amazon_ai_polly', 'amazon_ai_polly', array('label_for' => 'amazon_ai_polly_enable'));
         register_setting('amazon_ai_polly', 'amazon_ai_polly_enable');
 
-        if ($this->common->is_polly_enabled() ) {
-	            if ($this->common->validate_amazon_polly_access()) {
+	        if ($this->common->is_polly_enabled() ) {
+	            if ($this->can_render_polly_settings()) {
 		                if ($this->common->is_language_supported_for_polly()) {
 	                  add_settings_field( 'amazon_polly_disable_post_voice_override', __( 'Lock post voice to global setting:', 'amazonpolly' ), array( $this, 'disable_post_voice_override_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_disable_post_voice_override' ) );
 	                  register_setting('amazon_ai_polly', 'amazon_polly_disable_post_voice_override');
 	                  add_settings_field( 'amazon_polly_voice_id', __( 'Voice name:', 'amazonpolly' ), array( $this, 'voices_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_voice_id' ) );
-	                  register_setting('amazon_ai_polly', 'amazon_polly_voice_id');
+	                  register_setting('amazon_ai_polly', 'amazon_polly_voice_id', array( $this, 'sanitize_voice_id' ));
 
 	                    add_settings_field( 'amazon_polly_neural', __( 'Neural Text-To-Speech:', 'amazonpolly' ), array( $this, 'neural_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_neural' ) );
 	                    register_setting('amazon_ai_polly', 'amazon_polly_neural');
@@ -103,16 +112,15 @@ class AmazonAI_PollyConfiguration {
 
         			//Registration
                     register_setting('amazon_ai_polly', 'amazon_polly_s3');
-                    register_setting('amazon_ai_polly', 'amazon_polly_posttypes');
                     register_setting('amazon_ai_polly', 'amazon_polly_cloudfront');
                     register_setting('amazon_ai_polly', 'amazon_polly_poweredby');
                     register_setting('amazon_ai_polly', 'amazon_ai_logging');
 
-        			register_setting('amazon_ai_polly', 'amazon_polly_sample_rate');
+					register_setting('amazon_ai_polly', 'amazon_polly_sample_rate', array( $this, 'sanitize_sample_rate' ));
         			register_setting('amazon_ai_polly', 'amazon_polly_auto_breaths');
         			register_setting('amazon_ai_polly', 'amazon_polly_ssml');
         			register_setting('amazon_ai_polly', 'amazon_polly_lexicons');
-        			register_setting('amazon_ai_polly', 'amazon_polly_speed');
+					register_setting('amazon_ai_polly', 'amazon_polly_speed', array( $this, 'sanitize_audio_speed' ));
 
         			register_setting('amazon_ai_polly', 'amazon_polly_position');
         			register_setting('amazon_ai_polly', 'amazon_polly_player_label');
@@ -126,6 +134,7 @@ class AmazonAI_PollyConfiguration {
                     register_setting('amazon_ai_polly', 'amazon_ai_medialibrary_enabled');
                     register_setting('amazon_ai_polly', 'amazon_ai_skip_tags');
                     register_setting('amazon_ai_polly', 'amazon_ai_download_enabled');
+                    register_setting('amazon_ai_polly', 'amazon_polly_posttypes', array( $this, 'sanitize_posttypes' ));
                 }
             }
         }
@@ -141,7 +150,7 @@ class AmazonAI_PollyConfiguration {
   public function polly_enabled_gui() {
       if ($this->common->is_language_supported_for_polly()) {
           $value = $this->common->checked_validator( 'amazon_ai_polly_enable' );
-          if ($this->common->validate_amazon_polly_access()) {
+          if ($this->can_render_polly_settings()) {
               echo '<input type="checkbox" name="amazon_ai_polly_enable" id="amazon_ai_polly_enable" ' . $this->common->checked_validator( 'amazon_ai_polly_enable' ) . '> ';
           } else {
               echo '<p>Verify that your AWS credentials are accurate</p>';
@@ -309,6 +318,33 @@ class AmazonAI_PollyConfiguration {
 	        echo '<p class="description" for="amazon_polly_posttypes">Post types in your WordPress environment</p>';
 	    }
 
+	    public function sanitize_voice_id( $voice_id ) {
+	      $language_code = isset( $_POST['amazon_ai_source_language'] )
+	        ? sanitize_text_field( wp_unslash( $_POST['amazon_ai_source_language'] ) )
+	        : $this->common->get_source_language();
+
+	      return $this->common->get_resolved_polly_voice_option(
+	        'amazon_polly_voice_id',
+	        $language_code,
+	        'Matthew',
+	        array(
+	          'requested_voice_id' => sanitize_text_field( wp_unslash( $voice_id ) ),
+	        )
+	      );
+	    }
+
+	    public function sanitize_sample_rate( $sample_rate ) {
+	      return $this->common->normalize_sample_rate( sanitize_text_field( wp_unslash( $sample_rate ) ) );
+	    }
+
+	    public function sanitize_posttypes( $posttypes ) {
+	      return $this->common->normalize_posttypes( wp_unslash( $posttypes ) );
+	    }
+
+	    public function sanitize_audio_speed( $speed ) {
+	      return $this->common->normalize_audio_speed( wp_unslash( $speed ) );
+	    }
+
 	    public function sanitize_speaking_style( $style ) {
 	      return $this->common->sync_polly_speaking_style( sanitize_text_field( wp_unslash( $style ) ), false );
 	    }
@@ -361,7 +397,7 @@ class AmazonAI_PollyConfiguration {
      */
 	    public function neural_gui() {
 
-      $voice_id = $this->common->sync_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
+      $voice_id = $this->common->get_resolved_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
       $is_region_supported = $this->common->is_neural_supported_in_region();
       $is_voice_supported = $this->common->is_neural_supported_for_voice( $voice_id );
       $show_checkbox = $is_region_supported && $is_voice_supported;
@@ -387,7 +423,7 @@ class AmazonAI_PollyConfiguration {
 
 	    public function speaking_style_gui() {
 
-	      $voice_id = $this->common->sync_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
+	      $voice_id = $this->common->get_resolved_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
 	      $is_region_supported = $this->common->is_neural_supported_in_region();
 	      $is_neural_requested = $this->common->is_polly_neural_requested();
 	      $supports_news = $this->common->is_news_style_for_voice( $voice_id );
@@ -442,7 +478,7 @@ class AmazonAI_PollyConfiguration {
      */
     public function news_gui() {
 
-      $voice_id = $this->common->sync_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
+      $voice_id = $this->common->get_resolved_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
       $is_region_supported = $this->common->is_neural_supported_in_region();
       $is_neural_requested = $this->common->is_polly_neural_requested();
       $is_voice_supported = $this->common->is_news_style_for_voice( $voice_id );
@@ -478,7 +514,7 @@ class AmazonAI_PollyConfiguration {
      */
     public function conversational_gui() {
 
-      $voice_id = $this->common->sync_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
+      $voice_id = $this->common->get_resolved_polly_voice_option( 'amazon_polly_voice_id', $this->common->get_source_language(), 'Matthew' );
       $is_region_supported = $this->common->is_neural_supported_in_region();
       $is_neural_requested = $this->common->is_polly_neural_requested();
       $is_voice_supported = $this->common->is_conversational_style_for_voice( $voice_id );
@@ -761,7 +797,7 @@ public function playerlabel_gui() {
 	 */
 	public function voices_gui() {
 		$language_code = $this->common->get_source_language();
-		$voice_id = $this->common->sync_polly_voice_option( 'amazon_polly_voice_id', $language_code, 'Matthew' );
+		$voice_id = $this->common->get_resolved_polly_voice_option( 'amazon_polly_voice_id', $language_code, 'Matthew' );
 		$available_voice_list = $this->common->get_available_polly_voices( $language_code );
 
 		if ( empty( $available_voice_list ) ) {

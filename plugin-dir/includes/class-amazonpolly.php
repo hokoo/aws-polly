@@ -29,6 +29,8 @@ class Amazonpolly {
 	protected $loader;
 	protected $plugin_name;
 	protected $version;
+	protected $common;
+	protected $object_cache;
 
 	public function __construct() {
 		$this->plugin_name = 'amazonpolly';
@@ -37,6 +39,7 @@ class Amazonpolly {
 
 		$this->common = new AmazonAI_Common();
 		$this->common->init();
+		$this->object_cache = new Amazonpolly_Object_Cache( $this->common );
 
 		$this->define_global_hooks();
 		$this->set_locale();
@@ -56,6 +59,7 @@ class Amazonpolly {
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-S3FileHandler.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-Logger.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-Common.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-object-cache.php';
 
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-GeneralConfiguration.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PollyService.php';
@@ -88,6 +92,26 @@ class Amazonpolly {
 		$polly_configuration = new AmazonAI_PollyConfiguration($this->common);
 		$polly_service = new AmazonAI_PollyService($this->common);
 		$cron_handler = new AmazonAI_CronHandler( $polly_service, new AmazonAI_Logger() );
+		$object_cache = $this->object_cache;
+		$audio_generation_options = array(
+			'amazon_ai_source_language',
+			'amazon_polly_voice_id',
+			'amazon_polly_sample_rate',
+			'amazon_polly_s3',
+			'amazon_polly_cloudfront',
+			'amazon_polly_ssml',
+			'amazon_polly_auto_breaths',
+			'amazon_polly_speed',
+			'amazon_polly_lexicons',
+			'amazon_polly_neural',
+			'amazon_polly_speaking_style',
+			'amazon_polly_add_post_title',
+			'amazon_polly_add_post_excerpt',
+			'amazon_ai_skip_tags',
+			'amazon_polly_disable_post_voice_override',
+			'amazon_polly_posttypes',
+			'aws_polly_s3_bucket_name',
+		);
 
 		$plugin_name = get_option('amazon_plugin_name');
 		$this->loader->add_action( 'init', $this, 'load_integrations', 5 );
@@ -106,6 +130,17 @@ class Amazonpolly {
 		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HANDLERS_HOOK . AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1);
 
 		$this->loader->add_action( 'before_delete_post', $this->common, 'delete_post' );
+		$this->loader->add_action( 'before_delete_post', $object_cache, 'handle_before_delete_post' );
+		$this->loader->add_action( 'added_post_meta', $object_cache, 'handle_added_post_meta', 10, 4 );
+		$this->loader->add_action( 'updated_post_meta', $object_cache, 'handle_updated_post_meta', 10, 4 );
+		$this->loader->add_action( 'deleted_post_meta', $object_cache, 'handle_deleted_post_meta', 10, 4 );
+		$this->loader->add_action( 'amazon_polly_clear_post_audio_runtime_cache', $object_cache, 'handle_clear_post_audio_runtime_cache', 10, 1 );
+		$this->loader->add_action( 'update_option_aws_polly_s3_region', $object_cache, 'handle_polly_voices_region_change', 10, 3 );
+		$this->loader->add_action( 'update_option_aws_polly_s3_access_key', $object_cache, 'handle_polly_voices_credentials_change', 10, 3 );
+		$this->loader->add_action( 'update_option_aws_polly_s3_secret_key', $object_cache, 'handle_polly_voices_credentials_change', 10, 3 );
+		foreach ( $audio_generation_options as $option_name ) {
+			$this->loader->add_action( 'update_option_' . $option_name, $object_cache, 'handle_audio_generation_setting_change', 10, 3 );
+		}
 		$this->loader->add_action( 'wp_ajax_polly_transcribe', $polly_service, 'ajax_bulk_synthesize' );
 
 		$this->loader->add_action( 'admin_menu', $general_configuration, 'amazon_ai_add_menu' );
@@ -139,7 +174,7 @@ class Amazonpolly {
 	}
 
 	private function define_public_hooks() {
-		$plugin_public = new Amazonpolly_Public( $this->get_plugin_name(), $this->get_version(), $this->common);
+		$plugin_public = new Amazonpolly_Public( $this->get_plugin_name(), $this->get_version(), $this->common, $this->object_cache );
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );

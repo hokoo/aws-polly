@@ -11,6 +11,12 @@ class AmazonAI_Common
 {
 	const POLLY_VOICES_TRANSIENT_PREFIX = 'amazon_polly_voices_';
 	const POLLY_VOICES_TRANSIENT_TTL = 43200;
+	const AUDIO_STATE_META_KEY = 'amazon_polly_audio_state';
+	const AUDIO_STATE_NONE = 'none';
+	const AUDIO_STATE_QUEUED = 'queued';
+	const AUDIO_STATE_RUNNING = 'running';
+	const AUDIO_STATE_READY = 'ready';
+	const AUDIO_STATE_ERROR = 'error';
 
 	// Information about languages supported by the AWS plugin
 	private $languages = [
@@ -175,6 +181,106 @@ class AmazonAI_Common
 
 	private function get_polly_voices_transient_key() {
 		return self::POLLY_VOICES_TRANSIENT_PREFIX . md5( (string) $this->get_aws_region() );
+	}
+
+	public function get_audio_state_meta_key(): string {
+		return self::AUDIO_STATE_META_KEY;
+	}
+
+	public function get_valid_audio_states(): array {
+		return [
+			self::AUDIO_STATE_NONE,
+			self::AUDIO_STATE_QUEUED,
+			self::AUDIO_STATE_RUNNING,
+			self::AUDIO_STATE_READY,
+			self::AUDIO_STATE_ERROR,
+		];
+	}
+
+	public function normalize_audio_state( $state ): string {
+		$state = sanitize_key( (string) $state );
+
+		return in_array( $state, $this->get_valid_audio_states(), true )
+			? $state
+			: self::AUDIO_STATE_NONE;
+	}
+
+	public function get_persisted_post_audio_state( int $post_id ): string {
+		$state = sanitize_key( (string) get_post_meta( $post_id, self::AUDIO_STATE_META_KEY, true ) );
+
+		return in_array( $state, $this->get_valid_audio_states(), true ) ? $state : '';
+	}
+
+	public function has_post_audio( int $post_id ): bool {
+		return '' !== trim( (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true ) );
+	}
+
+	public function get_post_audio_state( int $post_id ): string {
+		$state = $this->get_persisted_post_audio_state( $post_id );
+		if ( '' !== $state ) {
+			return $state;
+		}
+
+		return $this->has_post_audio( $post_id ) ? self::AUDIO_STATE_READY : '';
+	}
+
+	public function set_post_audio_state( int $post_id, string $state ): void {
+		update_post_meta( $post_id, self::AUDIO_STATE_META_KEY, $this->normalize_audio_state( $state ) );
+		clean_post_cache( $post_id );
+	}
+
+	public function backfill_legacy_audio_states() {
+		global $wpdb;
+
+		$post_types = array_values( array_filter( $this->get_posttypes_array(), 'is_string' ) );
+		if ( [] === $post_types ) {
+			return 0;
+		}
+
+		$post_type_placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+		$inserted_rows = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO {$wpdb->postmeta} (post_id, meta_key, meta_value)
+				SELECT p.ID, %s,
+					CASE
+						WHEN EXISTS (
+							SELECT 1
+							FROM {$wpdb->postmeta} AS audio_meta
+							WHERE audio_meta.post_id = p.ID
+								AND audio_meta.meta_key = %s
+								AND audio_meta.meta_value <> ''
+						) THEN %s
+						ELSE %s
+					END
+				FROM {$wpdb->posts} AS p
+				LEFT JOIN {$wpdb->postmeta} AS state_meta
+					ON state_meta.post_id = p.ID
+					AND state_meta.meta_key = %s
+				WHERE p.post_type IN ({$post_type_placeholders})
+					AND p.post_status NOT IN ('auto-draft', 'trash', 'inherit')
+					AND state_meta.meta_id IS NULL",
+				array_merge(
+					[
+						self::AUDIO_STATE_META_KEY,
+						'amazon_polly_audio_link_location',
+						self::AUDIO_STATE_READY,
+						self::AUDIO_STATE_NONE,
+						self::AUDIO_STATE_META_KEY,
+					],
+					$post_types
+				)
+			)
+		);
+
+		if ( false === $inserted_rows ) {
+			return false;
+		}
+
+		if ( function_exists( 'wp_cache_set_posts_last_changed' ) ) {
+			wp_cache_set_posts_last_changed();
+		}
+
+		return (int) $inserted_rows;
 	}
 
 	private function sort_polly_voices_list( array &$voices ) {
@@ -466,9 +572,17 @@ class AmazonAI_Common
 		return (string) $available_voices[0]['Id'];
 	}
 
+	public function get_resolved_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = [] ) {
+		$current_voice_id = array_key_exists( 'requested_voice_id', $args )
+			? (string) $args['requested_voice_id']
+			: (string) get_option( $option_name, '' );
+
+		return $this->resolve_polly_voice_id( $language_code, $current_voice_id, $fallback_voice_id, $args );
+	}
+
 	public function sync_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = [] ) {
 		$current_voice_id = (string) get_option( $option_name, '' );
-		$resolved_voice_id = $this->resolve_polly_voice_id( $language_code, $current_voice_id, $fallback_voice_id, $args );
+		$resolved_voice_id = $this->get_resolved_polly_voice_option( $option_name, $language_code, $fallback_voice_id, $args );
 
 		if ( $resolved_voice_id !== $current_voice_id ) {
 			if ( '' === $resolved_voice_id ) {
@@ -740,30 +854,42 @@ class AmazonAI_Common
 	 * @since    2.5.0
 	 * @return bool
 	 */
-	public function validate_amazon_polly_access(): bool {
+	public function validate_amazon_polly_access( $persist_state = true, $show_notices = true ): bool {
 		try {
-			$this->is_s3_enabled() && $this->check_aws_access() && $this->s3_handler->is_bucket_accessible();
+			$this->is_s3_enabled() && $this->check_aws_access( $persist_state ) && $this->s3_handler->is_bucket_accessible();
 		}
 
 		catch (S3BucketNotAccException $e) {
-			$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed.");
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed.");
+			}
 			return false;
 		}
 
 		catch(CredsException $e) {
-			$this->deactivate_all();
-			$this->show_error_notice("notice-error", "Can't connect to AWS. Check your AWS credentials.");
+			if ( $persist_state ) {
+				$this->deactivate_all();
+			}
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-error", "Can't connect to AWS. Check your AWS credentials.");
+			}
 			return false;
 		}
 
 		catch(S3BucketNotCreException $e) {
-			$this->show_error_notice("notice-error", "Could not create S3 bucket.");
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-error", "Could not create S3 bucket.");
+			}
 			return false;
 		}
 
 		catch(Exception $e) {
-			$this->deactivate_all();
-			$this->show_error_notice("notice-error", "Unknown error.");
+			if ( $persist_state ) {
+				$this->deactivate_all();
+			}
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-error", "Unknown error.");
+			}
 			return false;
 		}
 
@@ -796,13 +922,49 @@ class AmazonAI_Common
 		});
 	}
 
+	public function normalize_sample_rate( $sample_rate ) {
+		$sample_rate = (string) $sample_rate;
+
+		if ( ! in_array( $sample_rate, array( '24000', '22050', '16000', '8000' ), true ) ) {
+			return '24000';
+		}
+
+		return $sample_rate;
+	}
+
+	public function normalize_posttypes( $posttypes ) {
+		if ( is_array( $posttypes ) ) {
+			$posttypes = implode( ' ', $posttypes );
+		}
+
+		$posttypes = str_replace( ',', ' ', (string) $posttypes );
+		$posttypes = preg_replace( '!\s+!', ' ', $posttypes );
+		$posttypes = trim( (string) $posttypes );
+		$posttypes = array_map( 'sanitize_key', array_filter( explode( ' ', $posttypes ) ) );
+		$posttypes = array_values( array_filter( $posttypes ) );
+
+		if ( empty( $posttypes ) ) {
+			$posttypes = array( 'post' );
+		}
+
+		return implode( ' ', $posttypes );
+	}
+
+	public function normalize_audio_speed( $speed ) {
+		$speed = trim( (string) $speed );
+
+		if ( '' === $speed ) {
+			$speed = '100';
+		}
+
+		$speed = (string) max( 20, min( 200, (int) $speed ) );
+
+		return $speed;
+	}
+
 
 	public function get_sample_rate() {
-		$sample_rate = get_option('amazon_polly_sample_rate');
-		if (empty($sample_rate)) {
-			$sample_rate = '24000';
-			update_option('amazon_polly_sample_rate', $sample_rate);
-		}
+		$sample_rate = $this->normalize_sample_rate( get_option( 'amazon_polly_sample_rate' ) );
 
 		$this->logger->log(sprintf('%s Sample rate: %s ', __METHOD__, $sample_rate));
 
@@ -810,10 +972,9 @@ class AmazonAI_Common
 	}
 
 	public function get_voice_id() {
-		$voice_id = get_option('amazon_polly_voice_id');
-		if (empty($voice_id)) {
+		$voice_id = (string) get_option( 'amazon_polly_voice_id' );
+		if ( empty( $voice_id ) ) {
 			$voice_id = 'Matthew';
-			update_option('amazon_polly_voice_id', $voice_id);
 		}
 
 		return $voice_id;
@@ -861,12 +1022,7 @@ class AmazonAI_Common
 	 */
 	public function get_posttypes()
 	{
-		$posttypes = get_option('amazon_polly_posttypes', 'post');
-		$posttypes = str_replace(",", " ", $posttypes);
-		$posttypes = preg_replace('!\s+!', ' ', $posttypes);
-		update_option('amazon_polly_posttypes', $posttypes);
-
-		return $posttypes;
+		return $this->normalize_posttypes( get_option( 'amazon_polly_posttypes', 'post' ) );
 	}
 
 	/**
@@ -876,21 +1032,7 @@ class AmazonAI_Common
 	 */
 	public function get_audio_speed()
 	{
-		$speed = get_option('amazon_polly_speed');
-		if (empty($speed)) {
-			$speed = '100';
-		}
-
-		if (intval($speed) < 20) {
-			$speed = '20';
-		}
-
-		if (intval($speed) > 200) {
-			$speed = '200';
-		}
-
-		update_option('amazon_polly_speed', $speed);
-		return $speed;
+		return $this->normalize_audio_speed( get_option( 'amazon_polly_speed' ) );
 	}
 
 	/**
@@ -1238,16 +1380,20 @@ class AmazonAI_Common
 	 *
 	 * @since    2.5.0
 	 */
-	private function check_aws_access()
+	private function check_aws_access( $persist_state = true )
 	{
 		try {
 			$voice_list = $this->get_polly_voices( true );
-			update_option('amazon_polly_valid_keys', '1');
+			if ( $persist_state ) {
+				update_option('amazon_polly_valid_keys', '1');
+			}
 			return true;
 		}
 
 		catch(Exception $e) {
-			update_option('amazon_polly_valid_keys', '0');
+			if ( $persist_state ) {
+				update_option('amazon_polly_valid_keys', '0');
+			}
 			throw new CredsException('Could not connect to AWS. Check your AWS credentials.');
 		}
 	}
@@ -1606,7 +1752,69 @@ class AmazonAI_Common
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
+
+		if ( 'attachment' === get_post_type( $post_id ) ) {
+			return;
+		}
+
+		$post_types_supported = $this->get_posttypes_array();
+		$post_type = get_post_type( $post_id );
+		if ( ! in_array( $post_type, $post_types_supported, true ) ) {
+			return;
+		}
+
 		$this->delete_post_audio( $post_id );
+	}
+
+	private function get_audio_state_meta_keys() {
+		return array(
+			'amazon_polly_audio_link_location',
+			'amazon_polly_audio_location',
+			'amazon_polly_generated_voice_id',
+			'amazon_polly_audio_playtime',
+			'amazon_polly_audio_hash',
+			'amazon_polly_media_library_attachment_id',
+			'amazon_polly_settings_hash',
+			'amazon_polly_transcript_source_lan',
+		);
+	}
+
+	private function get_file_handler_for_audio_location( $audio_location ) {
+		if ( 's3' === $audio_location ) {
+			return $this->s3_handler;
+		}
+
+		if ( 'local' === $audio_location ) {
+			return $this->local_file_handler;
+		}
+
+		return $this->get_file_handler();
+	}
+
+	public function clear_post_audio_state_meta( int $post_id ): void {
+		foreach ( $this->get_audio_state_meta_keys() as $meta_key ) {
+			delete_post_meta( $post_id, $meta_key );
+		}
+
+		foreach ( $this->get_all_polly_languages() as $language_code ) {
+			delete_post_meta( $post_id, 'amazon_polly_translation_' . $language_code );
+			delete_post_meta( $post_id, 'amazon_polly_transcript_' . $language_code );
+		}
+	}
+
+	public function clear_post_audio_runtime_cache( int $post_id ): void {
+		do_action( 'amazon_polly_clear_post_audio_runtime_cache', $post_id );
+	}
+
+	public function clear_post_audio_state( int $post_id ): void {
+		$media_library_att_id = (int) get_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', true );
+		if ( $media_library_att_id > 0 ) {
+			wp_delete_attachment( $media_library_att_id, true );
+		}
+
+		$this->clear_post_audio_state_meta( $post_id );
+		$this->set_post_audio_state( $post_id, self::AUDIO_STATE_NONE );
+		$this->clear_post_audio_runtime_cache( $post_id );
 	}
 
 	/**
@@ -1616,27 +1824,26 @@ class AmazonAI_Common
 	 * @since 1.0.0
 	 */
 	public function delete_post_audio( $post_id ) {
+		$deletion_error = null;
+
 		try {
 			// Deleting audio file.
 			$this->init();
 
-			// Validate if this post which is being saved is one of supported types. If not, return.
-			$post_types_supported = $this->get_posttypes_array();
-			$post_type = get_post_type($post_id);
-			if (!in_array($post_type, $post_types_supported )) {
-				return;
-			}
-
 			$audio_location = get_post_meta( $post_id, 'amazon_polly_audio_location', true );
 			$file           = 'amazon_polly_' . $post_id . '.mp3';
 			$wp_filesystem  = $this->prepare_wp_filesystem();
-
-
-			$file_handler = $this->get_file_handler();
+			$file_handler   = $this->get_file_handler_for_audio_location( $audio_location );
 			$file_handler->delete($wp_filesystem, $file, $post_id);
 		} catch(Exception $e) {
+			$deletion_error = $e;
+		}
+
+		$this->clear_post_audio_state( (int) $post_id );
+
+		if ( $deletion_error ) {
 			$this->show_error_notice("notice-error", "Encountered an error while deleting the file.");
-			error_log($e);
+			error_log( $deletion_error->getMessage() );
 		}
 
 	}
@@ -1779,8 +1986,8 @@ class AmazonAI_Common
 	 * @since  1.0.7
 	 */
 	public function get_posttypes_array() {
-		$posttypes_array = get_option( 'amazon_polly_posttypes', 'post' );
-		$posttypes_array = explode( ' ', $posttypes_array );
+		$posttypes_array = explode( ' ', $this->get_posttypes() );
+		$posttypes_array = array_values( array_filter( $posttypes_array ) );
 		$posttypes_array = apply_filters( 'amazon_polly_post_types', $posttypes_array );
 
 		return $posttypes_array;

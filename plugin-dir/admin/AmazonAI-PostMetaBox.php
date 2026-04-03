@@ -101,15 +101,7 @@ class AmazonAI_PostMetaBox {
             ? $global_voice_id
             : $this->common->resolve_polly_voice_id( $language_code, $post_voice_id, $global_voice_id );
 
-          if ( $is_post_voice_override_disabled && ! empty( $post_voice_id ) ) {
-            delete_post_meta( $post->ID, 'amazon_polly_voice_id' );
-          }
-
           $compatible_voices = $this->common->get_compatible_polly_voices( $language_code );
-
-          if ( ! $is_post_voice_override_disabled && $voice_id !== $post_voice_id ) {
-            update_post_meta( $post->ID, 'amazon_polly_voice_id', $voice_id );
-          }
 
           if ( empty( $compatible_voices ) ) {
             echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
