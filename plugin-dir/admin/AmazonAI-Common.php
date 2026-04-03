@@ -11,6 +11,12 @@ class AmazonAI_Common
 {
 	const POLLY_VOICES_TRANSIENT_PREFIX = 'amazon_polly_voices_';
 	const POLLY_VOICES_TRANSIENT_TTL = 43200;
+	const AUDIO_STATE_META_KEY = 'amazon_polly_audio_state';
+	const AUDIO_STATE_NONE = 'none';
+	const AUDIO_STATE_QUEUED = 'queued';
+	const AUDIO_STATE_RUNNING = 'running';
+	const AUDIO_STATE_READY = 'ready';
+	const AUDIO_STATE_ERROR = 'error';
 
 	// Information about languages supported by the AWS plugin
 	private $languages = [
@@ -175,6 +181,52 @@ class AmazonAI_Common
 
 	private function get_polly_voices_transient_key() {
 		return self::POLLY_VOICES_TRANSIENT_PREFIX . md5( (string) $this->get_aws_region() );
+	}
+
+	public function get_audio_state_meta_key(): string {
+		return self::AUDIO_STATE_META_KEY;
+	}
+
+	public function get_valid_audio_states(): array {
+		return [
+			self::AUDIO_STATE_NONE,
+			self::AUDIO_STATE_QUEUED,
+			self::AUDIO_STATE_RUNNING,
+			self::AUDIO_STATE_READY,
+			self::AUDIO_STATE_ERROR,
+		];
+	}
+
+	public function normalize_audio_state( $state ): string {
+		$state = sanitize_key( (string) $state );
+
+		return in_array( $state, $this->get_valid_audio_states(), true )
+			? $state
+			: self::AUDIO_STATE_NONE;
+	}
+
+	public function get_persisted_post_audio_state( int $post_id ): string {
+		$state = sanitize_key( (string) get_post_meta( $post_id, self::AUDIO_STATE_META_KEY, true ) );
+
+		return in_array( $state, $this->get_valid_audio_states(), true ) ? $state : '';
+	}
+
+	public function has_post_audio( int $post_id ): bool {
+		return '' !== trim( (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true ) );
+	}
+
+	public function get_post_audio_state( int $post_id ): string {
+		$state = $this->get_persisted_post_audio_state( $post_id );
+		if ( '' !== $state ) {
+			return $state;
+		}
+
+		return $this->has_post_audio( $post_id ) ? self::AUDIO_STATE_READY : '';
+	}
+
+	public function set_post_audio_state( int $post_id, string $state ): void {
+		update_post_meta( $post_id, self::AUDIO_STATE_META_KEY, $this->normalize_audio_state( $state ) );
+		clean_post_cache( $post_id );
 	}
 
 	private function sort_polly_voices_list( array &$voices ) {
@@ -1694,8 +1746,6 @@ class AmazonAI_Common
 			delete_post_meta( $post_id, 'amazon_polly_translation_' . $language_code );
 			delete_post_meta( $post_id, 'amazon_polly_transcript_' . $language_code );
 		}
-
-		clean_post_cache( $post_id );
 	}
 
 	public function clear_post_audio_runtime_cache( int $post_id ): void {
@@ -1709,6 +1759,7 @@ class AmazonAI_Common
 		}
 
 		$this->clear_post_audio_state_meta( $post_id );
+		$this->set_post_audio_state( $post_id, self::AUDIO_STATE_NONE );
 		$this->clear_post_audio_runtime_cache( $post_id );
 	}
 

@@ -104,6 +104,7 @@ class AmazonAI_PollyService {
 	 */
 	public function generate_audio( $post_id ) {
 		$logger = new AmazonAI_Logger();
+		$common = $this->common;
 		$logger->log(sprintf('%s Generating audio for post ( id=%s )', __METHOD__, $post_id));
 
 		// The generate audio file lock is to prevent multiple processes from generating audio for the same post.
@@ -139,35 +140,40 @@ class AmazonAI_PollyService {
 			$is_key_valid = $common->validate_amazon_polly_access( true, false );
 		}
 		if ( ! $is_key_valid ) {
+			if ( ! $common->has_post_audio( $post_id ) ) {
+				$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_ERROR );
+			}
 			$lock->release();
 			$logger->log(sprintf('%s AWS keys are not valid. Skipping audio generation for post ( id=%s )', __METHOD__, $post_id));
 			return;
 		}
 
-		// Creating new standard common object for interacting with other methods of the plugin.
-			$common = $this->common;
-			$is_polly_enabled = (bool) get_post_meta($post_id, 'amazon_polly_enable', true);
-			$voice_id = get_post_meta($post_id, 'amazon_polly_voice_id', true);
-			$source_language = $common->get_post_source_language( $post_id );
+		$is_polly_enabled = (bool) get_post_meta($post_id, 'amazon_polly_enable', true);
+		$voice_id = get_post_meta($post_id, 'amazon_polly_voice_id', true);
+		$source_language = $common->get_post_source_language( $post_id );
 
-			try {
-				if ( $is_polly_enabled ) {
-					if ( $common->is_post_voice_override_disabled() && ! empty( $voice_id ) ) {
-						$logger->log(sprintf('%s Removing per-post voice override because post voice overrides are disabled ( id=%s voice=%s )', __METHOD__, $post_id, $voice_id));
-						delete_post_meta( $post_id, 'amazon_polly_voice_id' );
-						$voice_id = '';
-					}
+		try {
+			if ( $is_polly_enabled ) {
+				if ( ! $common->has_post_audio( $post_id ) ) {
+					$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_RUNNING );
+				}
 
-					$resolved_voice_id = $common->resolve_polly_voice_id(
-						$source_language,
-						$voice_id,
-						$common->get_voice_id()
-					);
+				if ( $common->is_post_voice_override_disabled() && ! empty( $voice_id ) ) {
+					$logger->log(sprintf('%s Removing per-post voice override because post voice overrides are disabled ( id=%s voice=%s )', __METHOD__, $post_id, $voice_id));
+					delete_post_meta( $post_id, 'amazon_polly_voice_id' );
+					$voice_id = '';
+				}
 
-					if ( $resolved_voice_id !== $voice_id ) {
-						$logger->log(
-							sprintf(
-								'%s Voice adjusted for post ( id=%s ): requested=%s resolved=%s language=%s',
+				$resolved_voice_id = $common->resolve_polly_voice_id(
+					$source_language,
+					$voice_id,
+					$common->get_voice_id()
+				);
+
+				if ( $resolved_voice_id !== $voice_id ) {
+					$logger->log(
+						sprintf(
+							'%s Voice adjusted for post ( id=%s ): requested=%s resolved=%s language=%s',
 							__METHOD__,
 							$post_id,
 							$voice_id ?: '[empty]',
@@ -175,12 +181,12 @@ class AmazonAI_PollyService {
 							$source_language
 						)
 					);
-						if ( $common->is_post_voice_override_disabled() ) {
-							delete_post_meta( $post_id, 'amazon_polly_voice_id' );
-						} else {
-							update_post_meta( $post_id, 'amazon_polly_voice_id', $resolved_voice_id );
-						}
+					if ( $common->is_post_voice_override_disabled() ) {
+						delete_post_meta( $post_id, 'amazon_polly_voice_id' );
+					} else {
+						update_post_meta( $post_id, 'amazon_polly_voice_id', $resolved_voice_id );
 					}
+				}
 
 				$voice_id = $resolved_voice_id;
 				if ( empty( $voice_id ) ) {
@@ -200,14 +206,16 @@ class AmazonAI_PollyService {
 						)
 					);
 					$common->delete_post_audio( $post_id );
+					$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_RUNNING );
 				}
 
 				$audio_hash   = get_post_meta( $post_id, 'amazon_polly_audio_hash', true );
 				$current_hash = $common->get_audio_hash( $post_id );
 
 				// If the hash is the same, we don't need to regenerate the audio.
-				if ( $audio_hash === $current_hash ) {
+				if ( $audio_hash === $current_hash && $common->has_post_audio( $post_id ) ) {
 					do_action( 'amazon_polly_post_identical_audio', $post_id, $audio_hash );
+					$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_READY );
 					throw new IdenticalAudio();
 				}
 
@@ -240,6 +248,7 @@ class AmazonAI_PollyService {
 				// Checking what was the source language of text and updating options for translate operations.
 				update_post_meta( $post_id, 'amazon_polly_transcript_' . $source_language, $clean_text );
 				update_post_meta( $post_id, 'amazon_polly_transcript_source_lan', $source_language );
+				$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_READY );
 
 				// update_post_meta() invalidates post meta caches, but it does not flush post query caches.
 				// Hosted environments with persistent object cache can otherwise keep stale admin list results
@@ -258,6 +267,9 @@ class AmazonAI_PollyService {
 			 */
 			do_action('amazon_polly_post_generate_audio', $post_id, $is_polly_enabled);
 		} catch ( \Throwable $e ) {
+			if ( ! $common->has_post_audio( $post_id ) ) {
+				$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_ERROR );
+			}
 			$logger->log( sprintf( '%s Error: %s', __METHOD__, $e->getMessage() ) );
 		} finally {
 			$lock->release();
@@ -703,6 +715,7 @@ class AmazonAI_PollyService {
 
 		$batch_size                  = 1;
 		$common = $this->common;
+		$logger = new AmazonAI_Logger();
 		$post_types_supported        = $common->get_posttypes_array();
 		$amazon_polly_voice_id       = $common->get_voice_id();
 		$amazon_polly_sample_rate    = $common->get_sample_rate();
@@ -742,11 +755,30 @@ class AmazonAI_PollyService {
 
 		if ( is_array( $post_ids ) && ! empty( $post_ids ) ) {
 			foreach ( $post_ids as $post_id ) {
-				$clean_text    = $common->clean_text( $post_id, true, false);
-				$sentences     = $common->break_text( $clean_text );
-				$wp_filesystem = $common->prepare_wp_filesystem();
-				$this->convert_to_audio( $post_id, $amazon_polly_sample_rate, $amazon_polly_voice_id, $sentences, $wp_filesystem, '' );
+				try {
+					if ( ! $common->has_post_audio( (int) $post_id ) ) {
+						$common->set_post_audio_state( (int) $post_id, AmazonAI_Common::AUDIO_STATE_RUNNING );
+					}
 
+					$clean_text    = $common->clean_text( $post_id, true, false);
+					$sentences     = $common->break_text( $clean_text );
+					$wp_filesystem = $common->prepare_wp_filesystem();
+					$this->convert_to_audio( $post_id, $amazon_polly_sample_rate, $amazon_polly_voice_id, $sentences, $wp_filesystem, '' );
+					$common->set_post_audio_state( (int) $post_id, AmazonAI_Common::AUDIO_STATE_READY );
+				} catch ( \Throwable $e ) {
+					if ( ! $common->has_post_audio( (int) $post_id ) ) {
+						$common->set_post_audio_state( (int) $post_id, AmazonAI_Common::AUDIO_STATE_ERROR );
+					}
+
+					$logger->log(
+						sprintf(
+							'%s Error while bulk synthesizing post ( id=%s ): %s',
+							__METHOD__,
+							$post_id,
+							$e->getMessage()
+						)
+					);
+				}
 			}
 		} else {
 			$step = 'done';
