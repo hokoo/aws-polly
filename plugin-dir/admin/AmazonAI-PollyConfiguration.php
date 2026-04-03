@@ -14,6 +14,7 @@ class AmazonAI_PollyConfiguration {
 	 * @var AmazonAI_Common
 	 */
 	private $common;
+	private $polly_access_available = null;
 
 	/**
 	 * AmazonAI_PollyConfiguration constructor.
@@ -22,6 +23,14 @@ class AmazonAI_PollyConfiguration {
 	 */
 	public function __construct(AmazonAI_Common $common) {
 		$this->common = $common;
+	}
+
+	private function can_render_polly_settings(): bool {
+		if ( null === $this->polly_access_available ) {
+			$this->polly_access_available = $this->common->validate_amazon_polly_access( false, true );
+		}
+
+		return (bool) $this->polly_access_available;
 	}
 
 	public function amazon_ai_add_menu() {
@@ -59,8 +68,8 @@ class AmazonAI_PollyConfiguration {
         add_settings_field('amazon_ai_polly_enable', __('Enable text-to-speech support:', 'amazonpolly'), array($this,'polly_enabled_gui'), 'amazon_ai_polly', 'amazon_ai_polly', array('label_for' => 'amazon_ai_polly_enable'));
         register_setting('amazon_ai_polly', 'amazon_ai_polly_enable');
 
-        if ($this->common->is_polly_enabled() ) {
-	            if ($this->common->validate_amazon_polly_access()) {
+	        if ($this->common->is_polly_enabled() ) {
+	            if ($this->can_render_polly_settings()) {
 		                if ($this->common->is_language_supported_for_polly()) {
 	                  add_settings_field( 'amazon_polly_disable_post_voice_override', __( 'Lock post voice to global setting:', 'amazonpolly' ), array( $this, 'disable_post_voice_override_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_disable_post_voice_override' ) );
 	                  register_setting('amazon_ai_polly', 'amazon_polly_disable_post_voice_override');
@@ -141,7 +150,7 @@ class AmazonAI_PollyConfiguration {
   public function polly_enabled_gui() {
       if ($this->common->is_language_supported_for_polly()) {
           $value = $this->common->checked_validator( 'amazon_ai_polly_enable' );
-          if ($this->common->validate_amazon_polly_access()) {
+          if ($this->can_render_polly_settings()) {
               echo '<input type="checkbox" name="amazon_ai_polly_enable" id="amazon_ai_polly_enable" ' . $this->common->checked_validator( 'amazon_ai_polly_enable' ) . '> ';
           } else {
               echo '<p>Verify that your AWS credentials are accurate</p>';

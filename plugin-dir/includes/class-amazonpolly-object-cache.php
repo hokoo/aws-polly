@@ -13,6 +13,7 @@ class Amazonpolly_Object_Cache {
 
 	const GROUP = 'amazon_polly';
 	const AUDIO_HEAD_TTL = 300;
+	const AUDIO_HEAD_CONTEXT_VERSION_KEY = 'audio_head_context_version';
 
 	/**
 	 * @var AmazonAI_Common
@@ -34,10 +35,21 @@ class Amazonpolly_Object_Cache {
 		return AmazonAI_Common::POLLY_VOICES_TRANSIENT_PREFIX . md5( $region );
 	}
 
+	private function get_audio_head_context_version(): string {
+		$version = wp_cache_get( self::AUDIO_HEAD_CONTEXT_VERSION_KEY, self::GROUP );
+
+		return false === $version ? '0' : (string) $version;
+	}
+
+	private function bump_audio_head_context_version(): void {
+		wp_cache_set( self::AUDIO_HEAD_CONTEXT_VERSION_KEY, sprintf( '%.6F', microtime( true ) ), self::GROUP );
+	}
+
 	private function get_audio_head_context_signature(): string {
 		return md5(
 			wp_json_encode(
 				array(
+					'version'    => $this->get_audio_head_context_version(),
 					's3'         => (string) get_option( 'amazon_polly_s3', '' ),
 					'cloudfront' => (string) get_option( 'amazon_polly_cloudfront', '' ),
 					'region'     => (string) AmazonAI_GeneralConfiguration::get_aws_region(),
@@ -128,6 +140,7 @@ class Amazonpolly_Object_Cache {
 			return;
 		}
 
+		$this->bump_audio_head_context_version();
 		$this->delete_polly_voices_cache( (string) $old_value );
 		$this->delete_polly_voices_cache( (string) $value );
 	}
@@ -138,6 +151,14 @@ class Amazonpolly_Object_Cache {
 		}
 
 		$this->delete_polly_voices_cache();
+	}
+
+	public function handle_audio_generation_setting_change( $old_value, $value, $option ): void {
+		if ( (string) $old_value === (string) $value ) {
+			return;
+		}
+
+		$this->bump_audio_head_context_version();
 	}
 
 	private function maybe_invalidate_post_meta_cache( $post_id, $meta_key ): void {

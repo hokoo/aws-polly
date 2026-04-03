@@ -748,30 +748,42 @@ class AmazonAI_Common
 	 * @since    2.5.0
 	 * @return bool
 	 */
-	public function validate_amazon_polly_access(): bool {
+	public function validate_amazon_polly_access( $persist_state = true, $show_notices = true ): bool {
 		try {
-			$this->is_s3_enabled() && $this->check_aws_access() && $this->s3_handler->is_bucket_accessible();
+			$this->is_s3_enabled() && $this->check_aws_access( $persist_state ) && $this->s3_handler->is_bucket_accessible();
 		}
 
 		catch (S3BucketNotAccException $e) {
-			$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed.");
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed.");
+			}
 			return false;
 		}
 
 		catch(CredsException $e) {
-			$this->deactivate_all();
-			$this->show_error_notice("notice-error", "Can't connect to AWS. Check your AWS credentials.");
+			if ( $persist_state ) {
+				$this->deactivate_all();
+			}
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-error", "Can't connect to AWS. Check your AWS credentials.");
+			}
 			return false;
 		}
 
 		catch(S3BucketNotCreException $e) {
-			$this->show_error_notice("notice-error", "Could not create S3 bucket.");
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-error", "Could not create S3 bucket.");
+			}
 			return false;
 		}
 
 		catch(Exception $e) {
-			$this->deactivate_all();
-			$this->show_error_notice("notice-error", "Unknown error.");
+			if ( $persist_state ) {
+				$this->deactivate_all();
+			}
+			if ( $show_notices ) {
+				$this->show_error_notice("notice-error", "Unknown error.");
+			}
 			return false;
 		}
 
@@ -1262,16 +1274,20 @@ class AmazonAI_Common
 	 *
 	 * @since    2.5.0
 	 */
-	private function check_aws_access()
+	private function check_aws_access( $persist_state = true )
 	{
 		try {
 			$voice_list = $this->get_polly_voices( true );
-			update_option('amazon_polly_valid_keys', '1');
+			if ( $persist_state ) {
+				update_option('amazon_polly_valid_keys', '1');
+			}
 			return true;
 		}
 
 		catch(Exception $e) {
-			update_option('amazon_polly_valid_keys', '0');
+			if ( $persist_state ) {
+				update_option('amazon_polly_valid_keys', '0');
+			}
 			throw new CredsException('Could not connect to AWS. Check your AWS credentials.');
 		}
 	}

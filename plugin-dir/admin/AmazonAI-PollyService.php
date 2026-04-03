@@ -136,6 +136,9 @@ class AmazonAI_PollyService {
 
 		$is_key_valid = (bool) get_option('amazon_polly_valid_keys');
 		if ( ! $is_key_valid ) {
+			$is_key_valid = $common->validate_amazon_polly_access( true, false );
+		}
+		if ( ! $is_key_valid ) {
 			$lock->release();
 			$logger->log(sprintf('%s AWS keys are not valid. Skipping audio generation for post ( id=%s )', __METHOD__, $post_id));
 			return;

@@ -93,6 +93,25 @@ class Amazonpolly {
 		$polly_service = new AmazonAI_PollyService($this->common);
 		$cron_handler = new AmazonAI_CronHandler( $polly_service, new AmazonAI_Logger() );
 		$object_cache = $this->object_cache;
+		$audio_generation_options = array(
+			'amazon_ai_source_language',
+			'amazon_polly_voice_id',
+			'amazon_polly_sample_rate',
+			'amazon_polly_s3',
+			'amazon_polly_cloudfront',
+			'amazon_polly_ssml',
+			'amazon_polly_auto_breaths',
+			'amazon_polly_speed',
+			'amazon_polly_lexicons',
+			'amazon_polly_neural',
+			'amazon_polly_speaking_style',
+			'amazon_polly_add_post_title',
+			'amazon_polly_add_post_excerpt',
+			'amazon_ai_skip_tags',
+			'amazon_polly_disable_post_voice_override',
+			'amazon_polly_posttypes',
+			'aws_polly_s3_bucket_name',
+		);
 
 		$plugin_name = get_option('amazon_plugin_name');
 		$this->loader->add_action( 'init', $this, 'load_integrations', 5 );
@@ -119,6 +138,9 @@ class Amazonpolly {
 		$this->loader->add_action( 'update_option_aws_polly_s3_region', $object_cache, 'handle_polly_voices_region_change', 10, 3 );
 		$this->loader->add_action( 'update_option_aws_polly_s3_access_key', $object_cache, 'handle_polly_voices_credentials_change', 10, 3 );
 		$this->loader->add_action( 'update_option_aws_polly_s3_secret_key', $object_cache, 'handle_polly_voices_credentials_change', 10, 3 );
+		foreach ( $audio_generation_options as $option_name ) {
+			$this->loader->add_action( 'update_option_' . $option_name, $object_cache, 'handle_audio_generation_setting_change', 10, 3 );
+		}
 		$this->loader->add_action( 'wp_ajax_polly_transcribe', $polly_service, 'ajax_bulk_synthesize' );
 
 		$this->loader->add_action( 'admin_menu', $general_configuration, 'amazon_ai_add_menu' );
