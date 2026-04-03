@@ -101,27 +101,9 @@ class AmazonAI_AudioAdmin {
 			return $clauses;
 		}
 
-		$audio_filter = $this->get_audio_filter_value( $query );
 		$orderby = $query->get( 'orderby' );
 		$is_audio_sort = 'polly_audio' === $orderby;
 		$is_voice_sort = 'polly_voice' === $orderby;
-
-		if ( ! $is_audio_sort && ! $is_voice_sort && '' === $audio_filter ) {
-			return $clauses;
-		}
-
-		if ( '' !== $audio_filter ) {
-			$audio_filter_subquery = $wpdb->prepare(
-				"SELECT 1 FROM {$wpdb->postmeta} AS amazon_polly_audio_filter_meta WHERE amazon_polly_audio_filter_meta.post_id = {$wpdb->posts}.ID AND amazon_polly_audio_filter_meta.meta_key = %s AND amazon_polly_audio_filter_meta.meta_value <> ''",
-				'amazon_polly_audio_link_location'
-			);
-
-			if ( 'no_audio' === $audio_filter ) {
-				$clauses['where'] .= " AND NOT EXISTS ({$audio_filter_subquery})";
-			} elseif ( 'has_audio' === $audio_filter ) {
-				$clauses['where'] .= " AND EXISTS ({$audio_filter_subquery})";
-			}
-		}
 
 		if ( ! $is_audio_sort && ! $is_voice_sort ) {
 			return $clauses;
@@ -280,6 +262,13 @@ class AmazonAI_AudioAdmin {
 		$filter = $this->get_audio_filter_value();
 		if ( '' !== $filter ) {
 			$query->set( 'amazon_polly_audio_filter', $filter );
+			$query->set(
+				'meta_query',
+				$this->merge_meta_query_clause(
+					$query->get( 'meta_query' ),
+					$this->build_audio_filter_meta_query( $filter )
+				)
+			);
 		}
 	}
 
@@ -421,6 +410,48 @@ class AmazonAI_AudioAdmin {
 		}
 
 		return in_array( $filter, [ 'no_audio', 'has_audio' ], true ) ? $filter : '';
+	}
+
+	private function build_audio_filter_meta_query( string $filter ): array {
+		if ( 'has_audio' === $filter ) {
+			return [
+				'relation' => 'AND',
+				[
+					'key'     => 'amazon_polly_audio_link_location',
+					'compare' => 'EXISTS',
+				],
+				[
+					'key'     => 'amazon_polly_audio_link_location',
+					'value'   => '',
+					'compare' => '!=',
+				],
+			];
+		}
+
+		return [
+			'relation' => 'OR',
+			[
+				'key'     => 'amazon_polly_audio_link_location',
+				'compare' => 'NOT EXISTS',
+			],
+			[
+				'key'     => 'amazon_polly_audio_link_location',
+				'value'   => '',
+				'compare' => '=',
+			],
+		];
+	}
+
+	private function merge_meta_query_clause( $meta_query, array $clause ): array {
+		if ( ! is_array( $meta_query ) || [] === $meta_query ) {
+			return [ $clause ];
+		}
+
+		return [
+			'relation' => 'AND',
+			$meta_query,
+			$clause,
+		];
 	}
 
 	// =========================================================================
