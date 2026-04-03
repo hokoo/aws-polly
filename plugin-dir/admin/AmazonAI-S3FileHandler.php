@@ -54,17 +54,18 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
       // Retrieve the name of the bucket where audio files are stored.
       $s3_bucket  = AmazonAI_GeneralConfiguration::get_bucket_name();
       $prefix     = $this->get_prefix($post_id);
-
-      // Delete main audio file.
-      $this->delete_s3_object( $s3_bucket, $prefix . $file );
+      $keys       = array( $prefix . $file );
 
       // Delete translations if available.
       foreach ( $common->get_all_polly_languages() as $language_code ) {
         $value = get_post_meta( $post_id, 'amazon_polly_translation_' . $language_code, true );
         if ( ! empty( $value ) ) {
-          $s3_key = $prefix . 'amazon_polly_' . $post_id . $language_code . '.mp3';
-          $this->delete_s3_object( $s3_bucket, $s3_key );
+          $keys[] = $prefix . 'amazon_polly_' . $post_id . $language_code . '.mp3';
         }
+      }
+
+      foreach ( array_unique( $keys ) as $key ) {
+        $this->delete_s3_object( $s3_bucket, $key );
       }
 
     }

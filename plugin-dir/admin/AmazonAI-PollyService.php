@@ -184,6 +184,21 @@ class AmazonAI_PollyService {
 					throw new Exception( 'No supported Amazon Polly voices are available for this post language in the selected AWS region.' );
 				}
 
+				$stored_audio_location = (string) get_post_meta( $post_id, 'amazon_polly_audio_location', true );
+				$current_audio_location = $common->get_file_handler()->get_type();
+				if ( '' !== $stored_audio_location && $stored_audio_location !== $current_audio_location ) {
+					$logger->log(
+						sprintf(
+							'%s Storage changed for post ( id=%s ): stored=%s current=%s. Removing stale audio before regeneration.',
+							__METHOD__,
+							$post_id,
+							$stored_audio_location,
+							$current_audio_location
+						)
+					);
+					$common->delete_post_audio( $post_id );
+				}
+
 				$audio_hash   = get_post_meta( $post_id, 'amazon_polly_audio_hash', true );
 				$current_hash = $common->get_audio_hash( $post_id );
 
@@ -226,7 +241,6 @@ class AmazonAI_PollyService {
 			else {
 				// @todo: Don't delete audio files when Polly is disabled for the post.
 				$common->delete_post_audio( $post_id );
-				update_post_meta( $post_id, 'amazon_polly_audio_location', '' );
 			}
 
 			/**
@@ -367,7 +381,7 @@ class AmazonAI_PollyService {
 		if ( ! empty( $lang ) ) {
 			foreach ( $common->get_all_polly_languages() as $language_code ) {
 				if ( $language_code === $lang ) {
-					$voice_id = $common->sync_polly_voice_option( 'amazon_polly_trans_langs_' . $language_code . '_voice', $language_code, $voice_id );
+					$voice_id = $common->get_resolved_polly_voice_option( 'amazon_polly_trans_langs_' . $language_code . '_voice', $language_code, $voice_id );
 				}
 			}
 		}
@@ -775,8 +789,8 @@ class AmazonAI_PollyService {
 
 		$common = $this->common;
 		$post_types_supported        = $common->get_posttypes_array();
-		$amazon_polly_voice_id       = get_option( 'amazon_polly_voice_id' );
-		$amazon_polly_sample_rate    = get_option( 'amazon_polly_sample_rate' );
+		$amazon_polly_voice_id       = $common->get_voice_id();
+		$amazon_polly_sample_rate    = $common->get_sample_rate();
 		$amazon_polly_audio_location = ( 'on' === get_option( 'amazon_polly_s3' ) ) ? 's3' : 'local';
 
 		$args  = array(

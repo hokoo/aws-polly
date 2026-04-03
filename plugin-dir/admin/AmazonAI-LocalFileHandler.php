@@ -46,14 +46,19 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
       // Getting full file path.
       $upload_dir       = trailingslashit( wp_upload_dir()['basedir'] );
       $prefix           = $this->get_prefix($post_id);
-      $file_full_path   = $upload_dir . $prefix . $file;
+      $files           = array( $file );
 
-      // Deleting file.
-      $wp_filesystem->delete( $file_full_path );
+      foreach ( $this->common->get_all_polly_languages() as $language_code ) {
+        $translation_meta = get_post_meta( $post_id, 'amazon_polly_translation_' . $language_code, true );
+        if ( ! empty( $translation_meta ) ) {
+          $files[] = 'amazon_polly_' . $post_id . $language_code . '.mp3';
+        }
+      }
 
-      // Deleting media library attachment.
-      $media_library_att_id = get_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', true );
-      wp_delete_attachment( $media_library_att_id, true );
+      foreach ( array_unique( $files ) as $target_file ) {
+        $file_full_path = $upload_dir . $prefix . $target_file;
+        $wp_filesystem->delete( $file_full_path );
+      }
 
     }
 

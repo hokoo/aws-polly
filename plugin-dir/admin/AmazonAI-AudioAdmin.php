@@ -446,7 +446,7 @@ class AmazonAI_AudioAdmin {
 
 			$voice = get_post_meta( $post_id, 'amazon_polly_voice_id', true );
 			if ( empty( $voice ) ) {
-				$global_voice = get_option( 'amazon_polly_voice_id', '' );
+				$global_voice = $this->common->get_voice_id();
 				if ( ! empty( $global_voice ) ) {
 					update_post_meta( $post_id, 'amazon_polly_voice_id', $global_voice );
 				}
