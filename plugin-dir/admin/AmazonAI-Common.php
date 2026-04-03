@@ -229,6 +229,60 @@ class AmazonAI_Common
 		clean_post_cache( $post_id );
 	}
 
+	public function backfill_legacy_audio_states() {
+		global $wpdb;
+
+		$post_types = array_values( array_filter( $this->get_posttypes_array(), 'is_string' ) );
+		if ( [] === $post_types ) {
+			return 0;
+		}
+
+		$post_type_placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+		$inserted_rows = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO {$wpdb->postmeta} (post_id, meta_key, meta_value)
+				SELECT p.ID, %s,
+					CASE
+						WHEN EXISTS (
+							SELECT 1
+							FROM {$wpdb->postmeta} AS audio_meta
+							WHERE audio_meta.post_id = p.ID
+								AND audio_meta.meta_key = %s
+								AND audio_meta.meta_value <> ''
+						) THEN %s
+						ELSE %s
+					END
+				FROM {$wpdb->posts} AS p
+				LEFT JOIN {$wpdb->postmeta} AS state_meta
+					ON state_meta.post_id = p.ID
+					AND state_meta.meta_key = %s
+				WHERE p.post_type IN ({$post_type_placeholders})
+					AND p.post_status NOT IN ('auto-draft', 'trash', 'inherit')
+					AND state_meta.meta_id IS NULL",
+				array_merge(
+					[
+						self::AUDIO_STATE_META_KEY,
+						'amazon_polly_audio_link_location',
+						self::AUDIO_STATE_READY,
+						self::AUDIO_STATE_NONE,
+						self::AUDIO_STATE_META_KEY,
+					],
+					$post_types
+				)
+			)
+		);
+
+		if ( false === $inserted_rows ) {
+			return false;
+		}
+
+		if ( function_exists( 'wp_cache_set_posts_last_changed' ) ) {
+			wp_cache_set_posts_last_changed();
+		}
+
+		return (int) $inserted_rows;
+	}
+
 	private function sort_polly_voices_list( array &$voices ) {
 		usort(
 			$voices,

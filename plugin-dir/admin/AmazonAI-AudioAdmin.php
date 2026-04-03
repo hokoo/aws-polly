@@ -261,6 +261,7 @@ class AmazonAI_AudioAdmin {
 
 		$filter = $this->get_audio_filter_value();
 		if ( '' !== $filter ) {
+			$this->common->backfill_legacy_audio_states();
 			$query->set( 'amazon_polly_audio_filter', $filter );
 			$query->set(
 				'meta_query',
@@ -345,15 +346,6 @@ class AmazonAI_AudioAdmin {
 			];
 		}
 
-		if ( AmazonAI_Common::AUDIO_STATE_ERROR === $state ) {
-			return $this->audio_status_cache[ $post_id ] = [
-				'status' => 'no',
-				'phase'  => $enabled ? 'enabled' : 'disabled',
-				'link'   => '',
-				'title'  => 'The last audio generation attempt failed.',
-			];
-		}
-
 		// Legacy fallback for posts that have not been transitioned to the canonical audio state yet.
 		if ( '' === $state && '' !== $link ) {
 			return $this->audio_status_cache[ $post_id ] = [
@@ -364,7 +356,7 @@ class AmazonAI_AudioAdmin {
 			];
 		}
 
-		if ( $enabled && '' === $state ) {
+		if ( $enabled && ! in_array( $state, [ AmazonAI_Common::AUDIO_STATE_READY, AmazonAI_Common::AUDIO_STATE_RUNNING, AmazonAI_Common::AUDIO_STATE_QUEUED ], true ) ) {
 			$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
 			if ( $lock->lock_exists() ) {
 				return $this->audio_status_cache[ $post_id ] = [
@@ -383,6 +375,15 @@ class AmazonAI_AudioAdmin {
 					'title'  => 'Audio generation is queued and will start via WP-Cron.',
 				];
 			}
+		}
+
+		if ( AmazonAI_Common::AUDIO_STATE_ERROR === $state ) {
+			return $this->audio_status_cache[ $post_id ] = [
+				'status' => 'no',
+				'phase'  => $enabled ? 'enabled' : 'disabled',
+				'link'   => '',
+				'title'  => 'The last audio generation attempt failed.',
+			];
 		}
 
 		return $this->audio_status_cache[ $post_id ] = [
@@ -453,63 +454,19 @@ class AmazonAI_AudioAdmin {
 
 		if ( 'has_audio' === $filter ) {
 			return [
-				'relation' => 'OR',
 				[
 					'key'     => $state_key,
 					'value'   => AmazonAI_Common::AUDIO_STATE_READY,
 					'compare' => '=',
 				],
-				[
-					'relation' => 'AND',
-					[
-						'key'     => $state_key,
-						'compare' => 'NOT EXISTS',
-					],
-					[
-						'key'     => 'amazon_polly_audio_link_location',
-						'compare' => 'EXISTS',
-					],
-					[
-						'key'     => 'amazon_polly_audio_link_location',
-						'value'   => '',
-						'compare' => '!=',
-					],
-				],
 			];
 		}
 
 		return [
-			'relation' => 'OR',
 			[
-				'relation' => 'AND',
-				[
-					'key'     => $state_key,
-					'compare' => 'EXISTS',
-				],
-				[
-					'key'     => $state_key,
-					'value'   => AmazonAI_Common::AUDIO_STATE_READY,
-					'compare' => '!=',
-				],
-			],
-			[
-				'relation' => 'AND',
-				[
-					'key'     => $state_key,
-					'compare' => 'NOT EXISTS',
-				],
-				[
-					'relation' => 'OR',
-					[
-						'key'     => 'amazon_polly_audio_link_location',
-						'compare' => 'NOT EXISTS',
-					],
-					[
-						'key'     => 'amazon_polly_audio_link_location',
-						'value'   => '',
-						'compare' => '=',
-					],
-				],
+				'key'     => $state_key,
+				'value'   => AmazonAI_Common::AUDIO_STATE_READY,
+				'compare' => '!=',
 			],
 		];
 	}
