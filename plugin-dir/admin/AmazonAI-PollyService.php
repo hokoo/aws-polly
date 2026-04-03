@@ -240,6 +240,11 @@ class AmazonAI_PollyService {
 				// Checking what was the source language of text and updating options for translate operations.
 				update_post_meta( $post_id, 'amazon_polly_transcript_' . $source_language, $clean_text );
 				update_post_meta( $post_id, 'amazon_polly_transcript_source_lan', $source_language );
+
+				// update_post_meta() invalidates post meta caches, but it does not flush post query caches.
+				// Hosted environments with persistent object cache can otherwise keep stale admin list results
+				// for filters like "Without audio" even after the final audio link has been saved.
+				clean_post_cache( $post_id );
 			} // Remove audio files and post meta (if existing) if Polly is not enabled
 			else {
 				// @todo: Don't delete audio files when Polly is disabled for the post.
