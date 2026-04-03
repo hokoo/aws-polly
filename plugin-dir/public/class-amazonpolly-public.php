@@ -16,11 +16,13 @@ class Amazonpolly_Public {
 	private $plugin_name;
 	private $version;
 	private $common;
+	private $object_cache;
 
-	public function __construct( $plugin_name, $version, AmazonAI_Common $common ) {
+	public function __construct( $plugin_name, $version, AmazonAI_Common $common, Amazonpolly_Object_Cache $object_cache ) {
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
 		$this->common      = $common;
+		$this->object_cache = $object_cache;
 	}
 
 	/**
@@ -49,11 +51,9 @@ class Amazonpolly_Public {
 			return $content;
 		}
 
-		$audio_location = get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
+		$audio_location = (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
 
-		// Check if audio file exists.
-		$result = wp_remote_head( $audio_location, ['sslverify' => false] );
-		if ( 200 !== wp_remote_retrieve_response_code( $result ) ) {
+		if ( ! $this->has_available_audio( (int) $post_id, $audio_location ) ) {
 			$lock            = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
 			$background_task = new AmazonAI_BackgroundTask();
 
@@ -116,6 +116,25 @@ class Amazonpolly_Public {
 		}
 
 		return $content;
+	}
+
+	private function has_available_audio( int $post_id, string $audio_location ): bool {
+		if ( '' === $audio_location ) {
+			$this->object_cache->delete_audio_head_status( $post_id );
+			return false;
+		}
+
+		$cached_status = $this->object_cache->get_audio_head_status( $post_id );
+		if ( is_array( $cached_status ) && $this->object_cache->is_audio_head_status_current( $cached_status, $audio_location ) ) {
+			return (bool) $cached_status['exists'];
+		}
+
+		$result = wp_remote_head( $audio_location, array( 'sslverify' => false ) );
+		$exists = 200 === wp_remote_retrieve_response_code( $result );
+
+		$this->object_cache->set_audio_head_status( $post_id, $audio_location, $exists );
+
+		return $exists;
 	}
 
 	private function include_coming_soon() {
