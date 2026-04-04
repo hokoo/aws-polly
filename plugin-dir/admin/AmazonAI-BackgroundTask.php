@@ -6,6 +6,10 @@
  * @subpackage Amazonpolly/admin
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class AmazonAI_BackgroundTask {
 
 
@@ -43,7 +47,7 @@ class AmazonAI_BackgroundTask {
         'nonce' => wp_create_nonce($this->nonce_action_for_task($task)),
         'action' => self::ADMIN_POST_ACTION,
         'task' => $task,
-        'args' => json_encode($args),
+        'args' => wp_json_encode($args),
       ],
       'headers' => [
         'cookie' => implode('; ', $this->get_cookies()),
@@ -101,26 +105,28 @@ class AmazonAI_BackgroundTask {
    * @see https://developer.wordpress.org/reference/functions/wp_verify_nonce/ Verify cryptographic token
    */
   public function run() {
-    $task = (array_key_exists('task', $_POST)) ? trim($_POST['task']) : '';
-    $args = (array_key_exists('args', $_POST)) ? json_decode($_POST['args']) : [];
-
-    if ( empty($task) ) {
-      error_log(sprintf('%s Invalid background task. Missing task.', __METHOD__));
-      wp_die(__('Invalid background task.', 'amazon-polly'), 'Invalid Request', 400);
-    }
-
-    if ( ! is_array($args) ) {
-      error_log(sprintf('%s Invalid background task args.', __METHOD__));
-      wp_die(__('Invalid background task args.', 'amazon-polly'), 'Invalid Request', 400);
-    }
-
-    if ( ! isset($_POST['nonce']) || 1 !== wp_verify_nonce($_POST['nonce'], $this->nonce_action_for_task($task)) ) {
-      error_log(sprintf('%s Expired background task request for task %s', __METHOD__, $task));
-      wp_die(__('Expired background task request.', 'amazon-polly'), 'Expired Request', 403);
-    }
-
     $logger = new AmazonAI_Logger();
-    $logger->log(sprintf('%s Running background task %s', __METHOD__, $task));
+    $task   = array_key_exists( 'task', $_POST ) ? sanitize_key( wp_unslash( $_POST['task'] ) ) : '';
+    $nonce  = array_key_exists( 'nonce', $_POST ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+
+    if ( empty( $task ) ) {
+      $logger->log( sprintf( '%s Invalid background task. Missing task.', __METHOD__ ) );
+      wp_die( esc_html__( 'Invalid background task.', 'ai-text-to-speech' ), esc_html__( 'Invalid Request', 'ai-text-to-speech' ), 400 );
+    }
+
+    if ( ! $nonce || 1 !== wp_verify_nonce( $nonce, $this->nonce_action_for_task( $task ) ) ) {
+      $logger->log( sprintf( '%s Expired background task request for task %s', __METHOD__, $task ) );
+      wp_die( esc_html__( 'Expired background task request.', 'ai-text-to-speech' ), esc_html__( 'Expired Request', 'ai-text-to-speech' ), 403 );
+    }
+
+    $args_json = array_key_exists( 'args', $_POST ) ? sanitize_textarea_field( wp_unslash( $_POST['args'] ) ) : '';
+    $args      = '' === $args_json ? [] : json_decode( $args_json, true );
+    if ( ! is_array( $args ) ) {
+      $logger->log( sprintf( '%s Invalid background task args.', __METHOD__ ) );
+      wp_die( esc_html__( 'Invalid background task args.', 'ai-text-to-speech' ), esc_html__( 'Invalid Request', 'ai-text-to-speech' ), 400 );
+    }
+
+    $logger->log( sprintf( '%s Running background task %s', __METHOD__, $task ) );
 
     /**
      * Fires when running a background task
@@ -128,7 +134,7 @@ class AmazonAI_BackgroundTask {
      * The dynamic portion of the hook name, `$task`, refers to the task
      * that being run.
      */
-    do_action_ref_array(sprintf('amazon_polly_background_task_%s', $task), $args);
+    do_action_ref_array( sprintf( 'amazon_polly_background_task_%s', $task ), $args );
   }
 
   /**

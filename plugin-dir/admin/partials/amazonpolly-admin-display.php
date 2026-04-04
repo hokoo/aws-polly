@@ -11,6 +11,10 @@
  * @subpackage Amazonpolly/admin/partials
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 ?>
 
 <div class="wrap">

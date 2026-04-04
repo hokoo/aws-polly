@@ -14,6 +14,10 @@ use iTRON\AWS\Polly\Factory;
 use iTRON\AWS\Polly\Integrations\StreamConnector;
 use iTRON\AWS\Polly\Loggers\Stream;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * The core plugin class.
  *
@@ -34,7 +38,7 @@ class Amazonpolly {
 
 	public function __construct() {
 		$this->plugin_name = 'amazonpolly';
-		$this->version     = '0.5';
+		$this->version     = '0.6';
 		$this->load_dependencies();
 
 		$this->common = new AmazonAI_Common();
@@ -42,14 +46,12 @@ class Amazonpolly {
 		$this->object_cache = new Amazonpolly_Object_Cache( $this->common );
 
 		$this->define_global_hooks();
-		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
 	}
 
 	private function load_dependencies() {
 		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-loader.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-i18n.php';
 
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PostMetaBox.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-BackgroundTask.php';
@@ -70,16 +72,10 @@ class Amazonpolly {
 
 		require_once plugin_dir_path(dirname(__FILE__)) . 'vendor/autoload.php';
 
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-helper.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-CronHandler.php';
 		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-CronData.php';
 
 		$this->loader = new Amazonpolly_Loader();
-	}
-
-	private function set_locale() {
-		$plugin_i18n = new Amazonpolly_I18n();
-		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
 	}
 
 	private function define_global_hooks() {
@@ -176,8 +172,6 @@ class Amazonpolly {
 	private function define_public_hooks() {
 		$plugin_public = new Amazonpolly_Public( $this->get_plugin_name(), $this->get_version(), $this->common, $this->object_cache );
 
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 		$this->loader->add_filter( 'the_content', $plugin_public, 'content_filter', 99999 );
 	}
 

@@ -20,6 +20,10 @@
  * @subpackage Amazonpolly/includes
  * @author     AWS Labs
  */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Amazonpolly_Loader {
 
 	/**

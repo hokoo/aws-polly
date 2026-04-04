@@ -67,7 +67,7 @@ class AmazonAI_PollyService {
 
 		// If nonce is valid then update post meta
 		// If it's not valid then this is probably a quick or bulk edit request in which case we won't update the polly post meta
-			if ( isset($_POST[self::NONCE_NAME]) && wp_verify_nonce($_POST[self::NONCE_NAME], 'amazon-polly') ) {
+			if ( isset( $_POST[ self::NONCE_NAME ] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_NAME ] ) ), 'amazon-polly' ) ) {
 				update_post_meta( $post_id, 'amazon_polly_enable', (int) isset($_POST['amazon_polly_enable']));
 
 				if ( $common->is_post_voice_override_disabled() ) {
@@ -452,7 +452,7 @@ class AmazonAI_PollyService {
 
 
 		// Preparing locations and names of temporary files which will be used.
-		$random								= rand(5, 10);
+		$random								= wp_rand( 5, 10 );
 		$upload_dir           = wp_upload_dir()['basedir'];
 		$file_prefix          = 'amazon_polly_';
 		$file_name            = $file_prefix . $post_id . $lang . '.mp3';
@@ -484,7 +484,7 @@ class AmazonAI_PollyService {
 			$logger->log(sprintf('%s', $text_content));
 
 			// Remove all tags
-			$text_content = strip_tags($text_content);
+			$text_content = wp_strip_all_tags( $text_content, false );
 
 			// Modify Speed
 			$text_content = $common->modify_sentence_speed($text_content);
@@ -570,7 +570,7 @@ class AmazonAI_PollyService {
 				$wp_filesystem->put_contents( $file_temp_full_name, $contents );
 				$first_part = false;
 			} else {
-				$common->remove_id3( $file_temp_full_name . '_part_' . $key );
+				$common->remove_id3( $file_temp_full_name . '_part_' . $key, $wp_filesystem );
 				$merged_file = $wp_filesystem->get_contents( $file_temp_full_name ) . $wp_filesystem->get_contents( $file_temp_full_name . '_part_' . $key );
 				$wp_filesystem->put_contents( $file_temp_full_name, $merged_file );
 			}

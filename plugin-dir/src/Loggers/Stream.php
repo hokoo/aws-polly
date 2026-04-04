@@ -4,6 +4,10 @@ namespace iTRON\AWS\Polly\Loggers;
 
 use Psr\Log\AbstractLogger;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Stream extends AbstractLogger {
 
 	public function log( $level, $message, array $context = [], string $module = 'general' ) : void {

@@ -9,6 +9,10 @@
  * @subpackage Amazonpolly/public
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use iTRON\WP_Lock\WP_Lock;
 
 class Amazonpolly_Public {
@@ -17,6 +21,7 @@ class Amazonpolly_Public {
 	private $version;
 	private $common;
 	private $object_cache;
+	private $styles_enqueued = false;
 
 	public function __construct( $plugin_name, $version, AmazonAI_Common $common, Amazonpolly_Object_Cache $object_cache ) {
 		$this->plugin_name = $plugin_name;
@@ -77,9 +82,14 @@ class Amazonpolly_Public {
 		$voice_by_part = '';
 		if ( $common->is_poweredby_enabled() ) {
 			if ( is_singular() ) {
-				$image = __('<img src="https://d12ee1u74lotna.cloudfront.net/images/Voiced_by_Amazon_Polly_EN.png" width="100" alt="Voiced by Amazon Polly" >', $this->plugin_name);
-				$image = apply_filters('amazon_polly_voiced_by_html', $image, get_locale());
-				$voice_by_part = '<a href="https://aws.amazon.com/polly/" target="_blank" rel="noopener noreferrer">' . $image . '</a>';
+				$image_url = plugins_url( 'img/amazon-polly-logo.png', dirname( dirname( __FILE__ ) ) . '/amazonpolly.php' );
+				$image = sprintf(
+					'<img src="%1$s" width="100" alt="%2$s">',
+					esc_url( $image_url ),
+					esc_attr__( 'Voiced by AWS Polly', 'ai-text-to-speech' )
+				);
+				$image = apply_filters( 'amazon_polly_voiced_by_html', $image, get_locale() );
+				$voice_by_part = '<a href="https://aws.amazon.com/polly/" target="_blank" rel="noopener noreferrer">' . wp_kses_post( $image ) . '</a>';
 			}
 		}
 
@@ -91,13 +101,14 @@ class Amazonpolly_Public {
 		// Create player area.
 		$polly_content = '';
 		if ( is_singular() ) {
+			$this->enqueue_styles();
 			$audio_part = $this->include_audio_player( $audio_location, $autoplay );
 
 			$polly_content = '
 			<table id="amazon-polly-audio-table">
 				<tr>
 				<td id="amazon-polly-audio-tab">
-					<div id="amazon-ai-player-label">' . $player_label . '</div>
+					<div id="amazon-ai-player-label">' . esc_html( (string) $player_label ) . '</div>
 					' . $audio_part . '
 					<div id="amazon-polly-by-tab">' . $voice_by_part . '</div>
 				</td>
@@ -139,7 +150,7 @@ class Amazonpolly_Public {
 
 	private function include_coming_soon() {
 		$template = '<div id="amazon-polly-coming-soon">%s</div>';
-		$coming_soon_text = wpautop( get_option( 'amazon_polly_coming_soon_text' ) );
+		$coming_soon_text = wpautop( esc_html( (string) get_option( 'amazon_polly_coming_soon_text' ) ) );
 		return sprintf( $template, $coming_soon_text );
 	}
 
@@ -158,10 +169,15 @@ class Amazonpolly_Public {
 	}
 
 	public function enqueue_styles() {
+		if ( $this->styles_enqueued ) {
+			return;
+		}
+
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/amazonpolly-public.css', array(), $this->version, 'all' );
+		$this->styles_enqueued = true;
 	}
 
 	public function enqueue_scripts() {
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/amazonpolly-public.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/amazonpolly-public.js', array( 'jquery' ), $this->version, true );
 	}
 }

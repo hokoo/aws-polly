@@ -6,6 +6,10 @@
  * @since      2.5.0
  *
  */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class AmazonAI_Common
 
 {
@@ -259,16 +263,12 @@ class AmazonAI_Common
 				WHERE p.post_type IN ({$post_type_placeholders})
 					AND p.post_status NOT IN ('auto-draft', 'trash', 'inherit')
 					AND state_meta.meta_id IS NULL",
-				array_merge(
-					[
-						self::AUDIO_STATE_META_KEY,
-						'amazon_polly_audio_link_location',
-						self::AUDIO_STATE_READY,
-						self::AUDIO_STATE_NONE,
-						self::AUDIO_STATE_META_KEY,
-					],
-					$post_types
-				)
+				self::AUDIO_STATE_META_KEY,
+				'amazon_polly_audio_link_location',
+				self::AUDIO_STATE_READY,
+				self::AUDIO_STATE_NONE,
+				self::AUDIO_STATE_META_KEY,
+				...$post_types
 			)
 		);
 
@@ -648,16 +648,24 @@ class AmazonAI_Common
 	 * @param           string $filename                 File for which tag should be removed.
 	 * @since           1.0.0
 	 */
-	public function remove_id3( $filename ) {
+	public function remove_id3( $filename, $wp_filesystem = null ) {
+		if ( null === $wp_filesystem ) {
+			$wp_filesystem = $this->prepare_wp_filesystem();
+		}
 
-		// Temporary file - without IDv3 tag.
-		$temp_filename = $filename . 'temp';
+		if ( ! is_object( $wp_filesystem ) || ! $wp_filesystem->exists( $filename ) ) {
+			return;
+		}
 
-		// Original file with IDv3 tag.
-		$source_file = fopen( $filename, 'r+b' );
+		$contents = $wp_filesystem->get_contents( $filename );
+		if ( ! is_string( $contents ) || strlen( $contents ) < 10 ) {
+			return;
+		}
 
-		// IDv3 header has got 10 bytes.
-		$id3_header = fread( $source_file, 10 );
+		$id3_header = substr( $contents, 0, 10 );
+		if ( 'ID3' !== substr( $id3_header, 0, 3 ) ) {
+			return;
+		}
 
 		// Calculating the total size of IDv3 tag.
 		$int_value        = 0;
@@ -668,19 +676,17 @@ class AmazonAI_Common
 		}
 		$offset = ( (int) $int_value ) + 10;
 
-		// Recreating file without the IDv3 tag bytes.
-		rewind( $source_file );
-		fseek( $source_file, $offset );
-		$temp_file = fopen( $temp_filename, 'w+b' );
-
-		while ( $buffer = fread( $source_file, 32768 ) ) {
-			fwrite( $temp_file, $buffer, strlen( $buffer ) );
+		if ( $offset >= strlen( $contents ) ) {
+			return;
 		}
 
-		// Swapping files.
-		fclose( $temp_file );
-		unlink( $filename );
-		rename( $temp_filename, $filename );
+		$temp_filename = $filename . 'temp';
+		$trimmed_audio = substr( $contents, $offset );
+		if ( false === $wp_filesystem->put_contents( $temp_filename, $trimmed_audio ) ) {
+			return;
+		}
+
+		$wp_filesystem->move( $temp_filename, $filename, true );
 
 	}
 
@@ -908,18 +914,16 @@ class AmazonAI_Common
 
 	public function show_error_notice($type, $message)
 	{
-		add_action('admin_notices',
-		function () use($type, $message)
-		{
-?>
-						<div class="notice  <?php
-			echo $type ?>  is-dismissible">
-							<p><?php
-			_e($message, 'amazon_ai'); ?></p>
-						</div>
-
-			<?php
-		});
+		add_action(
+			'admin_notices',
+			function () use ( $type, $message ) {
+				printf(
+					'<div class="notice %1$s is-dismissible"><p>%2$s</p></div>',
+					esc_attr( $type ),
+					esc_html( $message )
+				);
+			}
+		);
 	}
 
 	public function normalize_sample_rate( $sample_rate ) {
@@ -1843,7 +1847,8 @@ class AmazonAI_Common
 
 		if ( $deletion_error ) {
 			$this->show_error_notice("notice-error", "Encountered an error while deleting the file.");
-			error_log( $deletion_error->getMessage() );
+			$logger = new AmazonAI_Logger();
+			$logger->log( sprintf( '%s Delete post audio failed: %s', __METHOD__, $deletion_error->getMessage() ) );
 		}
 
 	}
@@ -1999,12 +2004,21 @@ class AmazonAI_Common
      *
      * @since    1.0.0
      */
+	private function get_asset_version( string $relative_path ): string {
+		$asset_path = plugin_dir_path( __FILE__ ) . ltrim( $relative_path, '/' );
+
+		if ( file_exists( $asset_path ) ) {
+			return (string) filemtime( $asset_path );
+		}
+
+		return '0.6';
+	}
+
     public function enqueue_styles() {
-        wp_enqueue_style( 'amazon-polly', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), null, 'all' );
-        wp_enqueue_style( 'font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), null, 'all' );
+        wp_enqueue_style( 'amazon-polly', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), $this->get_asset_version( 'css/amazonpolly-admin.css' ), 'all' );
+        wp_enqueue_style( 'font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
         wp_enqueue_style( 'jquery-ui-core' );
         wp_enqueue_style( 'jquery-ui-progressbar' );
-        wp_enqueue_style( 'jquery-ui', '//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css', array(), '1.21.1', 'all' );
     }
 
 	/**
@@ -2013,7 +2027,7 @@ class AmazonAI_Common
 	 * @since    1.0.0
 	 */
 	public function enqueue_scripts() {
-		wp_enqueue_script( 'amazon-polly', plugin_dir_url( __FILE__ ) . 'js/amazonpolly-admin.js', array( 'jquery' ), null, false );
+		wp_enqueue_script( 'amazon-polly', plugin_dir_url( __FILE__ ) . 'js/amazonpolly-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/amazonpolly-admin.js' ), false );
 		wp_enqueue_script( 'jquery-ui-core' );
 		wp_enqueue_script( 'jquery-ui-progressbar' );
 		$nonce_array = array(

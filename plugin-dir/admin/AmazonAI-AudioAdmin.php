@@ -6,6 +6,10 @@
  * @subpackage Amazonpolly/admin
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use iTRON\WP_Lock\WP_Lock;
 
 class AmazonAI_AudioAdmin {
@@ -245,7 +249,7 @@ class AmazonAI_AudioAdmin {
 			return;
 		}
 
-		$selected = isset( $_GET['polly_audio_filter'] ) ? sanitize_text_field( $_GET['polly_audio_filter'] ) : '';
+		$selected = isset( $_GET['polly_audio_filter'] ) ? sanitize_key( wp_unslash( $_GET['polly_audio_filter'] ) ) : '';
 
 		echo '<select name="polly_audio_filter">';
 		echo '<option value="">All (audio)</option>';
@@ -521,15 +525,21 @@ class AmazonAI_AudioAdmin {
 	}
 
 	public function bulk_action_notice(): void {
-		if ( empty( $_GET['polly_queued'] ) ) {
+		if ( ! isset( $_GET['polly_queued'] ) ) {
 			return;
 		}
 
-		$count = (int) $_GET['polly_queued'];
-		printf(
-			'<div class="notice notice-success is-dismissible"><p>Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.</p></div>',
+		$count = absint( wp_unslash( $_GET['polly_queued'] ) );
+		if ( 0 === $count ) {
+			return;
+		}
+
+		$message = sprintf(
+			/* translators: %d: queued posts count. */
+			__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech' ),
 			$count
 		);
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
 	}
 
 	// =========================================================================

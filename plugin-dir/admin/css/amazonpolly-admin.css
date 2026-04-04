@@ -6,6 +6,15 @@
   position: relative;
   margin-top: 1em;
 }
+#amazon-polly-progressbar {
+  height: 24px;
+  border: 1px solid #ccd0d4;
+  background: #f0f0f1;
+}
+#amazon-polly-progressbar .ui-progressbar-value {
+  height: 100%;
+  background: #2271b1;
+}
 .amazon-polly-progress-label {
   position: absolute;
   left: 45%;

@@ -13,16 +13,17 @@
  * @package           Amazonpolly
  *
  * @wordpress-plugin
- * Plugin Name:       AWS Text-to-Speech
- * Plugin URI:        https://wordpress.org/plugins/amazon-polly/
- * Description:       Create audio versions of your posts using Amazon Polly text-to-speech service.
- * Version:           0.6
+ * Plugin Name:       AI Text-to-Speech from AWS Polly
+ * Plugin URI:        https://wordpress.org/plugins/ai-text-to-speech/
+ * Description:       Generate post audio with AI text-to-speech powered by AWS Polly.
+ * Version:           1.0.0
  * Author:            AWS Labs, WP Engine
  * Author URI:        https://aws.amazon.com/
- * License:           GPL-3.0 ONLY
+ * License:           GPL-3.0-only
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
+ * Requires at least: 6.5
  * Requires PHP:      8.1
- * Text Domain:       amazonpolly
+ * Text Domain:       ai-text-to-speech
  * Domain Path:       /languages
  */
 
@@ -35,7 +36,7 @@ if ( ! defined( 'WPINC' ) ) {
  * The code that runs during plugin activation.
  * This action is documented in includes/class-amazonpolly-activator.php
  */
-function activate_amazonpolly() {
+function ai_text_to_speech_activate_plugin() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-amazonpolly-activator.php';
 	Amazonpolly_Activator::activate();
 }
@@ -44,13 +45,13 @@ function activate_amazonpolly() {
  * The code that runs during plugin deactivation.
  * This action is documented in includes/class-amazonpolly-deactivator.php
  */
-function deactivate_amazonpolly() {
+function ai_text_to_speech_deactivate_plugin() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-amazonpolly-deactivator.php';
 	Amazonpolly_Deactivator::deactivate();
 }
 
-register_activation_hook( __FILE__, 'activate_amazonpolly' );
-register_deactivation_hook( __FILE__, 'deactivate_amazonpolly' );
+register_activation_hook( __FILE__, 'ai_text_to_speech_activate_plugin' );
+register_deactivation_hook( __FILE__, 'ai_text_to_speech_deactivate_plugin' );
 
 /**
  * The core plugin class that is used to define internationalization,
@@ -67,10 +68,10 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-amazonpolly.php';
  *
  * @since    1.0.0
  */
-function run_amazonpolly() {
+function ai_text_to_speech_run_plugin() {
 
 	$plugin = new Amazonpolly();
 	$plugin->run();
 
 }
-run_amazonpolly();
+ai_text_to_speech_run_plugin();
