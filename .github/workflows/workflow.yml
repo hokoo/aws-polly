@@ -30,10 +30,26 @@ jobs:
           rsync -a plugin-dir/ dist/aws-polly/ \
             --exclude 'assets/' \
             --exclude 'README.md' \
-            --exclude 'readme.txt' \
-            --exclude 'LICENSE.txt' \
             --exclude 'composer.json' \
             --exclude 'composer.lock'
+          rm -rf dist/aws-polly/vendor/aws/Aws
+          find dist/aws-polly/vendor -type d \( \
+            -name .github -o \
+            -name tests -o \
+            -name test -o \
+            -name docs -o \
+            -name bin \
+          \) -prune -exec rm -rf {} +
+          find dist/aws-polly/vendor -type f \( \
+            -name composer.json -o \
+            -name composer.lock -o \
+            -name phpunit.xml -o \
+            -name phpunit.xml.dist -o \
+            -name README.md -o \
+            -name CHANGELOG.md -o \
+            -name .gitignore -o \
+            -name .gitattributes \
+          \) -delete
           cd dist
           zip -r -q -9 -X ../aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly
           echo "Zipped to aws-polly-wp-plugin-${{ github.ref_name }}.zip"
