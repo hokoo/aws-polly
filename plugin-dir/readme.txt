@@ -29,6 +29,20 @@ Key features:
 3. Open the plugin settings and enter valid AWS credentials and region details.
 4. Configure the Polly voice and player settings that fit your site.
 
+== Configuration ==
+
+To keep AWS credentials out of the WordPress database, define them in `wp-config.php` or another PHP config file loaded before WordPress finishes bootstrapping:
+
+    define( 'AWS_POLLY_S3_ACCESS_KEY', 'your-access-key' );
+    define( 'AWS_POLLY_S3_SECRET_KEY', 'your-secret-key' );
+
+You can also lock the bucket and region in PHP the same way:
+
+    define( 'AWS_POLLY_S3_BUCKET_NAME', 'your-s3-bucket' );
+    define( 'AWS_POLLY_S3_REGION', 'us-east-1' );
+
+When these constants are present, the plugin uses them instead of saved options and shows the related admin fields as defined by PHP constant. Do not commit real secrets into version control.
+
 == Frequently Asked Questions ==
 
 = Do I need an AWS account? =
