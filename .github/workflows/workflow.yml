@@ -24,17 +24,18 @@ jobs:
           working-directory: plugin-dir
           composer-options: "--no-dev"
 
-      - name: Remove all files and directories except plugin directory
+      - name: Build minimal release package
         run: |
-          find . -mindepth 1 -maxdepth 1 -not -name 'plugin-dir' -exec rm -rf {} +
-
-      # Rename plugin directory to the plugin name aws-polly
-      - run: mv plugin-dir aws-polly
-
-      # Zip the plugin directory
-      - name: Zip the plugin directory
-        run: |
-          zip -r -q aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly
+          mkdir -p dist/aws-polly
+          rsync -a plugin-dir/ dist/aws-polly/ \
+            --exclude 'assets/' \
+            --exclude 'README.md' \
+            --exclude 'readme.txt' \
+            --exclude 'LICENSE.txt' \
+            --exclude 'composer.json' \
+            --exclude 'composer.lock'
+          cd dist
+          zip -r -q -9 -X ../aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly
           echo "Zipped to aws-polly-wp-plugin-${{ github.ref_name }}.zip"
 
       - name: Upload Release Artifact

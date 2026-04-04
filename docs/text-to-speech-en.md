@@ -46,19 +46,13 @@ Important:
 
 ### 1. Global Text-to-Speech settings
 
-![Global TTS settings](../plugin-dir/assets/screenshot-1.png)
-
 This screen contains the main TTS settings: AWS access, sample rate, default voice, player position, default behavior for new posts, and audio storage options.
 
 ### 2. Enabling TTS for a single post
 
-![Enabling TTS in the post editor](../plugin-dir/assets/screenshot-2.png)
-
 In the post editor, you can enable audio generation for a specific post, choose a voice, and estimate the conversion cost.
 
 ### 3. Player on the public page
-
-![Amazon Polly player on the site](../plugin-dir/assets/screenshot-3.png)
 
 After the audio is generated, an embedded HTML5 player appears on the post page so visitors can listen to the content directly on the site.
 
