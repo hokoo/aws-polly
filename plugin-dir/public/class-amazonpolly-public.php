@@ -86,7 +86,7 @@ class Amazonpolly_Public {
 				$image = sprintf(
 					'<img src="%1$s" width="100" alt="%2$s">',
 					esc_url( $image_url ),
-					esc_attr__( 'Voiced by AWS Polly', 'ai-text-to-speech' )
+					esc_attr__( 'Voiced by AWS Polly', 'ai-text-to-speech-from-aws-polly' )
 				);
 				$image = apply_filters( 'amazon_polly_voiced_by_html', $image, get_locale() );
 				$voice_by_part = '<a href="https://aws.amazon.com/polly/" target="_blank" rel="noopener noreferrer">' . wp_kses_post( $image ) . '</a>';

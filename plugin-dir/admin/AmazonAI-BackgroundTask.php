@@ -111,19 +111,19 @@ class AmazonAI_BackgroundTask {
 
     if ( empty( $task ) ) {
       $logger->log( sprintf( '%s Invalid background task. Missing task.', __METHOD__ ) );
-      wp_die( esc_html__( 'Invalid background task.', 'ai-text-to-speech' ), esc_html__( 'Invalid Request', 'ai-text-to-speech' ), 400 );
+      wp_die( esc_html__( 'Invalid background task.', 'ai-text-to-speech-from-aws-polly' ), esc_html__( 'Invalid Request', 'ai-text-to-speech-from-aws-polly' ), 400 );
     }
 
     if ( ! $nonce || 1 !== wp_verify_nonce( $nonce, $this->nonce_action_for_task( $task ) ) ) {
       $logger->log( sprintf( '%s Expired background task request for task %s', __METHOD__, $task ) );
-      wp_die( esc_html__( 'Expired background task request.', 'ai-text-to-speech' ), esc_html__( 'Expired Request', 'ai-text-to-speech' ), 403 );
+      wp_die( esc_html__( 'Expired background task request.', 'ai-text-to-speech-from-aws-polly' ), esc_html__( 'Expired Request', 'ai-text-to-speech-from-aws-polly' ), 403 );
     }
 
     $args_json = array_key_exists( 'args', $_POST ) ? sanitize_textarea_field( wp_unslash( $_POST['args'] ) ) : '';
     $args      = '' === $args_json ? [] : json_decode( $args_json, true );
     if ( ! is_array( $args ) ) {
       $logger->log( sprintf( '%s Invalid background task args.', __METHOD__ ) );
-      wp_die( esc_html__( 'Invalid background task args.', 'ai-text-to-speech' ), esc_html__( 'Invalid Request', 'ai-text-to-speech' ), 400 );
+      wp_die( esc_html__( 'Invalid background task args.', 'ai-text-to-speech-from-aws-polly' ), esc_html__( 'Invalid Request', 'ai-text-to-speech-from-aws-polly' ), 400 );
     }
 
     $logger->log( sprintf( '%s Running background task %s', __METHOD__, $task ) );

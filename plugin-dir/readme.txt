@@ -1,10 +1,10 @@
 === AI Text-to-Speech from AWS Polly ===
-Contributors: awslabs, wpengine, stevenkword, itron
+Contributors: igortron, hokku
 Tags: text-to-speech, audio, aws polly, speech synthesis, podcast
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.6
+Stable tag: 1.0.0
 License: GPL-3.0-only
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -24,7 +24,7 @@ Key features:
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/ai-text-to-speech/` directory, or install the plugin through the WordPress plugins screen.
+1. Upload the plugin files to the `/wp-content/plugins/ai-text-to-speech-from-aws-polly/` directory, or install the plugin through the WordPress plugins screen.
 2. Activate the plugin through the `Plugins` screen in WordPress.
 3. Open the plugin settings and enter valid AWS credentials and region details.
 4. Configure the Polly voice and player settings that fit your site.
@@ -45,7 +45,7 @@ Yes. You can enable audio generation for individual posts and the plugin will ke
 
 == Changelog ==
 
-= 0.6 =
+= 1.0.0 =
 
 * Prepared the plugin for WordPress.org review.
 * Added stricter sanitization for settings.

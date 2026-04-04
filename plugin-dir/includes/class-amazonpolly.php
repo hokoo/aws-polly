@@ -38,7 +38,7 @@ class Amazonpolly {
 
 	public function __construct() {
 		$this->plugin_name = 'amazonpolly';
-		$this->version     = '0.6';
+		$this->version     = '1.0.0';
 		$this->load_dependencies();
 
 		$this->common = new AmazonAI_Common();

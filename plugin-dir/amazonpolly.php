@@ -14,7 +14,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       AI Text-to-Speech from AWS Polly
- * Plugin URI:        https://wordpress.org/plugins/ai-text-to-speech/
+ * Plugin URI:        https://wordpress.org/plugins/ai-text-to-speech-from-aws-polly/
  * Description:       Generate post audio with AI text-to-speech powered by AWS Polly.
  * Version:           1.0.0
  * Author:            AWS Labs, WP Engine
@@ -23,7 +23,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Requires at least: 6.5
  * Requires PHP:      8.1
- * Text Domain:       ai-text-to-speech
+ * Text Domain:       ai-text-to-speech-from-aws-polly
  * Domain Path:       /languages
  */
 

@@ -2011,7 +2011,7 @@ class AmazonAI_Common
 			return (string) filemtime( $asset_path );
 		}
 
-		return '0.6';
+		return '1.0.0';
 	}
 
     public function enqueue_styles() {

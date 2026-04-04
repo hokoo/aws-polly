@@ -536,7 +536,7 @@ class AmazonAI_AudioAdmin {
 
 		$message = sprintf(
 			/* translators: %d: queued posts count. */
-			__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech' ),
+			__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech-from-aws-polly' ),
 			$count
 		);
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
