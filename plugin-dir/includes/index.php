@@ -2,7 +2,7 @@
 /**
  * Silence is golden
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      1.0.0
  *
  * @package    Amazonpolly/include

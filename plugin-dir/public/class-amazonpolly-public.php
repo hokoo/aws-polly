@@ -2,7 +2,7 @@
 /**
  * The public-facing functionality of the plugin.
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      1.0.0
  *
  * @package    Amazonpolly
@@ -82,14 +82,11 @@ class Amazonpolly_Public {
 		$voice_by_part = '';
 		if ( $common->is_poweredby_enabled() ) {
 			if ( is_singular() ) {
-				$image_url = plugins_url( 'img/amazon-polly-logo.png', dirname( dirname( __FILE__ ) ) . '/amazonpolly.php' );
-				$image = sprintf(
-					'<img src="%1$s" width="100" alt="%2$s">',
-					esc_url( $image_url ),
-					esc_attr__( 'Voiced by AWS Polly', 'ai-text-to-speech-from-aws-polly' )
+				$credit = sprintf(
+					'<span class="itron-aws-polly-credit-text">%s</span>',
+					esc_html__( 'Text-to-speech via AWS Polly', 'ai-text-to-speech-using-aws-polly' )
 				);
-				$image = apply_filters( 'amazon_polly_voiced_by_html', $image, get_locale() );
-				$voice_by_part = '<a href="https://aws.amazon.com/polly/" target="_blank" rel="noopener noreferrer">' . wp_kses_post( $image ) . '</a>';
+				$voice_by_part = wp_kses_post( apply_filters( 'amazon_polly_voiced_by_html', $credit, get_locale() ) );
 			}
 		}
 

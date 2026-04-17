@@ -3,7 +3,7 @@
 /**
  * The file that defines the core plugin class
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      1.0.0
  *
  * @package    Amazonpolly
@@ -37,8 +37,8 @@ class Amazonpolly {
 	protected $object_cache;
 
 	public function __construct() {
-		$this->plugin_name = 'amazonpolly';
-		$this->version     = '1.0.0';
+		$this->plugin_name = 'itron-ai-text-to-speech-using-aws-polly';
+		$this->version     = '1.0.1';
 		$this->load_dependencies();
 
 		$this->common = new AmazonAI_Common();
@@ -109,9 +109,9 @@ class Amazonpolly {
 			'aws_polly_s3_bucket_name',
 		);
 
-		$plugin_name = get_option('amazon_plugin_name');
+		$plugin_basename = plugin_basename( dirname( __DIR__ ) . '/amazonpolly.php' );
 		$this->loader->add_action( 'init', $this, 'load_integrations', 5 );
-		$this->loader->add_filter( "plugin_action_links_$plugin_name", $this->common, 'add_settings_link');
+		$this->loader->add_filter( "plugin_action_links_{$plugin_basename}", $this->common, 'add_settings_link' );
 
 		$this->loader->add_action( sprintf('admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION), $background_task, 'run');
 		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HOOK, $background_task, 'handle_cron', 50, 3 );
@@ -137,7 +137,7 @@ class Amazonpolly {
 		foreach ( $audio_generation_options as $option_name ) {
 			$this->loader->add_action( 'update_option_' . $option_name, $object_cache, 'handle_audio_generation_setting_change', 10, 3 );
 		}
-		$this->loader->add_action( 'wp_ajax_polly_transcribe', $polly_service, 'ajax_bulk_synthesize' );
+		$this->loader->add_action( 'wp_ajax_itron_aws_polly_transcribe', $polly_service, 'ajax_bulk_synthesize' );
 
 		$this->loader->add_action( 'admin_menu', $general_configuration, 'amazon_ai_add_menu' );
 		$this->loader->add_action( 'admin_init', $general_configuration, 'display_options' );
@@ -161,8 +161,7 @@ class Amazonpolly {
 		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_filter' );
 		$this->loader->add_action( 'restrict_manage_posts', $audio_admin, 'render_filter_dropdown' );
 		$this->loader->add_action( 'add_meta_boxes', $audio_admin, 'add_audio_meta_box' );
-		$this->loader->add_action( 'admin_head', $audio_admin, 'column_styles' );
-		$this->loader->add_action( 'admin_footer', $audio_admin, 'render_settings_button' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $audio_admin, 'enqueue_admin_assets', 20 );
 		$this->loader->add_action( 'admin_notices', $audio_admin, 'bulk_action_notice' );
 
 		$this->loader->add_filter( 'wp_kses_allowed_html', $this->common, 'allowed_tags_kses');

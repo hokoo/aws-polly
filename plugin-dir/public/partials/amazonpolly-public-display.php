@@ -4,7 +4,7 @@
  *
  * This file is used to markup the public-facing aspects of the plugin.
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      1.0.0
  *
  * @package    Awspolly

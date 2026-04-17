@@ -17,8 +17,7 @@
         "aws/aws-sdk-php": "3.*",
         "hokoo/wp-lock": "^1.1",
         "psr/log": "^1.1",
-        "ext-json": "*",
-        "james-heinrich/getid3": "^1.9"
+        "ext-json": "*"
     },
     "autoload": {
         "psr-4": {

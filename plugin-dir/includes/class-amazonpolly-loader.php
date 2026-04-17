@@ -2,7 +2,7 @@
 /**
  * Register all actions and filters for the plugin
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      1.0.0
  *
  * @package    Amazonpolly
@@ -18,7 +18,7 @@
  *
  * @package    Amazonpolly
  * @subpackage Amazonpolly/includes
- * @author     AWS Labs
+ * @author     iTRON
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

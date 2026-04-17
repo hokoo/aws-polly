@@ -24,7 +24,7 @@ class StreamConnector extends Connector {
 	 * @var array
 	 */
 	public $actions = [
-		'aws_polly_stream_logger_write',
+		'itron_aws_polly_stream_logger_write',
 	];
 
 	/**
@@ -44,7 +44,7 @@ class StreamConnector extends Connector {
 	public function get_context_labels(): array {
 		/* @TODO Create logic for adding list of used labels (modules). */
 		return apply_filters(
-			'itron/aws-polly/wp_stream_connector/get_context_labels',
+			'itron_aws_polly_wp_stream_connector_get_context_labels',
 			[
 				'general' => 'General',
 			]
@@ -93,7 +93,7 @@ class StreamConnector extends Connector {
 	 *
 	 * @return void
 	 */
-	public function callback_aws_polly_stream_logger_write( $level, $message, $data, $module ) {
+	public function callback_itron_aws_polly_stream_logger_write( $level, $message, $data, $module ) {
 		// Getting $message sprintf-ready error message string.
 		$message = str_replace('%', '%%', $message );
 

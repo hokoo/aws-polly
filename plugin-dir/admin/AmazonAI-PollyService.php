@@ -6,7 +6,7 @@ use iTRON\WP_Lock\WP_Lock;
  * Class providers logic responsible for connecting with Amazon Polly Service
  * and converting post text to audio.
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      2.0.3
  *
  * @package    Amazonpolly
@@ -581,9 +581,7 @@ class AmazonAI_PollyService {
 		}
 
 		// Saving the duration of an audio file as the string 00:00.
-		$getID3 = new getID3;
-		$file_info = $getID3->analyze( $file_temp_full_name );
-		$playtime_string = $file_info['playtime_string'] ?? '';
+		$playtime_string = $this->get_audio_playtime_string( $file_temp_full_name );
 		if ( $playtime_string ) {
 			update_post_meta( $post_id, 'amazon_polly_audio_playtime', $playtime_string );
 		}
@@ -619,6 +617,24 @@ class AmazonAI_PollyService {
 
 		$logger->log(sprintf('%s Final audio created!', __METHOD__));
 
+	}
+
+	private function get_audio_playtime_string( string $file_path ): string {
+		if ( ! function_exists( 'wp_read_audio_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+		}
+
+		if ( ! function_exists( 'wp_read_audio_metadata' ) ) {
+			return '';
+		}
+
+		$metadata = wp_read_audio_metadata( $file_path );
+
+		if ( ! is_array( $metadata ) || empty( $metadata['length_formatted'] ) ) {
+			return '';
+		}
+
+		return (string) $metadata['length_formatted'];
 	}
 
 	/**
@@ -724,10 +740,11 @@ class AmazonAI_PollyService {
 		// We are using a hash of these values to improve the speed of queries.
 		$amazon_polly_settings_hash = md5( $amazon_polly_voice_id . $amazon_polly_sample_rate . $amazon_polly_audio_location );
 
-		$args     = array(
-			'posts_per_page' => $batch_size,
-			'post_type'      => $post_types_supported,
-			'meta_query'     => array(
+			$args     = array(
+				'posts_per_page' => $batch_size,
+				'post_type'      => $post_types_supported,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- This admin-only bulk regeneration flow intentionally finds posts with stale audio settings.
+				'meta_query'     => array(
 				'relation' => 'OR',
 				array(
 					'key'     => 'amazon_polly_audio_link_location',
@@ -833,10 +850,11 @@ class AmazonAI_PollyService {
 		$amazon_polly_sample_rate    = $common->get_sample_rate();
 		$amazon_polly_audio_location = ( 'on' === get_option( 'amazon_polly_s3' ) ) ? 's3' : 'local';
 
-		$args  = array(
-			'posts_per_page' => '-1',
-			'post_type'      => $post_types_supported,
-			'meta_query'     => array(
+			$args  = array(
+				'posts_per_page' => '-1',
+				'post_type'      => $post_types_supported,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- This admin-only progress counter intentionally counts posts matching the synthesis criteria.
+				'meta_query'     => array(
 				'relation' => 'AND',
 				array(
 					'key'     => 'amazon_polly_audio_link_location',

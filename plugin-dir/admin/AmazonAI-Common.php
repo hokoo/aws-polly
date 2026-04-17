@@ -2,7 +2,7 @@
 /**
  * Common operations used by the AWS for wordpress plugin.
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      2.5.0
  *
  */
@@ -242,6 +242,7 @@ class AmazonAI_Common
 		}
 
 		$post_type_placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Intentional single backfill query over dynamic post types with a dynamic IN() placeholder list.
 		$inserted_rows = $wpdb->query(
 			$wpdb->prepare(
 				"INSERT INTO {$wpdb->postmeta} (post_id, meta_key, meta_value)
@@ -271,6 +272,7 @@ class AmazonAI_Common
 				...$post_types
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		if ( false === $inserted_rows ) {
 			return false;
@@ -1052,13 +1054,13 @@ class AmazonAI_Common
 	}
 
 	/**
-	 * Check if Powered by AWS option is enabled
+	 * Check whether the optional public AWS Polly credit is enabled.
 	 *
 	 * @since  1.0.7
 	 */
 	public function is_poweredby_enabled()
 	{
-		$poweredby = get_option('amazon_polly_poweredby', 'on');
+		$poweredby = get_option('amazon_polly_poweredby', '');
 
 		if (empty($poweredby)) {
 			$result = false;
@@ -1686,7 +1688,8 @@ class AmazonAI_Common
 		// Depending on the plugin configurations, post's excerpt will be added to the audio.
 
 		if ($this->is_excerpt_adder_enabled()) {
-			$my_excerpt = apply_filters('the_excerpt', get_post_field('post_excerpt', $post_id));
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
+				$my_excerpt = apply_filters('the_excerpt', get_post_field('post_excerpt', $post_id));
 			$clean_text = $clean_text . $my_excerpt . ' **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
 		}
 
@@ -1907,21 +1910,16 @@ class AmazonAI_Common
 
 
 	/**
-	 * Add Amazon Pollu QuickTag button.
+	 * Add an SSML QuickTag button for the classic editor.
 	 *
 	 * @since    1.0.7
 	 */
 	public function add_quicktags() {
-		$is_ssml_enabled = $this->is_ssml_enabled();
-
-		if ( $is_ssml_enabled ) {
-			if ( wp_script_is( 'quicktags' ) ) {
-				?>
-					<script type="text/javascript">
-						QTags.addButton( 'eg_ssmlbreak', 'SSML Break', '<ssml><break time="1s"/></ssml>','','', 'Amazon Polly SSML Break Tag', 111 );
-					</script>
-				<?php
-			}
+		if ( $this->is_ssml_enabled() && wp_script_is( 'quicktags' ) ) {
+			wp_add_inline_script(
+				'quicktags',
+				"QTags.addButton('itron_aws_polly_ssml_break', 'SSML Break', '<ssml><break time=\"1s\"/></ssml>', '', '', 'AWS Polly SSML Break Tag', 111);"
+			);
 		}
 	}
 
@@ -2011,12 +2009,12 @@ class AmazonAI_Common
 			return (string) filemtime( $asset_path );
 		}
 
-		return '1.0.0';
+		return '1.0.1';
 	}
 
     public function enqueue_styles() {
-        wp_enqueue_style( 'amazon-polly', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), $this->get_asset_version( 'css/amazonpolly-admin.css' ), 'all' );
-        wp_enqueue_style( 'font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
+        wp_enqueue_style( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), $this->get_asset_version( 'css/amazonpolly-admin.css' ), 'all' );
+        wp_enqueue_style( 'itron-aws-polly-font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
         wp_enqueue_style( 'jquery-ui-core' );
         wp_enqueue_style( 'jquery-ui-progressbar' );
     }
@@ -2027,13 +2025,17 @@ class AmazonAI_Common
 	 * @since    1.0.0
 	 */
 	public function enqueue_scripts() {
-		wp_enqueue_script( 'amazon-polly', plugin_dir_url( __FILE__ ) . 'js/amazonpolly-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/amazonpolly-admin.js' ), false );
+		wp_enqueue_script( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'js/amazonpolly-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/amazonpolly-admin.js' ), false );
 		wp_enqueue_script( 'jquery-ui-core' );
 		wp_enqueue_script( 'jquery-ui-progressbar' );
-		$nonce_array = array(
-			'nonce' => wp_create_nonce( 'pollyajaxnonce' ),
+		wp_localize_script(
+			'itron-aws-polly-admin',
+			'itronAwsPollyAdmin',
+			array(
+				'ajaxAction' => 'itron_aws_polly_transcribe',
+				'ajaxNonce'  => wp_create_nonce( 'pollyajaxnonce' ),
+			)
 		);
-		wp_localize_script( 'jquery', 'pollyajax', $nonce_array );
 
     }
 

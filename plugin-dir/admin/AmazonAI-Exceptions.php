@@ -2,7 +2,7 @@
 /**
  * Plugin exceptions
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      2.5.0
  *
  * @package    Amazonpolly

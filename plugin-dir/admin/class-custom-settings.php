@@ -3,7 +3,7 @@
 /**
  * This file defines functions to add custom fields
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      1.0.0
  *
  * @package    Amazonpolly
@@ -41,7 +41,13 @@ class AmazonAI_Settings
     {
         // Register settings
         foreach ( $this->settings as $setting ) {
-            register_setting( $setting["option_group"], $setting["option_name"], ( isset( $setting["callback"] ) ? $setting["callback"] : '' ) );
+            $args = array();
+
+            if ( isset( $setting["callback"] ) && is_callable( $setting["callback"] ) ) {
+                $args["sanitize_callback"] = $setting["callback"];
+            }
+
+            register_setting( $setting["option_group"], $setting["option_name"], $args );
         }
 
         // Add settings section

@@ -12,7 +12,7 @@ class Factory {
 			return self::$logger;
 		}
 
-		self::$logger = apply_filters( 'itron/aws-polly/get-logger', new Stream() );
+		self::$logger = apply_filters( 'itron_aws_polly_get_logger', new Stream() );
 
 		return self::$logger;
 	}

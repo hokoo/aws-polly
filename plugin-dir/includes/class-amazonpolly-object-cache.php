@@ -2,7 +2,7 @@
 /**
  * Object cache helpers for Amazon Polly runtime state.
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      2.6.2
  *
  * @package    Amazonpolly

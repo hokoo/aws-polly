@@ -176,21 +176,6 @@ class AmazonAI_AudioAdmin {
 		return $clauses;
 	}
 
-	public function column_styles(): void {
-		$screen = get_current_screen();
-		if ( ! $screen || 'edit' !== $screen->base ) {
-			return;
-		}
-		echo '<style>
-			.column-polly_audio { width: 120px; text-align: center; }
-			.column-polly_voice { width: 100px; }
-		</style>';
-	}
-
-	// =========================================================================
-	// Meta box on post edit screen
-	// =========================================================================
-
 	public function add_audio_meta_box(): void {
 		foreach ( $this->get_post_types() as $post_type ) {
 			add_meta_box(
@@ -249,6 +234,7 @@ class AmazonAI_AudioAdmin {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin list-table filter value from the current URL.
 		$selected = isset( $_GET['polly_audio_filter'] ) ? sanitize_key( wp_unslash( $_GET['polly_audio_filter'] ) ) : '';
 
 		echo '<select name="polly_audio_filter">';
@@ -288,11 +274,13 @@ class AmazonAI_AudioAdmin {
 			return false;
 		}
 
-		if ( empty( $post_type ) ) {
-			$post_type = isset( $_GET['post_type'] )
-				? sanitize_key( wp_unslash( $_GET['post_type'] ) )
-				: 'post';
-		}
+			if ( empty( $post_type ) ) {
+				// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading the current admin screen post type from the URL.
+				$post_type = isset( $_GET['post_type'] )
+					? sanitize_key( wp_unslash( $_GET['post_type'] ) )
+					: 'post';
+				// phpcs:enable WordPress.Security.NonceVerification.Recommended
+			}
 
 		return in_array( $post_type, $this->get_post_types(), true );
 	}
@@ -303,15 +291,18 @@ class AmazonAI_AudioAdmin {
 
 	private function add_sort_meta_join( string $join, string $alias, string $meta_key ): string {
 		global $wpdb;
+		$alias = preg_replace( '/[^a-z0-9_]/i', '', $alias );
 
 		if ( false !== strpos( $join, " {$alias} " ) ) {
 			return $join;
 		}
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias is restricted to alphanumeric/underscore characters before interpolation.
 		return $join . $wpdb->prepare(
 			" LEFT JOIN {$wpdb->postmeta} AS {$alias} ON ({$wpdb->posts}.ID = {$alias}.post_id AND {$alias}.meta_key = %s)",
 			$meta_key
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	private function get_audio_status( int $post_id ): array {
@@ -446,9 +437,11 @@ class AmazonAI_AudioAdmin {
 			$filter = (string) $query->get( 'amazon_polly_audio_filter' );
 		}
 
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin list-table filter value from the current URL.
 		if ( '' === $filter && isset( $_GET['polly_audio_filter'] ) ) {
 			$filter = sanitize_key( wp_unslash( $_GET['polly_audio_filter'] ) );
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		return in_array( $filter, [ 'no_audio', 'has_audio' ], true ) ? $filter : '';
 	}
@@ -525,10 +518,12 @@ class AmazonAI_AudioAdmin {
 	}
 
 	public function bulk_action_notice(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin redirect flag from the current URL.
 		if ( ! isset( $_GET['polly_queued'] ) ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin redirect flag from the current URL.
 		$count = absint( wp_unslash( $_GET['polly_queued'] ) );
 		if ( 0 === $count ) {
 			return;
@@ -536,7 +531,7 @@ class AmazonAI_AudioAdmin {
 
 		$message = sprintf(
 			/* translators: %d: queued posts count. */
-			__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech-from-aws-polly' ),
+			__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech-using-aws-polly' ),
 			$count
 		);
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
@@ -546,9 +541,28 @@ class AmazonAI_AudioAdmin {
 	// Button on TTS settings page: "Find posts without audio"
 	// =========================================================================
 
+	public function column_styles(): void {
+		wp_add_inline_style(
+			'itron-aws-polly-admin',
+			'.column-polly_audio { width: 120px; text-align: center; } .column-polly_voice { width: 100px; }'
+		);
+	}
+
 	public function render_settings_button(): void {
+		$this->enqueue_admin_assets();
+	}
+
+	public function enqueue_admin_assets(): void {
 		$screen = get_current_screen();
-		if ( ! $screen || 'aws-tts_page_amazon_ai_polly' !== $screen->id ) {
+		if ( ! $screen ) {
+			return;
+		}
+
+		if ( 'edit' === $screen->base ) {
+			$this->column_styles();
+		}
+
+		if ( 'aws-tts_page_amazon_ai_polly' !== $screen->id ) {
 			return;
 		}
 
@@ -556,26 +570,10 @@ class AmazonAI_AudioAdmin {
 		$post_type  = ! empty( $post_types[0] ) ? $post_types[0] : 'post';
 		$url        = admin_url( 'edit.php?post_type=' . $post_type . '&polly_audio_filter=no_audio' );
 
-		?>
-		<script>
-		(function() {
-			var form = document.querySelector('.wrap form');
-			if (!form) return;
-
-			var div = document.createElement('div');
-			div.style.marginTop = '20px';
-			div.style.padding = '15px';
-			div.style.background = '#fff';
-			div.style.border = '1px solid #ccd0d4';
-			div.style.borderLeft = '4px solid #0073aa';
-
-			div.innerHTML = '<h3 style="margin-top:0;">Posts without audio</h3>'
-				+ '<p>Find and select posts that do not have generated audio, then use bulk actions to generate it.</p>'
-				+ '<a href="<?php echo esc_url( $url ); ?>" class="button button-primary">Find posts without audio &rarr;</a>';
-
-			form.parentNode.insertBefore(div, form.nextSibling);
-		})();
-		</script>
-		<?php
+		wp_add_inline_script(
+			'itron-aws-polly-admin',
+			'window.itronAwsPollyAdmin = window.itronAwsPollyAdmin || {}; window.itronAwsPollyAdmin.findPostsWithoutAudioUrl = ' . wp_json_encode( esc_url_raw( $url ) ) . ';',
+			'before'
+		);
 	}
 }

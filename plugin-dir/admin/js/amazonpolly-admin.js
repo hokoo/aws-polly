@@ -7,6 +7,7 @@
 
 	(function( $ ) {
 		'use strict';
+		var adminConfig = window.itronAwsPollyAdmin || {};
 
 		function getSelectedPollyVoiceOption() {
 			var voiceSelect = $( '#amazon_polly_voice_id' );
@@ -209,8 +210,8 @@
 				type: 'POST',
 				url: ajaxurl,
 				data: {
-					action: 'polly_transcribe',
-					nonce: pollyajax.nonce,
+					action: adminConfig.ajaxAction || 'itron_aws_polly_transcribe',
+					nonce: adminConfig.ajaxNonce || '',
 				},
 				dataType: "json",
 				beforeSend: function() {
@@ -234,8 +235,32 @@
 			});
 		}
 
+		function injectFindPostsWithoutAudioPanel() {
+			var form = document.querySelector( '.wrap form' );
+			var targetUrl = adminConfig.findPostsWithoutAudioUrl || '';
+
+			if ( ! form || ! targetUrl || document.getElementById( 'itron-aws-polly-find-posts-panel' ) ) {
+				return;
+			}
+
+			var panel = document.createElement( 'div' );
+			panel.id = 'itron-aws-polly-find-posts-panel';
+			panel.style.marginTop = '20px';
+			panel.style.padding = '15px';
+			panel.style.background = '#fff';
+			panel.style.border = '1px solid #ccd0d4';
+			panel.style.borderLeft = '4px solid #0073aa';
+
+			panel.innerHTML = '<h3 style="margin-top:0;">Posts without audio</h3>'
+				+ '<p>Find and select posts that do not have generated audio, then use bulk actions to generate it.</p>'
+				+ '<a href="' + targetUrl + '" class="button button-primary">Find posts without audio &rarr;</a>';
+
+			form.parentNode.insertBefore( panel, form.nextSibling );
+		}
+
 	$( document ).ready(
 		function(){
+			injectFindPostsWithoutAudioPanel();
 
 			var amazonPollyProgressbar = $( "#amazon-polly-progressbar" );
 			var amazonPollyProgressLabel = $( ".amazon-polly-progress-label" );

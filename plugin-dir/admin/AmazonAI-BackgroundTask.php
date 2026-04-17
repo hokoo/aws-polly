@@ -14,8 +14,8 @@ class AmazonAI_BackgroundTask {
 
 
   const ADMIN_POST_ACTION = 'amazon_polly_run_background_task';
-  const CRON_HOOK = 'aws_polly';
-  const CRON_HANDLERS_HOOK = 'amazon_polly_cron_';
+  const CRON_HOOK = 'itron_aws_polly';
+  const CRON_HANDLERS_HOOK = 'itron_aws_polly_cron_';
 
   /**
    * Trigger an action in the background
@@ -42,6 +42,7 @@ class AmazonAI_BackgroundTask {
       'timeout' => 0.01,
       'blocking' => false,
       /** This filter is documented in WordPress Core wp-includes/class-wp-http-streams.php */
+      // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
       'sslverify' => apply_filters('https_local_ssl_verify', false),
       'body' => [
         'nonce' => wp_create_nonce($this->nonce_action_for_task($task)),
@@ -90,6 +91,7 @@ class AmazonAI_BackgroundTask {
 		  $logger = new AmazonAI_Logger();
 		  $logger->log( sprintf( '%s Running cron task %s', __METHOD__, $cron_data->task ) );
 
+		  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Internal dynamic hook with an explicitly prefixed base name.
 		  do_action_ref_array( self::CRON_HANDLERS_HOOK . $cron_data->task, $cron_data->data );
 	  } catch ( CronRechedulerException $e ) {
 		  $this->queue( $cron_data->task, $cron_data->data, $cron_data->unique );
@@ -111,19 +113,19 @@ class AmazonAI_BackgroundTask {
 
     if ( empty( $task ) ) {
       $logger->log( sprintf( '%s Invalid background task. Missing task.', __METHOD__ ) );
-      wp_die( esc_html__( 'Invalid background task.', 'ai-text-to-speech-from-aws-polly' ), esc_html__( 'Invalid Request', 'ai-text-to-speech-from-aws-polly' ), 400 );
+      wp_die( esc_html__( 'Invalid background task.', 'ai-text-to-speech-using-aws-polly' ), esc_html__( 'Invalid Request', 'ai-text-to-speech-using-aws-polly' ), 400 );
     }
 
     if ( ! $nonce || 1 !== wp_verify_nonce( $nonce, $this->nonce_action_for_task( $task ) ) ) {
       $logger->log( sprintf( '%s Expired background task request for task %s', __METHOD__, $task ) );
-      wp_die( esc_html__( 'Expired background task request.', 'ai-text-to-speech-from-aws-polly' ), esc_html__( 'Expired Request', 'ai-text-to-speech-from-aws-polly' ), 403 );
+      wp_die( esc_html__( 'Expired background task request.', 'ai-text-to-speech-using-aws-polly' ), esc_html__( 'Expired Request', 'ai-text-to-speech-using-aws-polly' ), 403 );
     }
 
     $args_json = array_key_exists( 'args', $_POST ) ? sanitize_textarea_field( wp_unslash( $_POST['args'] ) ) : '';
     $args      = '' === $args_json ? [] : json_decode( $args_json, true );
     if ( ! is_array( $args ) ) {
       $logger->log( sprintf( '%s Invalid background task args.', __METHOD__ ) );
-      wp_die( esc_html__( 'Invalid background task args.', 'ai-text-to-speech-from-aws-polly' ), esc_html__( 'Invalid Request', 'ai-text-to-speech-from-aws-polly' ), 400 );
+      wp_die( esc_html__( 'Invalid background task args.', 'ai-text-to-speech-using-aws-polly' ), esc_html__( 'Invalid Request', 'ai-text-to-speech-using-aws-polly' ), 400 );
     }
 
     $logger->log( sprintf( '%s Running background task %s', __METHOD__, $task ) );
@@ -134,7 +136,8 @@ class AmazonAI_BackgroundTask {
      * The dynamic portion of the hook name, `$task`, refers to the task
      * that being run.
      */
-    do_action_ref_array( sprintf( 'amazon_polly_background_task_%s', $task ), $args );
+	    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Internal dynamic hook with an explicitly prefixed base name.
+	    do_action_ref_array( sprintf( 'itron_aws_polly_background_task_%s', $task ), $args );
   }
 
   /**

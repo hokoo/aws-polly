@@ -2,7 +2,7 @@
 /**
  * Class responsible for providing GUI for general configuration of the plugin
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      2.5.0
  *
  * @package    Amazonpolly
@@ -34,15 +34,15 @@ class AmazonAI_GeneralConfiguration
 
     public function amazon_ai_add_menu()
     {
-	    $this->plugin_screen_hook_suffix = add_menu_page( __( 'AI Text-to-Speech', 'ai-text-to-speech-from-aws-polly' ),
-		    __( 'AI TTS', 'ai-text-to-speech-from-aws-polly' ),
+	    $this->plugin_screen_hook_suffix = add_menu_page( __( 'AI Text-to-Speech', 'ai-text-to-speech-using-aws-polly' ),
+		    __( 'AI TTS', 'ai-text-to-speech-using-aws-polly' ),
 		    'manage_options',
 		    'amazon_ai',
 		    array(
 			    $this,
 			    'amazonai_gui'
 		    ),
-		    'dashicons-amazon'
+		    'dashicons-controls-volumeon'
 	    );
 	    $this->plugin_screen_hook_suffix = add_submenu_page( 'amazon_ai',
 		    'General',
@@ -60,7 +60,7 @@ class AmazonAI_GeneralConfiguration
 ?>
 				 <div class="wrap">
 				 <div id="icon-options-general" class="icon32"></div>
-				 <h1><?php esc_html_e( 'AI Text-to-Speech', 'ai-text-to-speech-from-aws-polly' ); ?></h1>
+				 <h1><?php esc_html_e( 'AI Text-to-Speech', 'ai-text-to-speech-using-aws-polly' ); ?></h1>
 				 <form method="post" action="options.php">
 						 <?php
 
@@ -85,25 +85,25 @@ class AmazonAI_GeneralConfiguration
 		    $this,
 		    'general_gui'
 	    ), 'amazon_ai' );
-	    add_settings_field( self::OPTION_PREFIX . 's3_access_key', __( 'AWS access key:', 'ai-text-to-speech-from-aws-polly' ), array(
+	    add_settings_field( self::OPTION_PREFIX . 's3_access_key', __( 'AWS access key:', 'ai-text-to-speech-using-aws-polly' ), array(
 		    $this,
 		    'access_key_gui'
 	    ), 'amazon_ai', 'amazon_ai_general', array(
 		    'label_for' => 'amazon_polly_access_key'
 	    ) );
-	    add_settings_field( self::OPTION_PREFIX . 's3_secret_key', __( 'AWS secret key:', 'ai-text-to-speech-from-aws-polly' ), array(
+	    add_settings_field( self::OPTION_PREFIX . 's3_secret_key', __( 'AWS secret key:', 'ai-text-to-speech-using-aws-polly' ), array(
 		    $this,
 		    'secret_key_gui'
 	    ), 'amazon_ai', 'amazon_ai_general', array(
 		    'label_for' => 'amazon_polly_secret_key_fake'
 	    ) );
 	    add_settings_field( self::OPTION_PREFIX . 's3_bucket_name',
-		    __( 'Amazon S3 bucket name:', 'ai-text-to-speech-from-aws-polly' ),
+		    __( 'Amazon S3 bucket name:', 'ai-text-to-speech-using-aws-polly' ),
 		    array( $this, 's3_bucket_gui' ),
 		    'amazon_ai',
 		    'amazon_ai_general',
 		    array( 'label_for' => 'amazon_polly_s3_bucket_name' ) );
-	    add_settings_field( self::OPTION_PREFIX . 's3_region', __( 'AWS Region:', 'ai-text-to-speech-from-aws-polly' ), array(
+	    add_settings_field( self::OPTION_PREFIX . 's3_region', __( 'AWS Region:', 'ai-text-to-speech-using-aws-polly' ), array(
 		    $this,
 		    'region_gui'
 	    ), 'amazon_ai', 'amazon_ai_general', array(

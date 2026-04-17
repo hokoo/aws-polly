@@ -18,7 +18,7 @@ class Stream extends AbstractLogger {
 					return is_scalar( $value ) ? $value : wp_json_encode( $value, JSON_UNESCAPED_UNICODE );
 				}, $context );
 			}
-			do_action( 'aws_polly_stream_logger_write', $level, $message, $meta, $module );
+			do_action( 'itron_aws_polly_stream_logger_write', $level, $message, $meta, $module );
 		};
 
 		if ( ! did_action( 'wp_stream_after_connectors_registration' ) ) {

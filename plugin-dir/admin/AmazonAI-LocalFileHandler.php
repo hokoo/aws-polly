@@ -2,7 +2,7 @@
 /**
  *
  *
- * @link       amazon.com
+ * @link       https://itron.pro/
  * @since      2.0.3
  *
  * @package    Amazonpolly
