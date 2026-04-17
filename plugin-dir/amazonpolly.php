@@ -12,7 +12,6 @@
  *
  * @wordpress-plugin
  * Plugin Name:       AI Text-to-Speech using AWS Polly
- * Plugin URI:        https://itron.pro/
  * Description:       Independent WordPress text-to-speech integration using AWS Polly.
  * Version:           1.0.1
  * Author:            iTRON
