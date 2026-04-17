@@ -18,7 +18,7 @@ class AmazonAI_PostMetaBox {
    *
    * @param string $post New post.
    *
-   * @since    1.0.0
+   * @since      0.1
    */
   public function display_box_content($post) {
     $this->display_polly_gui($post);
@@ -63,7 +63,7 @@ class AmazonAI_PostMetaBox {
    *
    * @param string $post New post.
    *
-   * @since    2.5.0
+   * @since      0.1
    */
   public function display_polly_gui($post) {
     $nonce = wp_create_nonce('amazon-polly');

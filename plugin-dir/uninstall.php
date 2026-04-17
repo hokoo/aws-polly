@@ -2,10 +2,8 @@
 /**
  * Fired when the plugin is uninstalled.
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Awspolly
  */
 
  // If uninstall not called from WordPress, then exit.

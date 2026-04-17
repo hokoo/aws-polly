@@ -2,11 +2,8 @@
 /**
  *
  *
- * @link       https://itron.pro/
- * @since      2.0.3
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
@@ -29,7 +26,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
   /**
 	 * Return type of storage which is supported by class (S3).
 	 *
-	 * @since    2.1.0
+	 * @since      0.1
 	 */
     public function get_type() {
       return "s3";
@@ -45,7 +42,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
   	 * @param           $wp_filesystem         Not used here.
   	 * @param           $file                  File name.
   	 * @param           $post_id               ID of the post.
-  	 * @since           2.0.3
+  	 * @since      0.1
   	 */
     public function delete($wp_filesystem, $file, $post_id) {
 
@@ -80,7 +77,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
   	 * @param           $file_final_full_name  Final name of file.
   	 * @param           $post_id               ID of the post.
   	 * @param           $file_name             Name of the file.
-  	 * @since           2.0.3
+  	 * @since      0.1
   	 */
     public function save($wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name) {
         $media_library_att_id = get_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', true );
@@ -149,7 +146,7 @@ class AmazonAI_S3FileHandler extends AmazonAI_FileHandler {
          * Delets object from S3.
          *
          * @param string $post_id ID of the post for which audio should be deleted.
-         * @since 2.0.0
+         * @since      0.1
          */
         private function delete_s3_object( $bucket, $key ) {
 

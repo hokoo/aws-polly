@@ -8,9 +8,7 @@
  * registers the activation and deactivation functions, and defines a function
  * that starts the plugin.
  *
- * @link       https://itron.pro/
- * @since             0.2.2
- * @package           Amazonpolly
+ * @since      0.1
  *
  * @wordpress-plugin
  * Plugin Name:       AI Text-to-Speech using AWS Polly
@@ -66,7 +64,7 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-amazonpolly.php';
  * then kicking off the plugin from this point in the file does
  * not affect the page life cycle.
  *
- * @since    1.0.0
+ * @since      0.1
  */
 function itron_aws_polly_run_plugin() {
 

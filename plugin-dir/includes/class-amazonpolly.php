@@ -3,11 +3,7 @@
 /**
  * The file that defines the core plugin class
  *
- * @link       https://itron.pro/
- * @since      1.0.0
- *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/includes
+ * @since      0.1
  */
 
 use iTRON\AWS\Polly\Factory;
@@ -24,9 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * This is used to define internationalization, admin-specific hooks, and
  * public-facing site hooks.
  *
- * @since      1.0.0
- * @package    Amazonpolly
- * @subpackage Amazonpolly/includes
+ * @since      0.1
  */
 class Amazonpolly {
 

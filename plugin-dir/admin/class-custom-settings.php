@@ -3,11 +3,8 @@
 /**
  * This file defines functions to add custom fields
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 class AmazonAI_Settings

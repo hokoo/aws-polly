@@ -2,8 +2,6 @@
 /**
  * Class for running an action in the background.
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

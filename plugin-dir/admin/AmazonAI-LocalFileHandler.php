@@ -2,11 +2,8 @@
 /**
  *
  *
- * @link       https://itron.pro/
- * @since      2.0.3
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
@@ -27,7 +24,7 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
   /**
 	 * Return type of storage which is supported by class (local).
 	 *
-	 * @since    2.0.3
+	 * @since      0.1
 	 */
     public function get_type() {
       return "local";
@@ -39,7 +36,7 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
   	 * @param           $wp_filesystem         Reference to WP filesystem.
   	 * @param           $file                  File name.
   	 * @param           $post_id               ID of the post.
-  	 * @since           2.0.3
+  	 * @since      0.1
   	 */
     public function delete($wp_filesystem, $file, $post_id) {
 
@@ -71,7 +68,7 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
   	 * @param           $file_final_full_name  Final name of file.
   	 * @param           $post_id               ID of the post.
   	 * @param           $file_name             Name of the file.
-  	 * @since           2.0.3
+  	 * @since      0.1
   	 */
     public function save($wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name) {
 
@@ -115,7 +112,7 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
   	 *
   	 * @param           $post_id       Id of the post.
   	 * @param           $filename      Path to file.
-  	 * @since           2.0.3
+  	 * @since      0.1
   	 */
   	private function add_media_library( $filename, $post_id ) {
 

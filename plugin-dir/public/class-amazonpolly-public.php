@@ -2,11 +2,8 @@
 /**
  * The public-facing functionality of the plugin.
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/public
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -33,7 +30,7 @@ class Amazonpolly_Public {
 	/**
 	 * WordPress filter, responsible for adding audio player to post content.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function content_filter( $content ) {
 

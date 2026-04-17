@@ -2,11 +2,8 @@
 /**
  * Object cache helpers for Amazon Polly runtime state.
  *
- * @link       https://itron.pro/
- * @since      2.6.2
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/includes
  */
 
 class Amazonpolly_Object_Cache {

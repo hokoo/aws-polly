@@ -2,11 +2,8 @@
 /**
  * Fired during plugin deactivation
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/includes
  */
 
 /**
@@ -14,9 +11,7 @@
  *
  * This class defines all code necessary to run during the plugin's deactivation.
  *
- * @since      1.0.0
- * @package    Amazonpolly
- * @subpackage Amazonpolly/includes
+ * @since      0.1
  * @author     iTRON
  */
 class Amazonpolly_Deactivator {
@@ -26,7 +21,7 @@ class Amazonpolly_Deactivator {
 	 *
 	 * Long Description.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public static function deactivate() {
 

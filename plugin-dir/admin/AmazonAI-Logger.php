@@ -6,8 +6,7 @@ use Psr\Log\LogLevel;
 /**
  * Logger for AWS AI plugin.
  *
- * @link       https://itron.pro/
- * @since      2.6.2
+ * @since      0.1
  *
  */
 class AmazonAI_Logger {

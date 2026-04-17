@@ -2,11 +2,8 @@
 /**
  * Class responsible for providing GUI for Amazon Polly configuration.
  *
- * @link       https://itron.pro/
- * @since      2.5.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -196,7 +193,7 @@ class AmazonAI_PollyConfiguration {
   /**
  	 * Render the Enable Text-To-Speech functionality option.
 	 *
-	 * @since  2.5.0
+	 * @since      0.1
 	 */
   public function polly_enabled_gui() {
       if ($this->common->is_language_supported_for_polly()) {
@@ -213,7 +210,7 @@ class AmazonAI_PollyConfiguration {
     /**
      * Render the public AWS Polly credit option.
      *
-     * @since  2.6.0
+     * @since      0.1
      */
     function poweredby_gui()
     {
@@ -224,7 +221,7 @@ class AmazonAI_PollyConfiguration {
     /**
      * Render the translation source language input.
      *
-     * @since  2.0.0
+     * @since      0.1
      */
     public function source_language_gui()
     {
@@ -254,7 +251,7 @@ class AmazonAI_PollyConfiguration {
 	/**
 	 * Render the Update All input for this plugin
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function update_all_gui() {
 
@@ -275,7 +272,7 @@ class AmazonAI_PollyConfiguration {
     /**
      * Render the 'use CloudFront' input.
      *
-     * @since  1.0.0
+     * @since      0.1
      */
     public function cloudfront_gui()
     {
@@ -292,7 +289,7 @@ class AmazonAI_PollyConfiguration {
     /**
      * Render the 'store in S3' input.
      *
-     * @since  1.0.0
+     * @since      0.1
      */
     function s3_gui()
     {
@@ -311,7 +308,7 @@ class AmazonAI_PollyConfiguration {
     /**
      * Render the 'Enable Logging' input.
      *
-     * @since  2.6.2
+     * @since      0.1
      */
     function logging_gui()
     {
@@ -322,7 +319,7 @@ class AmazonAI_PollyConfiguration {
 	/**
 	 * Render the Add post excerpt to audio input.
 	 *
-	 * @since  2.0.0
+	 * @since      0.1
 	 */
 	public function add_post_excerpt_gui() {
 
@@ -343,7 +340,7 @@ class AmazonAI_PollyConfiguration {
 	/**
 	 * Render the Add post title to audio input.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function add_post_title_gui() {
 
@@ -356,7 +353,7 @@ class AmazonAI_PollyConfiguration {
     /**
      * Render the Post Type input box.
      *
-     * @since  1.0.7
+     * @since      0.1
      */
 	    public function posttypes_gui() {
 	        $posttypes = $this->common->get_posttypes();
@@ -603,7 +600,7 @@ class AmazonAI_PollyConfiguration {
     /**
 	 * Render the autoplay input.
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function autoplay_gui() {
 
@@ -627,7 +624,7 @@ class AmazonAI_PollyConfiguration {
 	/**
 	 * Render the Default Configuration input.
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function defconf_gui() {
 
@@ -650,7 +647,7 @@ class AmazonAI_PollyConfiguration {
     /**
   	 * Render the Player Label input.
   	 *
-  	 * @since  1.0.3
+  	 * @since      0.1
   	 */
   public function skiptags_gui() {
 
@@ -662,7 +659,7 @@ class AmazonAI_PollyConfiguration {
 	/**
 	 * Render the Player Label input.
 	 *
-	 * @since  1.0.3
+	 * @since      0.1
 	 */
 public function playerlabel_gui() {
 
@@ -675,7 +672,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the Position input.
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function playerposition_gui() {
 
@@ -698,7 +695,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the Sample Rate input for this plugin
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function sample_rate_gui() {
 
@@ -721,7 +718,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the Player Label input.
 	 *
-	 * @since  1.0.12
+	 * @since      0.1
 	 */
 	public function lexicons_gui() {
 
@@ -734,7 +731,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the autoplay input.
 	 *
-	 * @since  1.0.5
+	 * @since      0.1
 	 */
 	public function audio_speed_gui() {
 
@@ -752,7 +749,7 @@ public function playerlabel_gui() {
   /**
    * Render the enable SSML input.
    *
-   * @since  1.0.7
+   * @since      0.1
    */
   public function medialibrary_enabled_gui() {
 
@@ -776,7 +773,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the enable SSML input.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function ssml_gui() {
 
@@ -800,7 +797,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the Automated Breath input.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function auto_breaths_gui() {
 	    echo '<input type="checkbox" name="amazon_polly_auto_breaths" id="amazon_polly_auto_breaths"' . checked( $this->is_option_enabled( 'amazon_polly_auto_breaths' ), true, false ) . '> ';
@@ -844,7 +841,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the Polly Voice input for this plugin
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function voices_gui() {
 		$language_code = $this->common->get_source_language();
@@ -870,7 +867,7 @@ public function playerlabel_gui() {
 	/**
 	 * Render the Access Key input for this plugin
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	function access_key_gui()
 	{

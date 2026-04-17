@@ -4,11 +4,8 @@
  *
  * This file is used to markup the public-facing aspects of the plugin.
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Awspolly
- * @subpackage Awspolly/public/partials
  */
 
 // None.

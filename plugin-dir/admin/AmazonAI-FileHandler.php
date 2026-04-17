@@ -2,11 +2,8 @@
 /**
  *
  *
- * @link       https://itron.pro/
- * @since      2.0.3
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 abstract class AmazonAI_FileHandler {

@@ -4,11 +4,8 @@
  *
  * This file is used to markup the admin-facing aspects of the plugin.
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin/partials
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

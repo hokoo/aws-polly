@@ -2,8 +2,6 @@
 /**
  * Admin enhancements for Polly audio: columns, meta box, filter, bulk actions, settings button.
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

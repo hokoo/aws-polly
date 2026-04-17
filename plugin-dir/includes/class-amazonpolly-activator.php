@@ -2,11 +2,8 @@
 /**
  * Fired during plugin activation
  *
- * @link       https://itron.pro/
- * @since      1.0.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/includes
  */
 
 class Amazonpolly_Activator {
@@ -14,7 +11,7 @@ class Amazonpolly_Activator {
 	/**
 	 * Initial configuration of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public static function activate() {
 		flush_rewrite_rules();

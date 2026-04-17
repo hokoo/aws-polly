@@ -2,11 +2,8 @@
 /**
  * Class responsible for providing GUI for general configuration of the plugin
  *
- * @link       https://itron.pro/
- * @since      2.5.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -155,7 +152,7 @@ class AmazonAI_GeneralConfiguration
     /**
      * Render the Access Key input for this plugin
      *
-     * @since  1.0.0
+     * @since      0.1
      */
     function access_key_gui() {
 		$name = 's3_access_key';
@@ -172,7 +169,7 @@ class AmazonAI_GeneralConfiguration
     /**
      * Render the Secret Key input for this plugin
      *
-     * @since  1.0.0
+     * @since      0.1
      */
     function secret_key_gui() {
 	    $name = 's3_secret_key';
@@ -197,7 +194,7 @@ class AmazonAI_GeneralConfiguration
     /**
      * Render the region input.
      *
-     * @since  1.0.3
+     * @since      0.1
      */
 	function region_gui() {
 		$name            = 's3_region';
@@ -255,7 +252,7 @@ class AmazonAI_GeneralConfiguration
 	 * Get S3 bucket name. The method uses filter 'amazon_polly_s3_bucket_name,
 	 * which allows to use customer S3 bucket name instead of default one.
 	 *
-	 * @since  1.0.6
+	 * @since      0.1
 	 */
 	public static function get_bucket_name() {
 		return self::get_option( 's3_bucket_name' );

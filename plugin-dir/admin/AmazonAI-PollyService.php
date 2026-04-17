@@ -6,11 +6,8 @@ use iTRON\WP_Lock\WP_Lock;
  * Class providers logic responsible for connecting with Amazon Polly Service
  * and converting post text to audio.
  *
- * @link       https://itron.pro/
- * @since      2.0.3
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 class AmazonAI_PollyService {
@@ -35,7 +32,7 @@ class AmazonAI_PollyService {
 	/**
 	 * Important. Run whenever new post is being created (or updated). The method generates a background task to generate the audio file.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function save_post( $post_id, $post, $updated ) {
 		static $single_run = 0;
@@ -100,7 +97,7 @@ class AmazonAI_PollyService {
 	 * Important. Executes the Amazon Polly API to create audio file and save to the configured storage location
 	 *
 	 * @throws ConcurrentAudioGenerating
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function generate_audio( $post_id ) {
 		$logger = new AmazonAI_Logger();
@@ -386,7 +383,7 @@ class AmazonAI_PollyService {
 	 * @param           string $sentences               Sentences which should be converted to audio.
 	 * @param           string $wp_filesystem       Reference to WP File system variable.
 	 * @param           string $lang       Language
-	 * @since           1.0.0
+	 * @since      0.1
 	 */
 	public function convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem, $lang ) {
 
@@ -642,7 +639,7 @@ class AmazonAI_PollyService {
 	 *
 	 * @param           string $common					Plugin common object.
 	 * @param           string $text_content		Existing text.
-	 * @since           2.5.0
+	 * @since      0.1
 	 */
 	private function add_breaths($common, $text_content) {
 		// Depending on the plugin configuration SSML tags for automated breaths sound will be added.
@@ -659,7 +656,7 @@ class AmazonAI_PollyService {
 	 *
 	 * @param           string $common					Plugin common object.
 	 * @param           string $text_content		Existing text.
-	 * @since           2.5.0
+	 * @since      0.1
 	 */
 	private function ssml_support($common, $text_content) {
 		// If plugin SSML support option is enabled, plugin will try to decode all SSML tags.
@@ -680,7 +677,7 @@ class AmazonAI_PollyService {
 	 *
 	 * @param           string $common					Plugin common object.
 	 * @param           string $text_content		Existing text.
-	 * @since           2.5.0
+	 * @since      0.1
 	 */
 	private function add_mark_tag($common, $text_content) {
 
@@ -711,7 +708,7 @@ class AmazonAI_PollyService {
 	 *
 	 * @param           string $common					Plugin common object.
 	 * @param           string $text_content		Existing text.
-	 * @since           2.5.0
+	 * @since      0.1
 	 */
 	private function add_speak_tags($common, $text_content) {
 
@@ -724,7 +721,7 @@ class AmazonAI_PollyService {
 	/**
 	 * Batch process the post transcriptions.
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function ajax_bulk_synthesize() {
 		check_ajax_referer( 'pollyajaxnonce', 'nonce' );
@@ -814,7 +811,7 @@ class AmazonAI_PollyService {
 	/**
 	 * Calculate the percentage complete.
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	private function get_percentage_complete() {
 		$total_posts               = 0;
@@ -840,7 +837,7 @@ class AmazonAI_PollyService {
 	/**
 	 * Checks how many posts should be converted.
 	 *
-	 * @since           1.0.0
+	 * @since      0.1
 	 */
 	public function get_num_posts_needing_transcription() {
 

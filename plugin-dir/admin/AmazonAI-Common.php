@@ -2,8 +2,7 @@
 /**
  * Common operations used by the AWS for wordpress plugin.
  *
- * @link       https://itron.pro/
- * @since      2.5.0
+ * @since      0.1
  *
  */
 if ( ! defined( 'ABSPATH' ) ) {
@@ -91,7 +90,7 @@ class AmazonAI_Common
 	/**
 	 * Creates SDK objects for the plugin.
 	 *
-	 * @since    2.5.0
+	 * @since      0.1
 	 */
 	public function __construct() {
 		$this->logger = new AmazonAI_Logger();
@@ -627,7 +626,7 @@ class AmazonAI_Common
 	/**
 	 * Method returns file handler which is reponsible for communicating with proper storage location.
 	 *
-	 * @since       2.0.3
+	 * @since      0.1
 	 */
 	public function get_file_handler() {
 
@@ -648,7 +647,7 @@ class AmazonAI_Common
 	 * Method removes ID3 tag from audio file
 	 *
 	 * @param           string $filename                 File for which tag should be removed.
-	 * @since           1.0.0
+	 * @since      0.1
 	 */
 	public function remove_id3( $filename, $wp_filesystem = null ) {
 		if ( null === $wp_filesystem ) {
@@ -709,7 +708,7 @@ class AmazonAI_Common
 	/**
 	 * Checks if auto breaths are enabled.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function is_auto_breaths_enabled() {
 
@@ -733,7 +732,7 @@ class AmazonAI_Common
 	/**
 	 * Returns source language.
 	 *
-	 * @since  2.0.0
+	 * @since      0.1
 	 */
 	public function get_post_source_language($post_id) {
 		$value = get_post_meta( $post_id, 'amazon_ai_source_language', true );
@@ -748,7 +747,7 @@ class AmazonAI_Common
 	/**
 	 * Returns source language.
 	 *
-	 * @since  2.0.0
+	 * @since      0.1
 	 */
 	public function get_source_language()
 	{
@@ -794,7 +793,7 @@ class AmazonAI_Common
 	/**
 	 * Validates if logging is enabled.
 	 *
-	 * @since  2.6.1
+	 * @since      0.1
 	 */
 	public function is_logging_enabled() {
 			$value = $this->checked_validator('amazon_ai_logging');
@@ -808,7 +807,7 @@ class AmazonAI_Common
 	/**
 	 * Validates if Amazon Polly support is enabled.
 	 *
-	 * @since  2.5.0
+	 * @since      0.1
 	 */
 	public function is_polly_enabled() {
 
@@ -859,7 +858,7 @@ class AmazonAI_Common
 	/**
 	 * Validates if AWS configuration is correct and AWS can be reached.
 	 *
-	 * @since    2.5.0
+	 * @since      0.1
 	 * @return bool
 	 */
 	public function validate_amazon_polly_access( $persist_state = true, $show_notices = true ): bool {
@@ -998,7 +997,7 @@ class AmazonAI_Common
 	 * @todo Move to AmazonAI_GeneralConfiguration
 	 * Returns the name of the AWS region, which should be used by the plugin.
 	 *
-	 * @since    2.5.0
+	 * @since      0.1
 	 */
 	public function get_aws_region() {
 		return AmazonAI_GeneralConfiguration::get_aws_region();
@@ -1024,7 +1023,7 @@ class AmazonAI_Common
 	/**
 	 * Return post type value.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function get_posttypes()
 	{
@@ -1034,7 +1033,7 @@ class AmazonAI_Common
 	/**
 	 * Return speed for audio files.
 	 *
-	 * @since  1.0.5
+	 * @since      0.1
 	 */
 	public function get_audio_speed()
 	{
@@ -1044,7 +1043,7 @@ class AmazonAI_Common
 	/**
 	 * Method returns lexicons specified in plugin configuration.
 	 *
-	 * @since  1.0.12
+	 * @since      0.1
 	 */
 	public function get_lexicons()
 	{
@@ -1056,7 +1055,7 @@ class AmazonAI_Common
 	/**
 	 * Check whether the optional public AWS Polly credit is enabled.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function is_poweredby_enabled()
 	{
@@ -1075,7 +1074,7 @@ class AmazonAI_Common
 	/**
 	 * Check if SSML is enabled.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function is_ssml_enabled()
 	{
@@ -1099,7 +1098,7 @@ class AmazonAI_Common
 	 * Utility function which checks if checkbox for option input should be checked.
 	 *
 	 * @param       string $option Name of the option which should be checked.
-	 * @since  2.0.0
+	 * @since      0.1
 	 */
 	public function checked_validator($option)
 	{
@@ -1348,7 +1347,7 @@ class AmazonAI_Common
 	/**
 	 * Checks if Media Libary support is enabled.
 	 *
-	 * @since  2.5.0
+	 * @since      0.1
 	 */
 	public function is_medialibrary_enabled()
 	{
@@ -1366,7 +1365,7 @@ class AmazonAI_Common
 	/**
 	 * Checks if S3 storage is enabled.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function is_s3_enabled()
 	{
@@ -1384,7 +1383,7 @@ class AmazonAI_Common
 	/**
 	 * Check  connectivity with AWS can be eastablished.
 	 *
-	 * @since    2.5.0
+	 * @since      0.1
 	 */
 	private function check_aws_access( $persist_state = true )
 	{
@@ -1407,7 +1406,7 @@ class AmazonAI_Common
 	/**
 	 * Returns AWS SDK configuration to allow connection with AWS account.
 	 *
-	 * @since    2.5.0
+	 * @since      0.1
 	 */
 	private function get_aws_sdk_config($region = null)
 	{
@@ -1441,7 +1440,7 @@ class AmazonAI_Common
 	/**
 	 * Calculate the total price of converting all posts into audio.
 	 *
-	 * @since  1.0.0
+	 * @since      0.1
 	 */
 	public function get_price_message_for_update_all()
 	{
@@ -1512,7 +1511,7 @@ class AmazonAI_Common
 	/**
 	 * Method prepare WP_Filesystem variable for interacting with local file system.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function prepare_wp_filesystem() {
 		/** Ensure WordPress Administration File API is loaded as REST requests do not load the file API */
@@ -1534,7 +1533,7 @@ class AmazonAI_Common
 	/**
 	 * Method breakes input text into smaller parts.
 	 *
-	 * @since       1.0.0
+	 * @since      0.1
 	 * @param       string $text     Text which should be broken.
 	 */
 	public function break_text($text)
@@ -1599,7 +1598,7 @@ class AmazonAI_Common
 	 * by adding SSML prosody tag for each sentence.
 	 *
 	 * @param           string $sentences                 Sentences which should be updated.
-	 * @since           1.0.5
+	 * @since      0.1
 	 */
 	public function modify_speed($sentences)
 	{
@@ -1632,7 +1631,7 @@ class AmazonAI_Common
 	/**
 	 * Checks if post title should be added.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function is_excerpt_adder_enabled()
 	{
@@ -1650,7 +1649,7 @@ class AmazonAI_Common
 	/**
 	 * Encode SSML tags.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 * @param  string $text text which should be decoded.
 	 */
 	public function decode_ssml_tags( $text ) {
@@ -1667,7 +1666,7 @@ class AmazonAI_Common
 	/**
 	 * Method retrievies post which ID was provided, and clean it.
 	 *
-	 * @since       1.0.12
+	 * @since      0.1
 	 * @param       string $post_id     ID of the post for which test (content) should be prepapred for conversion.
 	 */
 	public function clean_text($post_id, $with_title, $only_title)
@@ -1752,7 +1751,7 @@ class AmazonAI_Common
 	 * Run when deleting a post.
 	 *
 	 * @param      string $post_id   ID of the post which is gonna to be deleted.
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function delete_post( $post_id ) {
 		// Check if this isn't an auto save.
@@ -1828,7 +1827,7 @@ class AmazonAI_Common
 	 * Delets audio for specific post.
 	 *
 	 * @param string $post_id ID of the post for which audio should be deleted.
-	 * @since 1.0.0
+	 * @since      0.1
 	 */
 	public function delete_post_audio( $post_id ) {
 		$deletion_error = null;
@@ -1881,7 +1880,7 @@ class AmazonAI_Common
 	/**
 	 * Encode SSML tags.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 * @param  string $text text which should be encoded.
 	 */
 	private function encode_ssml_tags($text)
@@ -1893,7 +1892,7 @@ class AmazonAI_Common
 	/**
 	 * Checks if post title should be added.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function is_title_adder_enabled()
 	{
@@ -1912,7 +1911,7 @@ class AmazonAI_Common
 	/**
 	 * Add an SSML QuickTag button for the classic editor.
 	 *
-	 * @since    1.0.7
+	 * @since      0.1
 	 */
 	public function add_quicktags() {
 		if ( $this->is_ssml_enabled() && wp_script_is( 'quicktags' ) ) {
@@ -1926,7 +1925,7 @@ class AmazonAI_Common
   /**
 	 * Configure supported HTML tags.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 * @param  string $tags supported tags.
 	 */
 	public function allowed_tags_tinymce( $tags ) {
@@ -1958,7 +1957,7 @@ class AmazonAI_Common
   /**
 	 * Configure supported HTML tags.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 * @param  string $tags supported tags.
 	 */
 	public function allowed_tags_kses( $tags ) {
@@ -1973,7 +1972,7 @@ class AmazonAI_Common
 	/**
 	 * Return skip tags array.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function get_skiptags_array() {
 		$array = get_option( 'amazon_ai_skip_tags' );
@@ -1986,7 +1985,7 @@ class AmazonAI_Common
 	/**
 	 * Return post type value array.
 	 *
-	 * @since  1.0.7
+	 * @since      0.1
 	 */
 	public function get_posttypes_array() {
 		$posttypes_array = explode( ' ', $this->get_posttypes() );
@@ -2000,7 +1999,7 @@ class AmazonAI_Common
     /**
      * Register the stylesheets for the admin area.
      *
-     * @since    1.0.0
+     * @since      0.1
      */
 	private function get_asset_version( string $relative_path ): string {
 		$asset_path = plugin_dir_path( __FILE__ ) . ltrim( $relative_path, '/' );
@@ -2022,7 +2021,7 @@ class AmazonAI_Common
 	/**
 	 * Register the JavaScript for the admin area.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function enqueue_scripts() {
 		wp_enqueue_script( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'js/amazonpolly-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/amazonpolly-admin.js' ), false );
@@ -2042,7 +2041,7 @@ class AmazonAI_Common
 	/**
 	 * Register meta box for 'Enable Amazon Polly' on post creation form.
 	 *
-	 * @since    1.0.0
+	 * @since      0.1
 	 */
 	public function field_checkbox() {
 

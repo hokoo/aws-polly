@@ -2,11 +2,8 @@
 /**
  * Plugin exceptions
  *
- * @link       https://itron.pro/
- * @since      2.5.0
+ * @since      0.1
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin
  */
 
 class CredsException extends Exception { }
