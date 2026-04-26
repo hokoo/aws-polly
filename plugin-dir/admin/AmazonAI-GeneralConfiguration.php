@@ -107,11 +107,21 @@ class AmazonAI_GeneralConfiguration
 		    'label_for' => 'amazon_polly_region'
 	    ) );
 
-	    register_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
-	    register_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_text_option' ) );
-	    register_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
-	    register_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
+	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
+	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_text_option' ) );
+	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
+	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
     }
+
+	private function register_sanitized_setting( string $option_group, string $option_name, callable $sanitize_callback ): void {
+		register_setting(
+			$option_group,
+			$option_name,
+			array(
+				'sanitize_callback' => $sanitize_callback,
+			)
+		);
+	}
 
 	private function get_regions(): array {
 		return array(

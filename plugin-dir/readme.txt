@@ -16,6 +16,8 @@ AI Text-to-Speech using AWS Polly creates audio versions of WordPress posts with
 
 This is an independent plugin by iTRON. It is not affiliated with or endorsed by Amazon, AWS, or Amazon Polly.
 
+Development and source code: https://github.com/hokoo/aws-polly
+
 Key features:
 
 * Generate audio for supported post types.
@@ -64,6 +66,8 @@ Amazon S3 is used only when you enable S3 storage for generated audio files.
 
 Data sent when audio is generated: the resulting audio files, file names/object keys, selected bucket and region, and the AWS credentials you configure for the plugin.
 
+When S3 storage is enabled and CloudFront is not configured, visitors also download the generated audio files directly from your Amazon S3 bucket when they load a page with audio. Those requests include the audio file URL and standard browser request data such as the visitor IP address and user agent.
+
 Terms of service: https://aws.amazon.com/service-terms/
 Privacy policy: https://aws.amazon.com/privacy/
 
@@ -71,7 +75,7 @@ Privacy policy: https://aws.amazon.com/privacy/
 
 Amazon CloudFront is used only when you configure a CloudFront domain for audio delivery.
 
-Data sent when visitors load a page with audio: requests for the generated audio files are served through your configured CloudFront distribution.
+Data sent when visitors load a page with audio: requests for the generated audio files are served through your configured CloudFront distribution. Those requests include the audio file URL and standard browser request data such as the visitor IP address and user agent.
 
 Terms of service: https://aws.amazon.com/service-terms/
 Privacy policy: https://aws.amazon.com/privacy/

@@ -38,13 +38,14 @@ class AmazonAI_Settings
     {
         // Register settings
         foreach ( $this->settings as $setting ) {
-            $args = array();
-
-            if ( isset( $setting["callback"] ) && is_callable( $setting["callback"] ) ) {
-                $args["sanitize_callback"] = $setting["callback"];
-            }
-
-            register_setting( $setting["option_group"], $setting["option_name"], $args );
+            register_setting(
+                $setting["option_group"],
+                $setting["option_name"],
+                array(
+                    'type'              => isset( $setting["type"] ) ? (string) $setting["type"] : 'string',
+                    'sanitize_callback' => ( isset( $setting["callback"] ) && is_callable( $setting["callback"] ) ) ? $setting["callback"] : 'sanitize_text_field',
+                )
+            );
         }
 
         // Add settings section

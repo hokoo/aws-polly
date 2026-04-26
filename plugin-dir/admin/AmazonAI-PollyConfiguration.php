@@ -62,26 +62,26 @@ class AmazonAI_PollyConfiguration {
 
 	function display_options()
 	{
-        register_setting( 'amazon_ai_polly', 'amazon_ai_polly_enable', array( $this, 'sanitize_checkbox_option' ) );
+        $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_polly_enable', array( $this, 'sanitize_checkbox_option' ) );
         add_settings_section('amazon_ai_polly', "Amazon Polly configuration", array($this,'polly_gui'), 'amazon_ai_polly');
         add_settings_field( 'amazon_ai_source_language', __( 'Source language:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'source_language_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_ai_source_language' ) );
-        register_setting( 'amazon_ai_polly', 'amazon_ai_source_language', array( $this, 'sanitize_source_language' ) );
+        $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_source_language', array( $this, 'sanitize_source_language' ) );
         add_settings_field( 'amazon_ai_polly_enable', __( 'Enable text-to-speech support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'polly_enabled_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_ai_polly_enable' ) );
 
 	        if ($this->common->is_polly_enabled() ) {
 	            if ($this->can_render_polly_settings()) {
 		                if ($this->common->is_language_supported_for_polly()) {
 	                  add_settings_field( 'amazon_polly_disable_post_voice_override', __( 'Lock post voice to global setting:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'disable_post_voice_override_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_disable_post_voice_override' ) );
-	                  register_setting( 'amazon_ai_polly', 'amazon_polly_disable_post_voice_override', array( $this, 'sanitize_checkbox_option' ) );
+	                  $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_disable_post_voice_override', array( $this, 'sanitize_checkbox_option' ) );
 	                  add_settings_field( 'amazon_polly_voice_id', __( 'Voice name:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'voices_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_voice_id' ) );
-	                  register_setting( 'amazon_ai_polly', 'amazon_polly_voice_id', array( $this, 'sanitize_voice_id' ) );
+	                  $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_voice_id', array( $this, 'sanitize_voice_id' ) );
 
 	                    add_settings_field( 'amazon_polly_neural', __( 'Neural Text-To-Speech:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'neural_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_neural' ) );
-	                    register_setting( 'amazon_ai_polly', 'amazon_polly_neural', array( $this, 'sanitize_checkbox_option' ) );
+	                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_neural', array( $this, 'sanitize_checkbox_option' ) );
 	                    add_settings_field( 'amazon_polly_speaking_style', __( 'Speaking Style:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'speaking_style_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_speaking_style' ) );
-	                    register_setting( 'amazon_ai_polly', 'amazon_polly_speaking_style', array( $this, 'sanitize_speaking_style' ) );
-	                    register_setting( 'amazon_ai_polly', 'amazon_polly_news', array( $this, 'sanitize_checkbox_option' ) );
-	                    register_setting( 'amazon_ai_polly', 'amazon_polly_conversational', array( $this, 'sanitize_checkbox_option' ) );
+	                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_speaking_style', array( $this, 'sanitize_speaking_style' ) );
+	                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_news', array( $this, 'sanitize_checkbox_option' ) );
+	                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_conversational', array( $this, 'sanitize_checkbox_option' ) );
 		                    add_settings_field( 'amazon_polly_sample_rate', __( 'Sample rate:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'sample_rate_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_sample_rate' ) );
 		                    add_settings_field( 'amazon_polly_auto_breaths', __( 'Automated breaths:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'auto_breaths_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_auto_breaths_id' ) );
 		                    add_settings_field( 'amazon_polly_ssml', __( 'Enable SSML support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'ssml_gui' ), 'amazon_ai_polly', 'amazon_ai_polly', array( 'label_for' => 'amazon_polly_ssml' ) );
@@ -111,35 +111,45 @@ class AmazonAI_PollyConfiguration {
                     add_settings_field('amazon_ai_logging', __('Enable logging:', 'ai-text-to-speech-using-aws-polly'), array($this,'logging_gui'), 'amazon_ai_polly', 'amazon_ai_pollyadditional', array('label_for' => 'amazon_ai_logging'));
 
                     //Registration
-                    register_setting( 'amazon_ai_polly', 'amazon_polly_s3', array( $this, 'sanitize_checkbox_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_polly_cloudfront', array( $this, 'sanitize_text_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_polly_poweredby', array( $this, 'sanitize_checkbox_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_ai_logging', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_s3', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_cloudfront', array( $this, 'sanitize_text_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_poweredby', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_logging', array( $this, 'sanitize_checkbox_option' ) );
 
-					register_setting( 'amazon_ai_polly', 'amazon_polly_sample_rate', array( $this, 'sanitize_sample_rate' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_auto_breaths', array( $this, 'sanitize_checkbox_option' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_ssml', array( $this, 'sanitize_checkbox_option' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_lexicons', array( $this, 'sanitize_text_option' ) );
-					register_setting( 'amazon_ai_polly', 'amazon_polly_speed', array( $this, 'sanitize_audio_speed' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_sample_rate', array( $this, 'sanitize_sample_rate' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_auto_breaths', array( $this, 'sanitize_checkbox_option' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_ssml', array( $this, 'sanitize_checkbox_option' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_lexicons', array( $this, 'sanitize_text_option' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_speed', array( $this, 'sanitize_audio_speed' ) );
 
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_position', array( $this, 'sanitize_player_position' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_player_label', array( $this, 'sanitize_text_option' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_defconf', array( $this, 'sanitize_default_configuration' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_autoplay', array( $this, 'sanitize_checkbox_option' ) );
-        			register_setting( 'amazon_ai_polly', 'amazon_polly_coming_soon_text', array( $this, 'sanitize_textarea_option' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_position', array( $this, 'sanitize_player_position' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_player_label', array( $this, 'sanitize_text_option' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_defconf', array( $this, 'sanitize_default_configuration' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_autoplay', array( $this, 'sanitize_checkbox_option' ) );
+					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_coming_soon_text', array( $this, 'sanitize_textarea_option' ) );
 
 //        			register_setting('amazon_ai_polly', 'amazon_polly_update_all');
-                    register_setting( 'amazon_ai_polly', 'amazon_polly_add_post_title', array( $this, 'sanitize_checkbox_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_polly_add_post_excerpt', array( $this, 'sanitize_checkbox_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_ai_medialibrary_enabled', array( $this, 'sanitize_checkbox_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_ai_skip_tags', array( $this, 'sanitize_text_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_ai_download_enabled', array( $this, 'sanitize_checkbox_option' ) );
-                    register_setting( 'amazon_ai_polly', 'amazon_polly_posttypes', array( $this, 'sanitize_posttypes' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_add_post_title', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_add_post_excerpt', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_medialibrary_enabled', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_skip_tags', array( $this, 'sanitize_text_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_download_enabled', array( $this, 'sanitize_checkbox_option' ) );
+                    $this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_posttypes', array( $this, 'sanitize_posttypes' ) );
                 }
             }
         }
 
 
+	}
+
+	private function register_sanitized_setting( string $option_group, string $option_name, callable $sanitize_callback ): void {
+		register_setting(
+			$option_group,
+			$option_name,
+			array(
+				'sanitize_callback' => $sanitize_callback,
+			)
+		);
 	}
 
 	private function is_option_enabled( string $option_name ): bool {

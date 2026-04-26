@@ -26,21 +26,20 @@ jobs:
 
       - name: Build minimal release package
         run: |
-          mkdir -p dist/aws-polly
-          rsync -a plugin-dir/ dist/aws-polly/ \
+          mkdir -p dist/ai-text-to-speech-using-aws-polly
+          rsync -a plugin-dir/ dist/ai-text-to-speech-using-aws-polly/ \
             --exclude 'assets/' \
             --exclude 'README.md' \
-            --exclude 'composer.json' \
             --exclude 'composer.lock'
-          rm -rf dist/aws-polly/vendor/aws/Aws
-          find dist/aws-polly/vendor -type d \( \
+          rm -rf dist/ai-text-to-speech-using-aws-polly/vendor/aws/Aws
+          find dist/ai-text-to-speech-using-aws-polly/vendor -type d \( \
             -name .github -o \
             -name tests -o \
             -name test -o \
             -name docs -o \
             -name bin \
           \) -prune -exec rm -rf {} +
-          find dist/aws-polly/vendor -type f \( \
+          find dist/ai-text-to-speech-using-aws-polly/vendor -type f \( \
             -name composer.json -o \
             -name composer.lock -o \
             -name phpunit.xml -o \
@@ -51,11 +50,11 @@ jobs:
             -name .gitattributes \
           \) -delete
           cd dist
-          zip -r -q -9 -X ../aws-polly-wp-plugin-${{ github.ref_name }}.zip aws-polly
-          echo "Zipped to aws-polly-wp-plugin-${{ github.ref_name }}.zip"
+          zip -r -q -9 -X ../ai-text-to-speech-using-aws-polly-wp-plugin-${{ github.ref_name }}.zip ai-text-to-speech-using-aws-polly
+          echo "Zipped to ai-text-to-speech-using-aws-polly-wp-plugin-${{ github.ref_name }}.zip"
 
       - name: Upload Release Artifact
         uses: AButler/upload-release-assets@v3.0
         with:
-          files: ./aws-polly-wp-plugin-${{ github.ref_name }}.zip
+          files: ./ai-text-to-speech-using-aws-polly-wp-plugin-${{ github.ref_name }}.zip
           repo-token: ${{ secrets.GITHUB_TOKEN }}
