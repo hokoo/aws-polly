@@ -11,16 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 use iTRON\WP_Lock\WP_Lock;
 
 class AmazonAI_AudioAdmin {
-	private const AUDIO_SORT_META_ALIAS = 'amazon_polly_audio_sort_meta';
-	private const VOICE_SORT_META_ALIAS = 'amazon_polly_voice_sort_meta';
+	private const AUDIO_SORT_META_ALIAS           = 'amazon_polly_audio_sort_meta';
+	private const VOICE_SORT_META_ALIAS           = 'amazon_polly_voice_sort_meta';
 	private const GENERATED_VOICE_SORT_META_ALIAS = 'amazon_polly_generated_voice_sort_meta';
 
 	/**
 	 * @var AmazonAI_Common
 	 */
 	private $common;
-	private array $audio_status_cache = [];
-	private array $display_voice_cache = [];
+	private array $audio_status_cache  = array();
+	private array $display_voice_cache = array();
 
 	public function __construct( AmazonAI_Common $common ) {
 		$this->common = $common;
@@ -38,7 +38,7 @@ class AmazonAI_AudioAdmin {
 	// =========================================================================
 
 	public function add_columns( array $columns ): array {
-		$new = [];
+		$new = array();
 		foreach ( $columns as $key => $label ) {
 			$new[ $key ] = $label;
 			if ( 'title' === $key ) {
@@ -77,8 +77,8 @@ class AmazonAI_AudioAdmin {
 	}
 
 	public function sortable_columns( array $columns ): array {
-		$columns['polly_audio'] = [ 'polly_audio', false ];
-		$columns['polly_voice'] = [ 'polly_voice', false ];
+		$columns['polly_audio'] = array( 'polly_audio', false );
+		$columns['polly_voice'] = array( 'polly_voice', false );
 		return $columns;
 	}
 
@@ -103,7 +103,7 @@ class AmazonAI_AudioAdmin {
 			return $clauses;
 		}
 
-		$orderby = $query->get( 'orderby' );
+		$orderby       = $query->get( 'orderby' );
 		$is_audio_sort = 'polly_audio' === $orderby;
 		$is_voice_sort = 'polly_voice' === $orderby;
 
@@ -111,9 +111,9 @@ class AmazonAI_AudioAdmin {
 			return $clauses;
 		}
 
-		$order = $this->normalize_sort_order( $query->get( 'order' ) );
+		$order               = $this->normalize_sort_order( $query->get( 'order' ) );
 		$clauses['distinct'] = 'DISTINCT';
-		$clauses['join'] = $this->add_sort_meta_join(
+		$clauses['join']     = $this->add_sort_meta_join(
 			$clauses['join'],
 			self::AUDIO_SORT_META_ALIAS,
 			'amazon_polly_audio_link_location'
@@ -179,7 +179,7 @@ class AmazonAI_AudioAdmin {
 			add_meta_box(
 				'polly_audio_status_box',
 				'Polly Audio Status',
-				[ $this, 'render_audio_meta_box' ],
+				array( $this, 'render_audio_meta_box' ),
 				$post_type,
 				'side',
 				'default'
@@ -272,13 +272,13 @@ class AmazonAI_AudioAdmin {
 			return false;
 		}
 
-			if ( empty( $post_type ) ) {
-				// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading the current admin screen post type from the URL.
-				$post_type = isset( $_GET['post_type'] )
-					? sanitize_key( wp_unslash( $_GET['post_type'] ) )
-					: 'post';
-				// phpcs:enable WordPress.Security.NonceVerification.Recommended
-			}
+		if ( empty( $post_type ) ) {
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading the current admin screen post type from the URL.
+			$post_type = isset( $_GET['post_type'] )
+				? sanitize_key( wp_unslash( $_GET['post_type'] ) )
+				: 'post';
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		}
 
 		return in_array( $post_type, $this->get_post_types(), true );
 	}
@@ -308,85 +308,101 @@ class AmazonAI_AudioAdmin {
 			return $this->audio_status_cache[ $post_id ];
 		}
 
-		$state = $this->common->get_post_audio_state( $post_id );
-		$link = (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
+		$state   = $this->common->get_post_audio_state( $post_id );
+		$link    = (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
 		$enabled = '1' === (string) get_post_meta( $post_id, 'amazon_polly_enable', true );
 
 		if ( AmazonAI_Common::AUDIO_STATE_READY === $state && '' !== $link ) {
-			return $this->audio_status_cache[ $post_id ] = [
+			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'yes',
 				'phase'  => 'ready',
 				'link'   => $link,
 				'title'  => $link,
-			];
+			);
+
+			return $this->audio_status_cache[ $post_id ];
 		}
 
 		if ( AmazonAI_Common::AUDIO_STATE_RUNNING === $state ) {
-			return $this->audio_status_cache[ $post_id ] = [
+			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'generating',
 				'phase'  => 'running',
 				'link'   => '',
 				'title'  => 'Audio generation is currently running.',
-			];
+			);
+
+			return $this->audio_status_cache[ $post_id ];
 		}
 
 		if ( AmazonAI_Common::AUDIO_STATE_QUEUED === $state ) {
-			return $this->audio_status_cache[ $post_id ] = [
+			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'generating',
 				'phase'  => 'queued',
 				'link'   => '',
 				'title'  => 'Audio generation is queued and will start via WP-Cron.',
-			];
+			);
+
+			return $this->audio_status_cache[ $post_id ];
 		}
 
 		// Legacy fallback for posts that have not been transitioned to the canonical audio state yet.
 		if ( '' === $state && '' !== $link ) {
-			return $this->audio_status_cache[ $post_id ] = [
+			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'yes',
 				'phase'  => 'ready',
 				'link'   => $link,
 				'title'  => $link,
-			];
+			);
+
+			return $this->audio_status_cache[ $post_id ];
 		}
 
-		if ( $enabled && ! in_array( $state, [ AmazonAI_Common::AUDIO_STATE_READY, AmazonAI_Common::AUDIO_STATE_RUNNING, AmazonAI_Common::AUDIO_STATE_QUEUED ], true ) ) {
+		if ( $enabled && ! in_array( $state, array( AmazonAI_Common::AUDIO_STATE_READY, AmazonAI_Common::AUDIO_STATE_RUNNING, AmazonAI_Common::AUDIO_STATE_QUEUED ), true ) ) {
 			$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
 			if ( $lock->lock_exists() ) {
-				return $this->audio_status_cache[ $post_id ] = [
+				$this->audio_status_cache[ $post_id ] = array(
 					'status' => 'generating',
 					'phase'  => 'running',
 					'link'   => '',
 					'title'  => 'Audio generation is currently running.',
-				];
+				);
+
+				return $this->audio_status_cache[ $post_id ];
 			}
 
 			if ( $this->get_background_task()->has_queued_audio( $post_id ) ) {
-				return $this->audio_status_cache[ $post_id ] = [
+				$this->audio_status_cache[ $post_id ] = array(
 					'status' => 'generating',
 					'phase'  => 'queued',
 					'link'   => '',
 					'title'  => 'Audio generation is queued and will start via WP-Cron.',
-				];
+				);
+
+				return $this->audio_status_cache[ $post_id ];
 			}
 		}
 
 		if ( AmazonAI_Common::AUDIO_STATE_ERROR === $state ) {
-			return $this->audio_status_cache[ $post_id ] = [
+			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'no',
 				'phase'  => $enabled ? 'enabled' : 'disabled',
 				'link'   => '',
 				'title'  => 'The last audio generation attempt failed.',
-			];
+			);
+
+			return $this->audio_status_cache[ $post_id ];
 		}
 
-		return $this->audio_status_cache[ $post_id ] = [
+		$this->audio_status_cache[ $post_id ] = array(
 			'status' => 'no',
 			'phase'  => $enabled ? 'enabled' : 'disabled',
 			'link'   => '',
 			'title'  => $enabled
 				? 'Polly is enabled, but audio has not been generated yet.'
 				: 'Audio is not available.',
-		];
+		);
+
+		return $this->audio_status_cache[ $post_id ];
 	}
 
 	private function get_display_voice( int $post_id ): string {
@@ -394,15 +410,19 @@ class AmazonAI_AudioAdmin {
 			return $this->display_voice_cache[ $post_id ];
 		}
 
-		foreach ( [ 'amazon_polly_generated_voice_id', 'amazon_polly_voice_id' ] as $meta_key ) {
+		foreach ( array( 'amazon_polly_generated_voice_id', 'amazon_polly_voice_id' ) as $meta_key ) {
 			$voice = (string) get_post_meta( $post_id, $meta_key, true );
 			if ( '' !== $voice ) {
-				return $this->display_voice_cache[ $post_id ] = $voice;
+				$this->display_voice_cache[ $post_id ] = $voice;
+
+				return $this->display_voice_cache[ $post_id ];
 			}
 		}
 
 		if ( 'yes' !== $this->get_audio_status( $post_id )['status'] ) {
-			return $this->display_voice_cache[ $post_id ] = '';
+			$this->display_voice_cache[ $post_id ] = '';
+
+			return $this->display_voice_cache[ $post_id ];
 		}
 
 		try {
@@ -415,7 +435,9 @@ class AmazonAI_AudioAdmin {
 			$voice = '';
 		}
 
-		return $this->display_voice_cache[ $post_id ] = (string) $voice;
+		$this->display_voice_cache[ $post_id ] = (string) $voice;
+
+		return $this->display_voice_cache[ $post_id ];
 	}
 
 	private function get_background_task(): AmazonAI_BackgroundTask {
@@ -441,41 +463,41 @@ class AmazonAI_AudioAdmin {
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		return in_array( $filter, [ 'no_audio', 'has_audio' ], true ) ? $filter : '';
+		return in_array( $filter, array( 'no_audio', 'has_audio' ), true ) ? $filter : '';
 	}
 
 	private function build_audio_filter_meta_query( string $filter ): array {
 		$state_key = $this->common->get_audio_state_meta_key();
 
 		if ( 'has_audio' === $filter ) {
-			return [
-				[
+			return array(
+				array(
 					'key'     => $state_key,
 					'value'   => AmazonAI_Common::AUDIO_STATE_READY,
 					'compare' => '=',
-				],
-			];
+				),
+			);
 		}
 
-		return [
-			[
+		return array(
+			array(
 				'key'     => $state_key,
 				'value'   => AmazonAI_Common::AUDIO_STATE_READY,
 				'compare' => '!=',
-			],
-		];
+			),
+		);
 	}
 
 	private function merge_meta_query_clause( $meta_query, array $clause ): array {
-		if ( ! is_array( $meta_query ) || [] === $meta_query ) {
-			return [ $clause ];
+		if ( ! is_array( $meta_query ) || array() === $meta_query ) {
+			return array( $clause );
 		}
 
-		return [
+		return array(
 			'relation' => 'AND',
 			$meta_query,
 			$clause,
-		];
+		);
 	}
 
 	// =========================================================================

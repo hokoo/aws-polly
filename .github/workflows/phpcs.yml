@@ -1,0 +1,33 @@
+name: PHP Code Styles
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/phpcs.yml'
+      - 'phpcs.xml'
+      - 'plugin-dir/**'
+
+permissions:
+  contents: read
+
+jobs:
+  php-cs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          coverage: none
+
+      - name: Install plugin dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: plugin-dir
+
+      - name: Run PHPCS
+        run: composer run phpcs --working-dir=plugin-dir

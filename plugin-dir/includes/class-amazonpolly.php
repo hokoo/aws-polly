@@ -45,44 +45,44 @@ class Amazonpolly {
 	}
 
 	private function load_dependencies() {
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-loader.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-amazonpolly-loader.php';
 
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PostMetaBox.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-BackgroundTask.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-Exceptions.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-FileHandler.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-LocalFileHandler.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-S3FileHandler.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-Logger.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-Common.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-object-cache.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-PostMetaBox.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-BackgroundTask.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-Exceptions.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-FileHandler.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-LocalFileHandler.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-S3FileHandler.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-Logger.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-Common.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-amazonpolly-object-cache.php';
 
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-GeneralConfiguration.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PollyService.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-PollyConfiguration.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/AmazonAI-AudioAdmin.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-GeneralConfiguration.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-PollyService.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-PollyConfiguration.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/AmazonAI-AudioAdmin.php';
 
-		require_once plugin_dir_path(dirname(__FILE__)) . 'public/class-amazonpolly-public.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-amazonpolly-public.php';
 
-		require_once plugin_dir_path(dirname(__FILE__)) . 'vendor/autoload.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'vendor/autoload.php';
 
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-CronHandler.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-amazonpolly-CronData.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-amazonpolly-CronHandler.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-amazonpolly-CronData.php';
 
 		$this->loader = new Amazonpolly_Loader();
 	}
 
 	private function define_global_hooks() {
-		add_filter('amazon_polly_logging_enabled', [ $this->common, 'is_logging_enabled' ]);
+		add_filter( 'amazon_polly_logging_enabled', array( $this->common, 'is_logging_enabled' ) );
 	}
 
 	private function define_admin_hooks() {
-		$background_task = new AmazonAI_BackgroundTask();
-		$general_configuration = new AmazonAI_GeneralConfiguration($this->common);
-		$polly_configuration = new AmazonAI_PollyConfiguration($this->common);
-		$polly_service = new AmazonAI_PollyService($this->common);
-		$cron_handler = new AmazonAI_CronHandler( $polly_service, new AmazonAI_Logger() );
-		$object_cache = $this->object_cache;
+		$background_task          = new AmazonAI_BackgroundTask();
+		$general_configuration    = new AmazonAI_GeneralConfiguration( $this->common );
+		$polly_configuration      = new AmazonAI_PollyConfiguration( $this->common );
+		$polly_service            = new AmazonAI_PollyService( $this->common );
+		$cron_handler             = new AmazonAI_CronHandler( $polly_service, new AmazonAI_Logger() );
+		$object_cache             = $this->object_cache;
 		$audio_generation_options = array(
 			'amazon_ai_source_language',
 			'amazon_polly_voice_id',
@@ -107,17 +107,17 @@ class Amazonpolly {
 		$this->loader->add_action( 'init', $this, 'load_integrations', 5 );
 		$this->loader->add_filter( "plugin_action_links_{$plugin_basename}", $this->common, 'add_settings_link' );
 
-		$this->loader->add_action( sprintf('admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION), $background_task, 'run');
+		$this->loader->add_action( sprintf( 'admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION ), $background_task, 'run' );
 		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HOOK, $background_task, 'handle_cron', 50, 3 );
 
-		$this->loader->add_action( 'admin_print_footer_scripts', $this->common, 'add_quicktags');
-		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_styles');
-		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_scripts');
+		$this->loader->add_action( 'admin_print_footer_scripts', $this->common, 'add_quicktags' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_styles' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_scripts' );
 		// Removed: method enqueue_custom_scripts does not exist in AmazonAI_Common.
 		// $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
-		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox');
-		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3);
-		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HANDLERS_HOOK . AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1);
+		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox' );
+		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3 );
+		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HANDLERS_HOOK . AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1 );
 
 		$this->loader->add_action( 'before_delete_post', $this->common, 'delete_post' );
 		$this->loader->add_action( 'before_delete_post', $object_cache, 'handle_before_delete_post' );
@@ -158,8 +158,8 @@ class Amazonpolly {
 		$this->loader->add_action( 'admin_enqueue_scripts', $audio_admin, 'enqueue_admin_assets', 20 );
 		$this->loader->add_action( 'admin_notices', $audio_admin, 'bulk_action_notice' );
 
-		$this->loader->add_filter( 'wp_kses_allowed_html', $this->common, 'allowed_tags_kses');
-		$this->loader->add_filter( 'tiny_mce_before_init', $this->common, 'allowed_tags_tinymce');
+		$this->loader->add_filter( 'wp_kses_allowed_html', $this->common, 'allowed_tags_kses' );
+		$this->loader->add_filter( 'tiny_mce_before_init', $this->common, 'allowed_tags_tinymce' );
 	}
 
 	private function define_public_hooks() {
@@ -186,7 +186,7 @@ class Amazonpolly {
 
 	public function load_integrations() {
 		if ( is_a( Factory::getLogger(), Stream::class ) ) {
-			add_filter( 'wp_stream_connectors', fn( $connectors ) => array_merge( $connectors, [ new StreamConnector() ] ) );
+			add_filter( 'wp_stream_connectors', fn( $connectors ) => array_merge( $connectors, array( new StreamConnector() ) ) );
 		}
 	}
 }
