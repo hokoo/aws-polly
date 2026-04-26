@@ -15,3 +15,6 @@
 
 # Configs
 /.idea/
+
+# Cache
+.phpcs.cache
