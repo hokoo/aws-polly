@@ -23,9 +23,9 @@ class StreamConnector extends Connector {
 	 *
 	 * @var array
 	 */
-	public $actions = [
+	public $actions = array(
 		'itron_aws_polly_stream_logger_write',
-	];
+	);
 
 	/**
 	 * Return translated connector label
@@ -45,9 +45,9 @@ class StreamConnector extends Connector {
 		/* @TODO Create logic for adding list of used labels (modules). */
 		return apply_filters(
 			'itron_aws_polly_wp_stream_connector_get_context_labels',
-			[
+			array(
 				'general' => 'General',
-			]
+			)
 		);
 	}
 
@@ -57,7 +57,7 @@ class StreamConnector extends Connector {
 	 * @return array
 	 */
 	public function get_action_labels(): array {
-		return [
+		return array(
 			LogLevel::ALERT     => ucfirst( LogLevel::ALERT ),
 			LogLevel::CRITICAL  => ucfirst( LogLevel::CRITICAL ),
 			LogLevel::DEBUG     => ucfirst( LogLevel::DEBUG ),
@@ -66,7 +66,7 @@ class StreamConnector extends Connector {
 			LogLevel::INFO      => ucfirst( LogLevel::INFO ),
 			LogLevel::NOTICE    => ucfirst( LogLevel::NOTICE ),
 			LogLevel::WARNING   => ucfirst( LogLevel::WARNING ),
-		];
+		);
 	}
 
 	/**
@@ -95,7 +95,7 @@ class StreamConnector extends Connector {
 	 */
 	public function callback_itron_aws_polly_stream_logger_write( $level, $message, $data, $module ) {
 		// Getting $message sprintf-ready error message string.
-		$message = str_replace('%', '%%', $message );
+		$message = str_replace( '%', '%%', $message );
 
 		$res = $this->log( $message, $data, 0, $module, $level );
 	}

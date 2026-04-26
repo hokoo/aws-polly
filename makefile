@@ -24,3 +24,9 @@ connect.nginx:
 
 connect.php.root:
 	docker-compose -p aws-polly-wp exec --user=root php bash
+
+lint.phpcs:
+	docker-compose -p aws-polly-wp exec php sh -lc "cd /srv/web/plugin-dir && composer run phpcs"
+
+lint.phpcs.fix:
+	docker-compose -p aws-polly-wp exec php sh -lc "cd /srv/web/plugin-dir && composer run phpcbf"

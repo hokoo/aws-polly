@@ -1,6 +1,6 @@
 <?php
 /**
- * Common operations used by the AWS for wordpress plugin.
+ * Common operations used by the AWS for WordPress plugin.
  *
  * @since      0.1
  *
@@ -9,77 +9,297 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AmazonAI_Common
+class AmazonAI_Common {
 
-{
+
 	const POLLY_VOICES_TRANSIENT_PREFIX = 'amazon_polly_voices_';
-	const POLLY_VOICES_TRANSIENT_TTL = 43200;
-	const AUDIO_STATE_META_KEY = 'amazon_polly_audio_state';
-	const AUDIO_STATE_NONE = 'none';
-	const AUDIO_STATE_QUEUED = 'queued';
-	const AUDIO_STATE_RUNNING = 'running';
-	const AUDIO_STATE_READY = 'ready';
-	const AUDIO_STATE_ERROR = 'error';
+	const POLLY_VOICES_TRANSIENT_TTL    = 43200;
+	const AUDIO_STATE_META_KEY          = 'amazon_polly_audio_state';
+	const AUDIO_STATE_NONE              = 'none';
+	const AUDIO_STATE_QUEUED            = 'queued';
+	const AUDIO_STATE_RUNNING           = 'running';
+	const AUDIO_STATE_READY             = 'ready';
+	const AUDIO_STATE_ERROR             = 'error';
 
 	// Information about languages supported by the AWS plugin
-	private $languages = [
+	private $languages = array(
 
-		['code' => 'af', 'name' => 'Afrikaans','polly' => '0'],
-		['code' => 'sq', 'name' => 'Albanian','polly' => '0'],
-		['code' => 'am', 'name' => 'Amharic','polly' => '0'],
-		['code' => 'ar', 'name' => 'Arabic','polly' => '1'],
-		['code' => 'az', 'name' => 'Azerbaijani','polly' => '0'],
-		['code' => 'bn', 'name' => 'Bengali','polly' => '0'],
-		['code' => 'bs', 'name' => 'Bosnian','polly' => '0'],
-		['code' => 'bg', 'name' => 'Bulgarian','polly' => '0'],
-		['code' => 'fr-CA', 'name' => 'Canadian French','polly' => '0'],
-		['code' => 'da', 'name' => 'Danish','polly' => '1'],
-		['code' => 'nl', 'name' => 'Dutch','polly' => '1'],
-		['code' => 'zh', 'name' => 'Chinese','polly' => '1'],
-		['code' => 'hr', 'name' => 'Croatian','polly' => '0'],
-		['code' => 'cs', 'name' => 'Czech','polly' => '0'],
-		['code' => 'fa-AF', 'name' => 'Dari','polly' => '1'],
-		['code' => 'en', 'name' => 'English','polly' => '1'],
-		['code' => 'et', 'name' => 'Estonian','polly' => '0'],
-		['code' => 'fi', 'name' => 'Finish','polly' => ''],
-		['code' => 'fr', 'name' => 'French','polly' => '1'],
-		['code' => 'ka', 'name' => 'Georgian','polly' => '0'],
-		['code' => 'de', 'name' => 'German','polly' => '1'],
-		['code' => 'el', 'name' => 'Greek','polly' => '0'],
-		['code' => 'ha', 'name' => 'Hausa','polly' => '0'],
-		['code' => 'he', 'name' => 'Hebrew','polly' => ''],
-		['code' => 'hi', 'name' => 'Hindi','polly' => ''],
-		['code' => 'hu', 'name' => 'Hungarian','polly' => '0'],
-		['code' => 'is', 'name' => 'Icelandic','polly' => '1'],
-		['code' => 'it', 'name' => 'Italian','polly' => '1'],
-		['code' => 'id', 'name' => 'Indonesian','polly' => ''],
-		['code' => 'ja', 'name' => 'Japanese','polly' => '1'],
-		['code' => 'ko', 'name' => 'Korean','polly' => '1'],
-		['code' => 'lv', 'name' => 'Latvian','polly' => '0'],
-		['code' => 'ms', 'name' => 'Malay','polly' => ''],
-		['code' => 'no', 'name' => 'Norwegian','polly' => '1'],
-		['code' => 'fa', 'name' => 'Persian','polly' => ''],
-		['code' => 'pl', 'name' => 'Polish','polly' => '1'],
-		['code' => 'pt', 'name' => 'Portuguese','polly' => '1'],
-		['code' => 'ps', 'name' => 'Pushto','polly' => '0'],
-		['code' => 'ro', 'name' => 'Romanian','polly' => '1'],
-		['code' => 'sr', 'name' => 'Serbian','polly' => '0'],
-		['code' => 'sk', 'name' => 'Slovak','polly' => '0'],
-		['code' => 'sl', 'name' => 'Slovenian','polly' => '0'],
-		['code' => 'so', 'name' => 'Somali','polly' => '0'],
-		['code' => 'sw', 'name' => 'Swahili','polly' => '0'],
-		['code' => 'ru', 'name' => 'Russian','polly' => '1'],
-		['code' => 'es', 'name' => 'Spanish','polly' => '1'],
-		['code' => 'sv', 'name' => 'Swedish','polly' => '1'],
-		['code' => 'tl', 'name' => 'Tagalog','polly' => '0'],
-		['code' => 'ta', 'name' => 'Tamil','polly' => '0'],
-		['code' => 'th', 'name' => 'Thai','polly' => '0'],
-		['code' => 'tr', 'name' => 'Turkish','polly' => '1'],
-		['code' => 'uk', 'name' => 'Ukrainian','polly' => '0'],
-		['code' => 'ur', 'name' => 'Urdu','polly' => '0'],
-		['code' => 'vi', 'name' => 'Vietnamese','polly' => '0'],
-		['code' => 'cy', 'name' => 'Welsh', 'polly' => '1']
-	];
+		array(
+			'code'  => 'af',
+			'name'  => 'Afrikaans',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'sq',
+			'name'  => 'Albanian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'am',
+			'name'  => 'Amharic',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ar',
+			'name'  => 'Arabic',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'az',
+			'name'  => 'Azerbaijani',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'bn',
+			'name'  => 'Bengali',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'bs',
+			'name'  => 'Bosnian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'bg',
+			'name'  => 'Bulgarian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'fr-CA',
+			'name'  => 'Canadian French',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'da',
+			'name'  => 'Danish',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'nl',
+			'name'  => 'Dutch',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'zh',
+			'name'  => 'Chinese',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'hr',
+			'name'  => 'Croatian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'cs',
+			'name'  => 'Czech',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'fa-AF',
+			'name'  => 'Dari',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'en',
+			'name'  => 'English',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'et',
+			'name'  => 'Estonian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'fi',
+			'name'  => 'Finish',
+			'polly' => '',
+		),
+		array(
+			'code'  => 'fr',
+			'name'  => 'French',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'ka',
+			'name'  => 'Georgian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'de',
+			'name'  => 'German',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'el',
+			'name'  => 'Greek',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ha',
+			'name'  => 'Hausa',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'he',
+			'name'  => 'Hebrew',
+			'polly' => '',
+		),
+		array(
+			'code'  => 'hi',
+			'name'  => 'Hindi',
+			'polly' => '',
+		),
+		array(
+			'code'  => 'hu',
+			'name'  => 'Hungarian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'is',
+			'name'  => 'Icelandic',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'it',
+			'name'  => 'Italian',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'id',
+			'name'  => 'Indonesian',
+			'polly' => '',
+		),
+		array(
+			'code'  => 'ja',
+			'name'  => 'Japanese',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'ko',
+			'name'  => 'Korean',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'lv',
+			'name'  => 'Latvian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ms',
+			'name'  => 'Malay',
+			'polly' => '',
+		),
+		array(
+			'code'  => 'no',
+			'name'  => 'Norwegian',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'fa',
+			'name'  => 'Persian',
+			'polly' => '',
+		),
+		array(
+			'code'  => 'pl',
+			'name'  => 'Polish',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'pt',
+			'name'  => 'Portuguese',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'ps',
+			'name'  => 'Pushto',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ro',
+			'name'  => 'Romanian',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'sr',
+			'name'  => 'Serbian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'sk',
+			'name'  => 'Slovak',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'sl',
+			'name'  => 'Slovenian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'so',
+			'name'  => 'Somali',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'sw',
+			'name'  => 'Swahili',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ru',
+			'name'  => 'Russian',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'es',
+			'name'  => 'Spanish',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'sv',
+			'name'  => 'Swedish',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'tl',
+			'name'  => 'Tagalog',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ta',
+			'name'  => 'Tamil',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'th',
+			'name'  => 'Thai',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'tr',
+			'name'  => 'Turkish',
+			'polly' => '1',
+		),
+		array(
+			'code'  => 'uk',
+			'name'  => 'Ukrainian',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'ur',
+			'name'  => 'Urdu',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'vi',
+			'name'  => 'Vietnamese',
+			'polly' => '0',
+		),
+		array(
+			'code'  => 'cy',
+			'name'  => 'Welsh',
+			'polly' => '1',
+		),
+	);
 
 	private $sdk;
 	private $polly_client;
@@ -96,50 +316,48 @@ class AmazonAI_Common
 		$this->logger = new AmazonAI_Logger();
 	}
 
-	public function prepare_paragraphs($post_id) {
+	public function prepare_paragraphs( $post_id) {
 
 		$clean_content = '';
-		$post_content = get_post_field('post_content', $post_id);
-		$paragraphs = explode("\n", $post_content);
+		$post_content  = get_post_field( 'post_content', $post_id );
+		$paragraphs    = explode( "\n", $post_content );
 
-		foreach($paragraphs as $paragraph) {
-			$clean_paragraph = $this->clean_paragraph($paragraph);
+		foreach ($paragraphs as $paragraph) {
+			$clean_paragraph = $this->clean_paragraph( $paragraph );
 
 			$clean_content = $clean_content . "\n" . $clean_paragraph;
 		}
-
 
 		return $clean_content;
 	}
 
 
 
-	public function clean_paragraph($paragraph) {
+	public function clean_paragraph( $paragraph) {
 
 		$clean_text = $paragraph;
-		$clean_text = do_shortcode($clean_text);
-		$clean_text = str_replace('&nbsp;', ' ', $clean_text);
+		$clean_text = do_shortcode( $clean_text );
+		$clean_text = str_replace( '&nbsp;', ' ', $clean_text );
 
 		$is_ssml_enabled = $this->is_ssml_enabled();
-	  if ($is_ssml_enabled) {
-	    $clean_text = $this->encode_ssml_tags($clean_text);
-	  }
+		if ($is_ssml_enabled) {
+			$clean_text = $this->encode_ssml_tags( $clean_text );
+		}
 
-		$clean_text = strip_tags($clean_text, '<break>');
-		$clean_text = esc_html($clean_text);
+		$clean_text = strip_tags( $clean_text, '<break>' );
+		$clean_text = esc_html( $clean_text );
 
-
-	  $clean_text = str_replace('&nbsp;', ' ', $clean_text);
-	  $clean_text = preg_replace("/https:\/\/([^\s]+)/", "", $clean_text);
-		$clean_text = html_entity_decode($clean_text, ENT_QUOTES, 'UTF-8');
-	  $clean_text = str_replace('&', ' and ', $clean_text);
-	  $clean_text = str_replace('<', ' ', $clean_text);
-	  $clean_text = str_replace('>', ' ', $clean_text);
+		$clean_text = str_replace( '&nbsp;', ' ', $clean_text );
+		$clean_text = preg_replace( '/https:\/\/([^\s]+)/', '', $clean_text );
+		$clean_text = html_entity_decode( $clean_text, ENT_QUOTES, 'UTF-8' );
+		$clean_text = str_replace( '&', ' and ', $clean_text );
+		$clean_text = str_replace( '<', ' ', $clean_text );
+		$clean_text = str_replace( '>', ' ', $clean_text );
 
 		return $clean_text;
 	}
 
-	public function get_language_name($provided_langauge_code) {
+	public function get_language_name( $provided_langauge_code) {
 
 		foreach ($this->languages as $language_data) {
 			$language_code = $language_data['code'];
@@ -150,15 +368,15 @@ class AmazonAI_Common
 			}
 		}
 
-		return "N/A";
+		return 'N/A';
 	}
 
 	public function get_all_languages() {
-		$supported_languages = [];
+		$supported_languages = array();
 
 		foreach ($this->languages as $language_data) {
 			$language_code = $language_data['code'];
-			array_push($supported_languages, $language_code);
+			array_push( $supported_languages, $language_code );
 		}
 
 		return $supported_languages;
@@ -167,15 +385,14 @@ class AmazonAI_Common
 
 	public function get_all_polly_languages() {
 
-
-		$supported_languages = [];
+		$supported_languages = array();
 
 		foreach ($this->languages as $language_data) {
-			$language_code = $language_data['code'];
+			$language_code         = $language_data['code'];
 			$is_language_supported = $language_data['polly'];
 
-			if ( !empty($is_language_supported) ) {
-				array_push($supported_languages, $language_code);
+			if ( ! empty( $is_language_supported ) ) {
+				array_push( $supported_languages, $language_code );
 			}
 		}
 
@@ -191,13 +408,13 @@ class AmazonAI_Common
 	}
 
 	public function get_valid_audio_states(): array {
-		return [
+		return array(
 			self::AUDIO_STATE_NONE,
 			self::AUDIO_STATE_QUEUED,
 			self::AUDIO_STATE_RUNNING,
 			self::AUDIO_STATE_READY,
 			self::AUDIO_STATE_ERROR,
-		];
+		);
 	}
 
 	public function normalize_audio_state( $state ): string {
@@ -236,7 +453,7 @@ class AmazonAI_Common
 		global $wpdb;
 
 		$post_types = array_values( array_filter( $this->get_posttypes_array(), 'is_string' ) );
-		if ( [] === $post_types ) {
+		if ( array() === $post_types ) {
 			return 0;
 		}
 
@@ -297,10 +514,10 @@ class AmazonAI_Common
 	}
 
 	private function fetch_polly_voices_from_api() {
-		$voices = [];
-		$args = [
+		$voices     = array();
+		$args       = array(
 			'IncludeAdditionalLanguageCodes' => true,
-		];
+		);
 		$next_token = null;
 
 		do {
@@ -310,8 +527,8 @@ class AmazonAI_Common
 				unset( $args['NextToken'] );
 			}
 
-			$result = $this->polly_client->describeVoices( $args );
-			$result_voices = $result['Voices'] ?? [];
+			$result        = $this->polly_client->describeVoices( $args );
+			$result_voices = $result['Voices'] ?? array();
 
 			if ( is_array( $result_voices ) ) {
 				$voices = array_merge( $voices, $result_voices );
@@ -322,18 +539,18 @@ class AmazonAI_Common
 
 		$this->sort_polly_voices_list( $voices );
 
-		return [
+		return array(
 			'Voices' => $voices,
-		];
+		);
 	}
 
 	private function get_language_match_data( $language_code ) {
-		$language_code = strtolower( (string) $language_code );
+		$language_code    = strtolower( (string) $language_code );
 		$primary_language = strtok( $language_code, '-' );
-		$match_data = [
-			'exact' => [],
-			'roots' => [],
-		];
+		$match_data       = array(
+			'exact' => array(),
+			'roots' => array(),
+		);
 
 		if ( ! empty( $language_code ) ) {
 			$match_data['exact'][] = $language_code;
@@ -343,20 +560,20 @@ class AmazonAI_Common
 			$match_data['roots'][] = $primary_language;
 		}
 
-		$aliases = [
-			'ar' => [
-				'exact' => [ 'arb' ],
-				'roots' => [ 'arb' ],
-			],
-			'no' => [
-				'exact' => [ 'nb-no' ],
-				'roots' => [ 'nb' ],
-			],
-			'zh' => [
-				'exact' => [ 'cmn-cn', 'yue-cn' ],
-				'roots' => [ 'cmn', 'yue' ],
-			],
-		];
+		$aliases = array(
+			'ar' => array(
+				'exact' => array( 'arb' ),
+				'roots' => array( 'arb' ),
+			),
+			'no' => array(
+				'exact' => array( 'nb-no' ),
+				'roots' => array( 'nb' ),
+			),
+			'zh' => array(
+				'exact' => array( 'cmn-cn', 'yue-cn' ),
+				'roots' => array( 'cmn', 'yue' ),
+			),
+		);
 
 		if ( isset( $aliases[ $language_code ] ) ) {
 			$match_data['exact'] = array_merge( $match_data['exact'], $aliases[ $language_code ]['exact'] );
@@ -381,8 +598,8 @@ class AmazonAI_Common
 	}
 
 	private function voice_matches_language( array $voice, $language_code ) {
-		$match_data = $this->get_language_match_data( $language_code );
-		$voice_language_codes = [];
+		$match_data           = $this->get_language_match_data( $language_code );
+		$voice_language_codes = array();
 
 		if ( ! empty( $voice['LanguageCode'] ) ) {
 			$voice_language_codes[] = $voice['LanguageCode'];
@@ -402,21 +619,21 @@ class AmazonAI_Common
 	}
 
 	private function get_supported_synthesis_engines( array $voice ) {
-		$supported_engines = $voice['SupportedEngines'] ?? [ 'standard' ];
+		$supported_engines = $voice['SupportedEngines'] ?? array( 'standard' );
 
 		if ( ! is_array( $supported_engines ) ) {
-			$supported_engines = [ 'standard' ];
+			$supported_engines = array( 'standard' );
 		}
 
 		$supported_engines = array_values(
 			array_intersect(
 				$supported_engines,
-				[ 'standard', 'neural' ]
+				array( 'standard', 'neural' )
 			)
 		);
 
 		if ( empty( $supported_engines ) && empty( $voice['SupportedEngines'] ) ) {
-			$supported_engines = [ 'standard' ];
+			$supported_engines = array( 'standard' );
 		}
 
 		return $supported_engines;
@@ -482,10 +699,10 @@ class AmazonAI_Common
 			$language_code = $this->get_source_language();
 		}
 
-		$voices = $this->get_polly_voices();
-		$available_voices = [];
+		$voices           = $this->get_polly_voices();
+		$available_voices = array();
 
-		foreach ( $voices['Voices'] ?? [] as $voice ) {
+		foreach ( $voices['Voices'] ?? array() as $voice ) {
 			if ( ! $this->voice_matches_language( $voice, $language_code ) ) {
 				continue;
 			}
@@ -503,7 +720,7 @@ class AmazonAI_Common
 	}
 
 	public function get_compatible_polly_voices( $language_code = null, $neural_requested = null ) {
-		$compatible_voices = [];
+		$compatible_voices = array();
 
 		foreach ( $this->get_available_polly_voices( $language_code ) as $voice ) {
 			if ( ! $this->is_voice_compatible_with_neural_setting( $voice, $neural_requested ) ) {
@@ -517,20 +734,20 @@ class AmazonAI_Common
 	}
 
 	public function get_grouped_polly_voices( $language_code = null ) {
-		$groups = [
-			'standard' => [
-				'label' => 'Standard Voices',
-				'voices' => [],
-			],
-			'standard_neural' => [
-				'label' => 'Standard + Neural Voices',
-				'voices' => [],
-			],
-			'neural_only' => [
-				'label' => 'Neural-only Voices',
-				'voices' => [],
-			],
-		];
+		$groups = array(
+			'standard'        => array(
+				'label'  => 'Standard Voices',
+				'voices' => array(),
+			),
+			'standard_neural' => array(
+				'label'  => 'Standard + Neural Voices',
+				'voices' => array(),
+			),
+			'neural_only'     => array(
+				'label'  => 'Neural-only Voices',
+				'voices' => array(),
+			),
+		);
 
 		foreach ( $this->get_available_polly_voices( $language_code ) as $voice ) {
 			$groups[ $this->get_polly_voice_capability( $voice ) ]['voices'][] = $voice;
@@ -541,7 +758,7 @@ class AmazonAI_Common
 
 	public function get_polly_voice( $voice_id ) {
 		try {
-			foreach ( $this->get_polly_voices()['Voices'] ?? [] as $voice ) {
+			foreach ( $this->get_polly_voices()['Voices'] ?? array() as $voice ) {
 				if ( ! empty( $voice['Id'] ) && $voice['Id'] === $voice_id ) {
 					return $voice;
 				}
@@ -553,7 +770,7 @@ class AmazonAI_Common
 		return null;
 	}
 
-	public function resolve_polly_voice_id( $language_code, $requested_voice_id = '', $fallback_voice_id = '', array $args = [] ) {
+	public function resolve_polly_voice_id( $language_code, $requested_voice_id = '', $fallback_voice_id = '', array $args = array() ) {
 		$neural_requested = $args['neural_requested'] ?? $this->is_polly_neural_requested();
 		$available_voices = $this->get_compatible_polly_voices( $language_code, $neural_requested );
 
@@ -563,7 +780,7 @@ class AmazonAI_Common
 
 		$available_voice_ids = array_column( $available_voices, 'Id' );
 
-		foreach ( [ $requested_voice_id, $fallback_voice_id ] as $candidate_voice_id ) {
+		foreach ( array( $requested_voice_id, $fallback_voice_id ) as $candidate_voice_id ) {
 			$candidate_voice_id = (string) $candidate_voice_id;
 			if ( ! empty( $candidate_voice_id ) && in_array( $candidate_voice_id, $available_voice_ids, true ) ) {
 				return $candidate_voice_id;
@@ -573,7 +790,7 @@ class AmazonAI_Common
 		return (string) $available_voices[0]['Id'];
 	}
 
-	public function get_resolved_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = [] ) {
+	public function get_resolved_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = array() ) {
 		$current_voice_id = array_key_exists( 'requested_voice_id', $args )
 			? (string) $args['requested_voice_id']
 			: (string) get_option( $option_name, '' );
@@ -581,8 +798,8 @@ class AmazonAI_Common
 		return $this->resolve_polly_voice_id( $language_code, $current_voice_id, $fallback_voice_id, $args );
 	}
 
-	public function sync_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = [] ) {
-		$current_voice_id = (string) get_option( $option_name, '' );
+	public function sync_polly_voice_option( $option_name, $language_code, $fallback_voice_id = '', array $args = array() ) {
+		$current_voice_id  = (string) get_option( $option_name, '' );
 		$resolved_voice_id = $this->get_resolved_polly_voice_option( $option_name, $language_code, $fallback_voice_id, $args );
 
 		if ( $resolved_voice_id !== $current_voice_id ) {
@@ -598,29 +815,29 @@ class AmazonAI_Common
 
 	public function get_source_language_name() {
 
-    $selected_source_language = $this->get_source_language();
+		$selected_source_language = $this->get_source_language();
 
-    foreach ($this->languages as $language_data) {
-      $language = $language_data['code'];
+		foreach ($this->languages as $language_data) {
+			$language = $language_data['code'];
 
-      if (strcmp($selected_source_language, $language) === 0) {
-        return $language_data['name'];
-      }
-    }
+			if (strcmp( $selected_source_language, $language ) === 0) {
+				return $language_data['name'];
+			}
+		}
 
-    return '';
-  }
+		return '';
+	}
 
 	public function init() {
-		$aws_sdk_config = $this->get_aws_sdk_config();
-		$this->sdk = new Aws\Sdk($aws_sdk_config);
+		$aws_sdk_config     = $this->get_aws_sdk_config();
+		$this->sdk          = new Aws\Sdk( $aws_sdk_config );
 		$this->polly_client = $this->sdk->createPolly();
 
-		$this->s3_handler = new AmazonAI_S3FileHandler($this);
-		$this->local_file_handler = new AmazonAI_LocalFileHandler($this);
+		$this->s3_handler         = new AmazonAI_S3FileHandler( $this );
+		$this->local_file_handler = new AmazonAI_LocalFileHandler( $this );
 
-        $this->s3_handler->set_s3_client($this->sdk->createS3());
-    }
+		$this->s3_handler->set_s3_client( $this->sdk->createS3() );
+	}
 
 
 	/**
@@ -632,7 +849,7 @@ class AmazonAI_Common
 
 		$is_s3_enabled = $this->is_s3_enabled();
 		if ( $is_s3_enabled ) {
-		  return $this->s3_handler;
+			return $this->s3_handler;
 		} else {
 			return $this->local_file_handler;
 		}
@@ -673,7 +890,7 @@ class AmazonAI_Common
 		$byte_word        = substr( $id3_header, 6, 4 );
 		$byte_word_length = strlen( $byte_word );
 		for ( $i = 0; $i < $byte_word_length; $i++ ) {
-			$int_value += ( ord( $byte_word[$i] ) & 0x7F ) * pow( 2, ( $byte_word_length - 1 - $i ) * 7 );
+			$int_value += ( ord( $byte_word[ $i ] ) & 0x7F ) * pow( 2, ( $byte_word_length - 1 - $i ) * 7 );
 		}
 		$offset = ( (int) $int_value ) + 10;
 
@@ -691,17 +908,17 @@ class AmazonAI_Common
 
 	}
 
-	public function startsWith ($string, $beginning) {
-	    $len = strlen($beginning);
-	    return (substr($string, 0, $len) === $beginning);
+	public function startsWith ( $string, $beginning) {
+		$len = strlen( $beginning );
+		return ( substr( $string, 0, $len ) === $beginning );
 	}
 
-	public function endsWith($string, $ending) {
-	    $len = strlen($ending);
-	    if ($len == 0) {
-	        return true;
-	    }
-	    return (substr($string, -$len) === $ending);
+	public function endsWith( $string, $ending) {
+		$len = strlen( $ending );
+		if ($len == 0) {
+			return true;
+		}
+		return ( substr( $string, -$len ) === $ending );
 	}
 
 
@@ -734,10 +951,10 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function get_post_source_language($post_id) {
+	public function get_post_source_language( $post_id) {
 		$value = get_post_meta( $post_id, 'amazon_ai_source_language', true );
 
-		if (empty($value)) {
+		if (empty( $value )) {
 			$value = $this->get_source_language();
 		}
 
@@ -749,22 +966,19 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function get_source_language()
-	{
-		$value = get_option('amazon_ai_source_language', 'en');
-		if (empty($value)) {
+	public function get_source_language() {
+		$value = get_option( 'amazon_ai_source_language', 'en' );
+		if (empty( $value )) {
 			$value = 'en';
 		}
 
 		return $value;
 	}
 
-	public function replace_if_empty($value, $new_value)
-	{
-		if (!empty($value)) {
+	public function replace_if_empty( $value, $new_value) {
+		if ( ! empty( $value )) {
 			return $value;
-		}
-		else {
+		} else {
 			return $new_value;
 		}
 	}
@@ -782,12 +996,12 @@ class AmazonAI_Common
 	}
 
 	public function is_audio_download_enabled() {
-			$value = $this->checked_validator('amazon_ai_download_enabled');
-			if ('checked' == trim($value)) {
-				return true;
-			} else {
-				return false;
-			}
+			$value = $this->checked_validator( 'amazon_ai_download_enabled' );
+		if ('checked' == trim( $value )) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -796,12 +1010,12 @@ class AmazonAI_Common
 	 * @since      0.1
 	 */
 	public function is_logging_enabled() {
-			$value = $this->checked_validator('amazon_ai_logging');
-			if ('checked' == trim($value)) {
-				return true;
-			} else {
-				return false;
-			}
+			$value = $this->checked_validator( 'amazon_ai_logging' );
+		if ('checked' == trim( $value )) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -811,44 +1025,43 @@ class AmazonAI_Common
 	 */
 	public function is_polly_enabled() {
 
-		if (!$this->is_language_supported_for_polly()) {
+		if ( ! $this->is_language_supported_for_polly()) {
 			return false;
 		}
 
-
-			$value = $this->checked_validator('amazon_ai_polly_enable');
-			if ('checked' == trim($value)) {
-				return true;
-			} else {
-				return false;
-			}
+			$value = $this->checked_validator( 'amazon_ai_polly_enable' );
+		if ('checked' == trim( $value )) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public function is_language_supported_for_polly() {
 
-    $selected_source_language = $this->get_source_language();
+		$selected_source_language = $this->get_source_language();
 
-    foreach ($this->get_all_polly_languages() as $language_code) {
-      if (strcmp($selected_source_language, $language_code) === 0) {
-        return true;
-      }
-    }
+		foreach ($this->get_all_polly_languages() as $language_code) {
+			if (strcmp( $selected_source_language, $language_code ) === 0) {
+				return true;
+			}
+		}
 
-    return false;
-  }
+		return false;
+	}
 
-	public function get_s3_object_link($post_id, $language) {
+	public function get_s3_object_link( $post_id, $language) {
 
-		$file_name	= 'amazon_polly_' . $post_id . $language . '.mp3';
+		$file_name    = 'amazon_polly_' . $post_id . $language . '.mp3';
 		$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
 
-		if ( get_option('uploads_use_yearmonth_folders') ) {
+		if ( get_option( 'uploads_use_yearmonth_folders' ) ) {
 			$key = get_the_date( 'Y', $post_id ) . '/' . get_the_date( 'm', $post_id ) . '/' . $file_name;
 		} else {
 			$key = $file_name;
 		}
 
-		$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
+		$selected_region     = AmazonAI_GeneralConfiguration::get_aws_region();
 		$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
 
 		return $audio_location_link;
@@ -864,38 +1077,30 @@ class AmazonAI_Common
 	public function validate_amazon_polly_access( $persist_state = true, $show_notices = true ): bool {
 		try {
 			$this->is_s3_enabled() && $this->check_aws_access( $persist_state ) && $this->s3_handler->is_bucket_accessible();
-		}
-
-		catch (S3BucketNotAccException $e) {
+		} catch (S3BucketNotAccException $e) {
 			if ( $show_notices ) {
-				$this->show_error_notice("notice-info", "The S3 bucket doesn't exist or can't be accessed.");
+				$this->show_error_notice( 'notice-info', "The S3 bucket doesn't exist or can't be accessed." );
 			}
 			return false;
-		}
-
-		catch(CredsException $e) {
+		} catch (CredsException $e) {
 			if ( $persist_state ) {
 				$this->deactivate_all();
 			}
 			if ( $show_notices ) {
-				$this->show_error_notice("notice-error", "Can't connect to AWS. Check your AWS credentials.");
+				$this->show_error_notice( 'notice-error', "Can't connect to AWS. Check your AWS credentials." );
 			}
 			return false;
-		}
-
-		catch(S3BucketNotCreException $e) {
+		} catch (S3BucketNotCreException $e) {
 			if ( $show_notices ) {
-				$this->show_error_notice("notice-error", "Could not create S3 bucket.");
+				$this->show_error_notice( 'notice-error', 'Could not create S3 bucket.' );
 			}
 			return false;
-		}
-
-		catch(Exception $e) {
+		} catch (Exception $e) {
 			if ( $persist_state ) {
 				$this->deactivate_all();
 			}
 			if ( $show_notices ) {
-				$this->show_error_notice("notice-error", "Unknown error.");
+				$this->show_error_notice( 'notice-error', 'Unknown error.' );
 			}
 			return false;
 		}
@@ -913,8 +1118,7 @@ class AmazonAI_Common
 	}
 
 
-	public function show_error_notice($type, $message)
-	{
+	public function show_error_notice( $type, $message) {
 		add_action(
 			'admin_notices',
 			function () use ( $type, $message ) {
@@ -971,7 +1175,7 @@ class AmazonAI_Common
 	public function get_sample_rate() {
 		$sample_rate = $this->normalize_sample_rate( get_option( 'amazon_polly_sample_rate' ) );
 
-		$this->logger->log(sprintf('%s Sample rate: %s ', __METHOD__, $sample_rate));
+		$this->logger->log( sprintf( '%s Sample rate: %s ', __METHOD__, $sample_rate ) );
 
 		return $sample_rate;
 	}
@@ -1003,8 +1207,7 @@ class AmazonAI_Common
 		return AmazonAI_GeneralConfiguration::get_aws_region();
 	}
 
-	public function get_polly_voices( $force_refresh = false )
-	{
+	public function get_polly_voices( $force_refresh = false ) {
 		$transient_key = $this->get_polly_voices_transient_key();
 
 		if ( ! $force_refresh ) {
@@ -1025,8 +1228,7 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function get_posttypes()
-	{
+	public function get_posttypes() {
 		return $this->normalize_posttypes( get_option( 'amazon_polly_posttypes', 'post' ) );
 	}
 
@@ -1035,8 +1237,7 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function get_audio_speed()
-	{
+	public function get_audio_speed() {
 		return $this->normalize_audio_speed( get_option( 'amazon_polly_speed' ) );
 	}
 
@@ -1045,10 +1246,9 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function get_lexicons()
-	{
-		$lexicons = get_option('amazon_polly_lexicons', '');
-		$lexicons = trim($lexicons);
+	public function get_lexicons() {
+		$lexicons = get_option( 'amazon_polly_lexicons', '' );
+		$lexicons = trim( $lexicons );
 		return $lexicons;
 	}
 
@@ -1057,14 +1257,12 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function is_poweredby_enabled()
-	{
-		$poweredby = get_option('amazon_polly_poweredby', '');
+	public function is_poweredby_enabled() {
+		$poweredby = get_option( 'amazon_polly_poweredby', '' );
 
-		if (empty($poweredby)) {
+		if (empty( $poweredby )) {
 			$result = false;
-		}
-		else {
+		} else {
 			$result = true;
 		}
 
@@ -1076,13 +1274,11 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function is_ssml_enabled()
-	{
-		$ssml_enabled = get_option('amazon_polly_ssml', 'on');
-		if (empty($ssml_enabled)) {
+	public function is_ssml_enabled() {
+		$ssml_enabled = get_option( 'amazon_polly_ssml', 'on' );
+		if (empty( $ssml_enabled )) {
 			$result = false;
-		}
-		else {
+		} else {
 			$result = true;
 		}
 
@@ -1100,133 +1296,113 @@ class AmazonAI_Common
 	 * @param       string $option Name of the option which should be checked.
 	 * @since      0.1
 	 */
-	public function checked_validator($option)
-	{
-		$option_value = get_option($option, 'on');
-		if (empty($option_value)) {
+	public function checked_validator( $option) {
+		$option_value = get_option( $option, 'on' );
+		if (empty( $option_value )) {
 			return '';
-		}
-		else {
+		} else {
 			return ' checked ';
 		}
 	}
 
-		public function is_polly_neural_enabled() {
-			return $this->is_polly_neural_requested() ? ' checked ' : '';
-		}
+	public function is_polly_neural_enabled() {
+		return $this->is_polly_neural_requested() ? ' checked ' : '';
+	}
 
-		public function normalize_polly_speaking_style( $style ) {
-			$style = (string) $style;
+	public function normalize_polly_speaking_style( $style ) {
+		$style = (string) $style;
 
-			if ( in_array( $style, [ 'news', 'conversational' ], true ) ) {
-				return $style;
-			}
-
-			return '';
-		}
-
-		public function get_requested_polly_speaking_style() {
-			$style = get_option( 'amazon_polly_speaking_style', null );
-			if ( null !== $style ) {
-				return $this->normalize_polly_speaking_style( $style );
-			}
-
-			if ( ! empty( get_option( 'amazon_polly_news', '' ) ) ) {
-				return 'news';
-			}
-
-			if ( ! empty( get_option( 'amazon_polly_conversational', '' ) ) ) {
-				return 'conversational';
-			}
-
-			return '';
-		}
-
-		private function sync_legacy_polly_speaking_style_options( $style ) {
-			update_option( 'amazon_polly_news', 'news' === $style ? 'on' : '' );
-			update_option( 'amazon_polly_conversational', 'conversational' === $style ? 'on' : '' );
-		}
-
-		public function sync_polly_speaking_style( $style = null, $persist_style_option = true ) {
-			if ( null === $style ) {
-				$style = $this->get_requested_polly_speaking_style();
-			}
-
-			$style = $this->normalize_polly_speaking_style( $style );
-
-			if ( $persist_style_option ) {
-				update_option( 'amazon_polly_speaking_style', $style );
-			}
-
-			$this->sync_legacy_polly_speaking_style_options( $style );
-
+		if ( in_array( $style, array( 'news', 'conversational' ), true ) ) {
 			return $style;
 		}
 
-		public function get_active_polly_speaking_style( $voice = null, $neural_requested = null ) {
-			if ( null === $voice ) {
-				$voice = $this->get_voice_id();
-			}
+		return '';
+	}
 
-			if ( null === $neural_requested ) {
-				$neural_requested = $this->is_polly_neural_requested();
-			}
+	public function get_requested_polly_speaking_style() {
+		$style = get_option( 'amazon_polly_speaking_style', null );
+		if ( null !== $style ) {
+			return $this->normalize_polly_speaking_style( $style );
+		}
 
-			if ( ! $neural_requested ) {
-				return '';
-			}
+		if ( ! empty( get_option( 'amazon_polly_news', '' ) ) ) {
+			return 'news';
+		}
 
+		if ( ! empty( get_option( 'amazon_polly_conversational', '' ) ) ) {
+			return 'conversational';
+		}
+
+		return '';
+	}
+
+	private function sync_legacy_polly_speaking_style_options( $style ) {
+		update_option( 'amazon_polly_news', 'news' === $style ? 'on' : '' );
+		update_option( 'amazon_polly_conversational', 'conversational' === $style ? 'on' : '' );
+	}
+
+	public function sync_polly_speaking_style( $style = null, $persist_style_option = true ) {
+		if ( null === $style ) {
 			$style = $this->get_requested_polly_speaking_style();
-			if ( 'news' === $style && $this->is_news_style_for_voice( $voice ) ) {
-				return 'news';
-			}
+		}
 
-			if ( 'conversational' === $style && $this->is_conversational_style_for_voice( $voice ) ) {
-				return 'conversational';
-			}
+		$style = $this->normalize_polly_speaking_style( $style );
 
+		if ( $persist_style_option ) {
+			update_option( 'amazon_polly_speaking_style', $style );
+		}
+
+		$this->sync_legacy_polly_speaking_style_options( $style );
+
+		return $style;
+	}
+
+	public function get_active_polly_speaking_style( $voice = null, $neural_requested = null ) {
+		if ( null === $voice ) {
+			$voice = $this->get_voice_id();
+		}
+
+		if ( null === $neural_requested ) {
+			$neural_requested = $this->is_polly_neural_requested();
+		}
+
+		if ( ! $neural_requested ) {
 			return '';
 		}
 
-		public function is_polly_news_enabled() {
-
-			return 'news' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
+		$style = $this->get_requested_polly_speaking_style();
+		if ( 'news' === $style && $this->is_news_style_for_voice( $voice ) ) {
+			return 'news';
 		}
 
+		if ( 'conversational' === $style && $this->is_conversational_style_for_voice( $voice ) ) {
+			return 'conversational';
+		}
 
-			public function is_polly_conversational_enabled() {
+		return '';
+	}
 
-				return 'conversational' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
-			}
+	public function is_polly_news_enabled() {
 
-			public function should_conversational_style_be_used($voice) {
+		return 'news' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
+	}
 
-				if ( !$this->is_conversational_style_for_voice($voice)) {
-					return false;
-				}
 
-				if ( 'conversational' === $this->get_requested_polly_speaking_style() ) {
-					$engine = $this->get_polly_engine($voice);
-					if ('neural' == $engine) {
-						return true;
-				}
-				return false;
-			}
+	public function is_polly_conversational_enabled() {
 
+		return 'conversational' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
+	}
+
+	public function should_conversational_style_be_used( $voice) {
+
+		if ( ! $this->is_conversational_style_for_voice( $voice )) {
 			return false;
 		}
 
-
-		public function should_news_style_be_used($voice) {
-
-			if ( !$this->is_news_style_for_voice($voice)) {
-				return false;
-			}
-
-			if ( 'news' === $this->get_requested_polly_speaking_style() ) {
-				$engine = $this->get_polly_engine($voice);
-				if ('neural' == $engine) {
-					return true;
+		if ( 'conversational' === $this->get_requested_polly_speaking_style() ) {
+			$engine = $this->get_polly_engine( $voice );
+			if ('neural' == $engine) {
+				return true;
 			}
 			return false;
 		}
@@ -1235,59 +1411,77 @@ class AmazonAI_Common
 	}
 
 
-		public function is_conversational_supported_in_region() {
+	public function should_news_style_be_used( $voice) {
 
-			$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
-			$conversational_supported_regions = array("us-east-1","us-west-2","eu-west-1");
-
-			if (in_array($selected_region, $conversational_supported_regions)) {
-				return true;
-			} else {
-				return false;
-			}
+		if ( ! $this->is_news_style_for_voice( $voice )) {
+			return false;
 		}
+
+		if ( 'news' === $this->get_requested_polly_speaking_style() ) {
+			$engine = $this->get_polly_engine( $voice );
+			if ('neural' == $engine) {
+				return true;
+			}
+			return false;
+		}
+
+		return false;
+	}
+
+
+	public function is_conversational_supported_in_region() {
+
+		$selected_region                  = AmazonAI_GeneralConfiguration::get_aws_region();
+		$conversational_supported_regions = array( 'us-east-1', 'us-west-2', 'eu-west-1' );
+
+		if (in_array( $selected_region, $conversational_supported_regions )) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	public function is_neural_supported_in_region() {
 
-		$selected_region = AmazonAI_GeneralConfiguration::get_aws_region();
-		$neural_supported_regions = array("us-east-1","us-west-2","ap-northeast-2","ap-southeast-1","ap-southeast-2","ap-northeast-1","ca-central-1","eu-central-1","eu-west-1","eu-west-2","us-gov-west-1");
+		$selected_region          = AmazonAI_GeneralConfiguration::get_aws_region();
+		$neural_supported_regions = array( 'us-east-1', 'us-west-2', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'us-gov-west-1' );
 
-		if (in_array($selected_region, $neural_supported_regions)) {
+		if (in_array( $selected_region, $neural_supported_regions )) {
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	public function is_news_style_for_voice($voice) {
-		$supported_voices = array("Joanna","Matthew","Lupe","Amy");
+	public function is_news_style_for_voice( $voice) {
+		$supported_voices = array( 'Joanna', 'Matthew', 'Lupe', 'Amy' );
 
-		if (in_array($voice, $supported_voices)) {
+		if (in_array( $voice, $supported_voices )) {
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	public function is_conversational_style_for_voice($voice) {
-		$supported_voices = array("Joanna","Matthew");
+	public function is_conversational_style_for_voice( $voice) {
+		$supported_voices = array( 'Joanna', 'Matthew' );
 
-		if (in_array($voice, $supported_voices)) {
+		if (in_array( $voice, $supported_voices )) {
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	public function is_neural_supported_for_voice($voice) {
+	public function is_neural_supported_for_voice( $voice) {
 		$voice_data = $this->get_polly_voice( $voice );
 		if ( is_array( $voice_data ) ) {
 			return in_array( 'neural', $this->get_supported_synthesis_engines( $voice_data ), true );
 		}
 
-		$neural_supported_voices = array("Olivia","Amy","Emma","Brian","Ivy","Joanna","Kendra","Kimberly","Salli","Joey","Justin","Kevin","Matthew","Camila","Lupe", "Seoyeon", "Gabrielle");
+		$neural_supported_voices = array( 'Olivia', 'Amy', 'Emma', 'Brian', 'Ivy', 'Joanna', 'Kendra', 'Kimberly', 'Salli', 'Joey', 'Justin', 'Kevin', 'Matthew', 'Camila', 'Lupe', 'Seoyeon', 'Gabrielle' );
 
-		if (in_array($voice, $neural_supported_voices)) {
+		if (in_array( $voice, $neural_supported_voices )) {
 			return true;
 		} else {
 			return false;
@@ -1300,40 +1494,39 @@ class AmazonAI_Common
 			$voice = $this->get_voice_id();
 		}
 
-		$neural_only_voices = array("Olivia","Kevin", "Gabrielle");
-		$logger = new AmazonAI_Logger();
-		$voice_data = $this->get_polly_voice( $voice );
+		$neural_only_voices = array( 'Olivia', 'Kevin', 'Gabrielle' );
+		$logger             = new AmazonAI_Logger();
+		$voice_data         = $this->get_polly_voice( $voice );
 
-		$logger->log("Checking for neural: ".$voice);
+		$logger->log( 'Checking for neural: ' . $voice );
 
 		if ( is_array( $voice_data ) ) {
 			$supported_engines = $this->get_supported_synthesis_engines( $voice_data );
-			$is_neural_only = in_array( 'neural', $supported_engines, true ) && ! in_array( 'standard', $supported_engines, true );
+			$is_neural_only    = in_array( 'neural', $supported_engines, true ) && ! in_array( 'standard', $supported_engines, true );
 
-			$logger->log("Neural only: " . ( $is_neural_only ? "TRUE" : "FALSE" ));
+			$logger->log( 'Neural only: ' . ( $is_neural_only ? 'TRUE' : 'FALSE' ) );
 
 			return $is_neural_only;
 		}
 
-		if (in_array($voice, $neural_only_voices)) {
-			$logger->log("Neural only: TRUE");
+		if (in_array( $voice, $neural_only_voices )) {
+			$logger->log( 'Neural only: TRUE' );
 			return true;
 		} else {
-			$logger->log("Neural only: FALSE");
+			$logger->log( 'Neural only: FALSE' );
 			return false;
 		}
 
 	}
 
-	public function get_polly_engine($voice) {
-		if (!$this->is_neural_supported_in_region()) {
+	public function get_polly_engine( $voice) {
+		if ( ! $this->is_neural_supported_in_region()) {
 			return 'standard';
 		}
 
-		if (!$this->is_neural_supported_for_voice($voice)) {
+		if ( ! $this->is_neural_supported_for_voice( $voice )) {
 			return 'standard';
 		}
-
 
 		if ( $this->is_polly_neural_requested() ) {
 			return 'neural';
@@ -1349,13 +1542,11 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function is_medialibrary_enabled()
-	{
-		$value = get_option('amazon_ai_medialibrary_enabled');
-		if (empty($value)) {
+	public function is_medialibrary_enabled() {
+		$value = get_option( 'amazon_ai_medialibrary_enabled' );
+		if (empty( $value )) {
 			$result = false;
-		}
-		else {
+		} else {
 			$result = true;
 		}
 
@@ -1367,13 +1558,11 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function is_s3_enabled()
-	{
-		$value = get_option('amazon_polly_s3', 'on');
-		if (empty($value)) {
+	public function is_s3_enabled() {
+		$value = get_option( 'amazon_polly_s3', 'on' );
+		if (empty( $value )) {
 			$result = false;
-		}
-		else {
+		} else {
 			$result = true;
 		}
 
@@ -1385,21 +1574,18 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	private function check_aws_access( $persist_state = true )
-	{
+	private function check_aws_access( $persist_state = true ) {
 		try {
 			$voice_list = $this->get_polly_voices( true );
 			if ( $persist_state ) {
-				update_option('amazon_polly_valid_keys', '1');
+				update_option( 'amazon_polly_valid_keys', '1' );
 			}
 			return true;
-		}
-
-		catch(Exception $e) {
+		} catch (Exception $e) {
 			if ( $persist_state ) {
-				update_option('amazon_polly_valid_keys', '0');
+				update_option( 'amazon_polly_valid_keys', '0' );
 			}
-			throw new CredsException('Could not connect to AWS. Check your AWS credentials.');
+			throw new CredsException( 'Could not connect to AWS. Check your AWS credentials.' );
 		}
 	}
 
@@ -1408,25 +1594,26 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	private function get_aws_sdk_config($region = null)
-	{
-		$aws_sdk_config = [
-			'region' => AmazonAI_GeneralConfiguration::get_aws_region(),
-			'version' => 'latest',
-			'ua_append' => ['request-source/aws-for-wordpress']
-		];
-		$credentials = false;
+	private function get_aws_sdk_config( $region = null) {
+		$aws_sdk_config = array(
+			'region'    => AmazonAI_GeneralConfiguration::get_aws_region(),
+			'version'   => 'latest',
+			'ua_append' => array( 'request-source/aws-for-wordpress' ),
+		);
+		$credentials    = false;
 		$aws_access_key = AmazonAI_GeneralConfiguration::get_aws_access_key();
 		$aws_secret_key = AmazonAI_GeneralConfiguration::get_aws_secret_key();
 
 		if ($aws_access_key && $aws_secret_key) {
-			$credentials = [
-				'key' => $aws_access_key,
+			$credentials = array(
+				'key'    => $aws_access_key,
 				'secret' => $aws_secret_key,
-			];
+			);
 		}
 
-		if ($credentials = apply_filters('amazon_polly_aws_sdk_credentials', $credentials)) {
+		$credentials = apply_filters( 'amazon_polly_aws_sdk_credentials', $credentials );
+
+		if ( $credentials ) {
 			$aws_sdk_config['credentials'] = $credentials;
 		}
 
@@ -1442,38 +1629,39 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function get_price_message_for_update_all()
-	{
+	public function get_price_message_for_update_all() {
 		$post_types_supported = $this->get_posttypes_array();
 		$number_of_characters = 0;
-		$posts_per_page = apply_filters('amazon_polly_posts_per_page', 5);
-		$count_posts = wp_count_posts()->publish;
-		$max_count_posts = 100;
+		$posts_per_page       = apply_filters( 'amazon_polly_posts_per_page', 5 );
+		$count_posts          = wp_count_posts()->publish;
+		$max_count_posts      = 100;
 
 		// Retrieving the number of characters in all posts.
 
-		$paged = 0;
+		$paged      = 0;
 		$post_count = 0;
 		do {
 			$paged++;
-			$wp_query = new WP_Query(array(
-				'posts_per_page' => $posts_per_page,
-				'post_type' => $post_types_supported,
-				'fields' => 'ids',
-				'paged' => $paged,
-			));
+			$wp_query        = new WP_Query(
+				array(
+					'posts_per_page' => $posts_per_page,
+					'post_type'      => $post_types_supported,
+					'fields'         => 'ids',
+					'paged'          => $paged,
+				)
+			);
 			$number_of_posts = $wp_query->max_num_pages;
 			while ($wp_query->have_posts()) {
 				$post_count++;
 				$wp_query->the_post();
-				$post_id = get_the_ID();
-				$clean_text = $this->clean_text($post_id, true, false);
-				$post_sentences = $this->break_text($clean_text);
-				if (!empty($post_sentences)) {
-					foreach($post_sentences as $sentence) {
-						$sentence = str_replace('**AMAZONPOLLY*SSML*BREAK*time=***1s***SSML**', '', $sentence);
-						$sentence = str_replace('**AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML**', '', $sentence);
-						$number_of_characters+= strlen($sentence);
+				$post_id        = get_the_ID();
+				$clean_text     = $this->clean_text( $post_id, true, false );
+				$post_sentences = $this->break_text( $clean_text );
+				if ( ! empty( $post_sentences )) {
+					foreach ($post_sentences as $sentence) {
+						$sentence              = str_replace( '**AMAZONPOLLY*SSML*BREAK*time=***1s***SSML**', '', $sentence );
+						$sentence              = str_replace( '**AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML**', '', $sentence );
+						$number_of_characters += strlen( $sentence );
 					}
 				}
 			}
@@ -1484,9 +1672,7 @@ class AmazonAI_Common
 			if ($post_count >= $max_count_posts) {
 				break;
 			}
-		}
-
-		while ($paged < $number_of_posts);
+		} while ($paged < $number_of_posts);
 
 		// Price for converting single character according to Amazon Polly pricing.
 
@@ -1496,15 +1682,14 @@ class AmazonAI_Common
 
 		if (0 !== $post_count) {
 			$post_chars_count_avg = $number_of_characters / $post_count;
-		}
-		else {
+		} else {
 			$post_chars_count_avg = 0;
 		}
 
 		// Estimating the total price of convertion of all posts.
 
 		$total_price = 2 * $amazon_polly_price * $count_posts * $post_chars_count_avg;
-		$message = 'You are about to convert ' . number_format($count_posts, 0, '.', ',') . ' pieces of text-based content, which totals approximately ' . number_format($number_of_characters, 0, '.', ',') . ' characters. Based on the Amazon Polly pricing ($4 dollars per 1 million characters) it will cost you about $' . $total_price . ' to convert all of your content into to speech-based audio. Some or all of your costs might be covered by the Free Tier (conversion of 5 million characters per month for free, for the first 12 months, starting from the first request for speech). For more information, see https://aws.amazon.com/polly/';
+		$message     = 'You are about to convert ' . number_format( $count_posts, 0, '.', ',' ) . ' pieces of text-based content, which totals approximately ' . number_format( $number_of_characters, 0, '.', ',' ) . ' characters. Based on the Amazon Polly pricing ($4 dollars per 1 million characters) it will cost you about $' . $total_price . ' to convert all of your content into to speech-based audio. Some or all of your costs might be covered by the Free Tier (conversion of 5 million characters per month for free, for the first 12 months, starting from the first request for speech). For more information, see https://aws.amazon.com/polly/';
 		return $message;
 	}
 
@@ -1515,7 +1700,7 @@ class AmazonAI_Common
 	 */
 	public function prepare_wp_filesystem() {
 		/** Ensure WordPress Administration File API is loaded as REST requests do not load the file API */
-		require_once(ABSPATH . 'wp-admin/includes/file.php');
+		require_once( ABSPATH . 'wp-admin/includes/file.php' );
 
 		$url   = wp_nonce_url( admin_url( 'post-new.php' ) );
 		$creds = request_filesystem_credentials( $url );
@@ -1536,43 +1721,40 @@ class AmazonAI_Common
 	 * @since      0.1
 	 * @param       string $text     Text which should be broken.
 	 */
-	public function break_text($text)
-	{
-		$text = str_replace('-AMAZONPOLLY-ONLYAUDIO-START-', '', $text);
-		$text = str_replace('-AMAZONPOLLY-ONLYAUDIO-END-', '', $text);
-		$text = preg_replace('/-AMAZONPOLLY-ONLYWORDS-START-[\S\s]*?-AMAZONPOLLY-ONLYWORDS-END-/', '', $text);
-		$parts = [];
-		if (!empty($text)) {
-			$part_id = 0;
-			$paragraphs = explode("\n", $text);
-			foreach($paragraphs as $paragraph) {
-				$paragraph_size = strlen(trim($paragraph));
+	public function break_text( $text) {
+		$text  = str_replace( '-AMAZONPOLLY-ONLYAUDIO-START-', '', $text );
+		$text  = str_replace( '-AMAZONPOLLY-ONLYAUDIO-END-', '', $text );
+		$text  = preg_replace( '/-AMAZONPOLLY-ONLYWORDS-START-[\S\s]*?-AMAZONPOLLY-ONLYWORDS-END-/', '', $text );
+		$parts = array();
+		if ( ! empty( $text )) {
+			$part_id    = 0;
+			$paragraphs = explode( "\n", $text );
+			foreach ($paragraphs as $paragraph) {
+				$paragraph_size = strlen( trim( $paragraph ) );
 				if ($paragraph_size > 0) {
 					if ($paragraph_size <= 2800) {
-						$parts[$part_id] = $paragraph . ' **AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML** ';
+						$parts[ $part_id ] = $paragraph . ' **AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML** ';
 						$part_id++;
-					}
-					else {
-						$words = explode(' ', $paragraph);
+					} else {
+						$words        = explode( ' ', $paragraph );
 						$current_part = '';
-						$last_part = '';
-						foreach($words as $word) {
-							$word_length = strlen($word);
-							$current_part_length = strlen($current_part);
+						$last_part    = '';
+						foreach ($words as $word) {
+							$word_length         = strlen( $word );
+							$current_part_length = strlen( $current_part );
 							if ($word_length + $current_part_length < 2800) {
 								$current_part = $current_part . $word . ' ';
-								$last_part = $current_part;
-							}
-							else {
-								$current_part = $current_part . $word . ' ';
-								$parts[$part_id] = $current_part;
+								$last_part    = $current_part;
+							} else {
+								$current_part      = $current_part . $word . ' ';
+								$parts[ $part_id ] = $current_part;
 								$part_id++;
 								$current_part = '';
-								$last_part = '';
+								$last_part    = '';
 							}
 						}
 
-						$parts[$part_id] = $last_part . ' **AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML** ';
+						$parts[ $part_id ] = $last_part . ' **AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML** ';
 						$part_id++;
 					} //end if
 				} //end if
@@ -1581,13 +1763,13 @@ class AmazonAI_Common
 
 		// Modify speed
 
-		$parts = $this->modify_speed($parts);
+		$parts = $this->modify_speed( $parts );
 
 		$logger = new AmazonAI_Logger();
 
-		foreach($parts as $part) {
-			$logger->log(sprintf('%s <<< PART >>> ', __METHOD__));
-			$logger->log(sprintf('%s', $part));
+		foreach ($parts as $part) {
+			$logger->log( sprintf( '%s <<< PART >>> ', __METHOD__ ) );
+			$logger->log( sprintf( '%s', $part ) );
 		}
 
 		return $parts;
@@ -1600,15 +1782,14 @@ class AmazonAI_Common
 	 * @param           string $sentences                 Sentences which should be updated.
 	 * @since      0.1
 	 */
-	public function modify_speed($sentences)
-	{
-		$new_sentences = [];
+	public function modify_speed( $sentences) {
+		$new_sentences   = array();
 		$new_sentence_id = 0;
-		$speed = $this->get_audio_speed();
+		$speed           = $this->get_audio_speed();
 		if (100 !== $speed) {
-			foreach($sentences as $sentence) {
-				$new_sentence = '<prosody rate="' . $speed . '%">' . $sentence . '</prosody>';
-				$new_sentences[$new_sentence_id] = $new_sentence;
+			foreach ($sentences as $sentence) {
+				$new_sentence                      = '<prosody rate="' . $speed . '%">' . $sentence . '</prosody>';
+				$new_sentences[ $new_sentence_id ] = $new_sentence;
 				$new_sentence_id++;
 			}
 		}
@@ -1616,14 +1797,12 @@ class AmazonAI_Common
 		return $new_sentences;
 	}
 
-	public function modify_sentence_speed($sentence)
-	{
+	public function modify_sentence_speed( $sentence) {
 
 		$speed = $this->get_audio_speed();
 		if (100 !== $speed) {
 				$sentence = '<prosody rate="' . $speed . '%">' . $sentence . '</prosody>';
 		}
-
 
 		return $sentence;
 	}
@@ -1633,13 +1812,11 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function is_excerpt_adder_enabled()
-	{
-		$value = get_option('amazon_polly_add_post_excerpt', 'on');
-		if (empty($value)) {
+	public function is_excerpt_adder_enabled() {
+		$value = get_option( 'amazon_polly_add_post_excerpt', 'on' );
+		if (empty( $value )) {
 			$result = false;
-		}
-		else {
+		} else {
 			$result = true;
 		}
 
@@ -1669,8 +1846,7 @@ class AmazonAI_Common
 	 * @since      0.1
 	 * @param       string $post_id     ID of the post for which test (content) should be prepapred for conversion.
 	 */
-	public function clean_text($post_id, $with_title, $only_title)
-	{
+	public function clean_text( $post_id, $with_title, $only_title) {
 
 		#$this->logger->log(sprintf('%s Cleaning text (%s, %s) ', __METHOD__, $with_title, $only_title));
 
@@ -1679,69 +1855,66 @@ class AmazonAI_Common
 		// Depending on the plugin configurations, post's title will be added to the audio.
 		if ($with_title) {
 			if ($this->is_title_adder_enabled()) {
-				$clean_text = get_the_title($post_id) . '. **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
+				$clean_text = get_the_title( $post_id ) . '. **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
 			}
 		}
-
 
 		// Depending on the plugin configurations, post's excerpt will be added to the audio.
 
 		if ($this->is_excerpt_adder_enabled()) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
-				$my_excerpt = apply_filters('the_excerpt', get_post_field('post_excerpt', $post_id));
-			$clean_text = $clean_text . $my_excerpt . ' **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
+				$my_excerpt = apply_filters( 'the_excerpt', get_post_field( 'post_excerpt', $post_id ) );
+			$clean_text     = $clean_text . $my_excerpt . ' **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
 		}
 
-		$clean_text = $clean_text . get_post_field('post_content', $post_id);
-		$clean_text = apply_filters('amazon_polly_content', $clean_text);
+		$clean_text = $clean_text . get_post_field( 'post_content', $post_id );
+		$clean_text = apply_filters( 'amazon_polly_content', $clean_text );
 
 		if ($only_title) {
-			$clean_text = get_the_title($post_id);
+			$clean_text = get_the_title( $post_id );
 		}
 
-		$clean_text = str_replace('&nbsp;', ' ', $clean_text);
-		$clean_text = do_shortcode($clean_text);
+		$clean_text = str_replace( '&nbsp;', ' ', $clean_text );
+		$clean_text = do_shortcode( $clean_text );
 
-		$clean_text = $this->skip_tags($clean_text);
-		$clean_text = $this->add_pauses($clean_text);
+		$clean_text = $this->skip_tags( $clean_text );
+		$clean_text = $this->add_pauses( $clean_text );
 
 		$is_ssml_enabled = $this->is_ssml_enabled();
 		if ($is_ssml_enabled) {
-			$clean_text = $this->encode_ssml_tags($clean_text);
+			$clean_text = $this->encode_ssml_tags( $clean_text );
 		}
 
 		// Creating text description for images
-		$clean_text = $this->replace_images($clean_text);
-		$clean_text = strip_tags($clean_text, '<break>');
-		$clean_text = esc_html($clean_text);
+		$clean_text = $this->replace_images( $clean_text );
+		$clean_text = strip_tags( $clean_text, '<break>' );
+		$clean_text = esc_html( $clean_text );
 
-
-		$clean_text = str_replace('&nbsp;', ' ', $clean_text);
-		$clean_text = preg_replace("/https:\/\/([^\s]+)/", "", $clean_text);
+		$clean_text      = str_replace( '&nbsp;', ' ', $clean_text );
+		$clean_text      = preg_replace( '/https:\/\/([^\s]+)/', '', $clean_text );
 		$clean_text_temp = '';
 
-		$paragraphs = explode("\n", $clean_text);
-		foreach($paragraphs as $paragraph) {
-			$paragraph_size = strlen(trim($paragraph));
+		$paragraphs = explode( "\n", $clean_text );
+		foreach ($paragraphs as $paragraph) {
+			$paragraph_size = strlen( trim( $paragraph ) );
 			if ($paragraph_size > 0) {
 				$clean_text_temp = $clean_text_temp . "\n" . $paragraph;
 			}
 		}
 
 		$clean_text = $clean_text_temp;
-		$clean_text = html_entity_decode($clean_text, ENT_QUOTES, 'UTF-8');
-		$clean_text = str_replace('&', ' and ', $clean_text);
-		$clean_text = str_replace('<', ' ', $clean_text);
-		$clean_text = str_replace('>', ' ', $clean_text);
-
+		$clean_text = html_entity_decode( $clean_text, ENT_QUOTES, 'UTF-8' );
+		$clean_text = str_replace( '&', ' and ', $clean_text );
+		$clean_text = str_replace( '<', ' ', $clean_text );
+		$clean_text = str_replace( '>', ' ', $clean_text );
 
 		return $clean_text;
 	}
 
-	private function replace_images($clean_text) {
+	private function replace_images( $clean_text) {
 
 		//$new_clean_text = preg_replace('/<img.*?alt="(.*?)"[^\>]+>/', 'Image: $1.', $clean_text);
-		$new_clean_text = preg_replace('/<img.*?alt="(.*?)"[^\>]+>/', '$1', $clean_text);
+		$new_clean_text = preg_replace( '/<img.*?alt="(.*?)"[^\>]+>/', '$1', $clean_text );
 
 		return $new_clean_text;
 
@@ -1764,7 +1937,7 @@ class AmazonAI_Common
 		}
 
 		$post_types_supported = $this->get_posttypes_array();
-		$post_type = get_post_type( $post_id );
+		$post_type            = get_post_type( $post_id );
 		if ( ! in_array( $post_type, $post_types_supported, true ) ) {
 			return;
 		}
@@ -1840,39 +2013,39 @@ class AmazonAI_Common
 			$file           = 'amazon_polly_' . $post_id . '.mp3';
 			$wp_filesystem  = $this->prepare_wp_filesystem();
 			$file_handler   = $this->get_file_handler_for_audio_location( $audio_location );
-			$file_handler->delete($wp_filesystem, $file, $post_id);
-		} catch(Exception $e) {
+			$file_handler->delete( $wp_filesystem, $file, $post_id );
+		} catch (Exception $e) {
 			$deletion_error = $e;
 		}
 
 		$this->clear_post_audio_state( (int) $post_id );
 
 		if ( $deletion_error ) {
-			$this->show_error_notice("notice-error", "Encountered an error while deleting the file.");
+			$this->show_error_notice( 'notice-error', 'Encountered an error while deleting the file.' );
 			$logger = new AmazonAI_Logger();
 			$logger->log( sprintf( '%s Delete post audio failed: %s', __METHOD__, $deletion_error->getMessage() ) );
 		}
 
 	}
 
-	private function skip_tags($text) {
+	private function skip_tags( $text) {
 
 		$skip_tags_array = $this->get_skiptags_array();
 
 		foreach ($skip_tags_array as $value) {
-			$text = preg_replace('/<' . $value . '>(\s*?)(.*?)(\s*?)<\/' . $value . '>/', '', $text);
+			$text = preg_replace( '/<' . $value . '>(\s*?)(.*?)(\s*?)<\/' . $value . '>/', '', $text );
 		}
 
 		return $text;
 	}
 
-	private function add_pauses($text) {
+	private function add_pauses( $text) {
 
 		#Creates a little pause after closes the tag <li>
-		$text = str_replace ('</li>',' **AMAZONPOLLY*SSML*BREAK*time=***300ms***SSML** </li>',$text);
+		$text = str_replace( '</li>', ' **AMAZONPOLLY*SSML*BREAK*time=***300ms***SSML** </li>', $text );
 
 		#Create a support to the tag <sub> (helpful to 'read' abreviations, for example)
-		$text = preg_replace('/<sub\b((?:(?:\s+alias="(.*?)")|[^\s>]+|\s+))*>([\s\S]*?)<\/sub>/', '$2', $text);
+		$text = preg_replace( '/<sub\b((?:(?:\s+alias="(.*?)")|[^\s>]+|\s+))*>([\s\S]*?)<\/sub>/', '$2', $text );
 
 		return $text;
 	}
@@ -1883,9 +2056,8 @@ class AmazonAI_Common
 	 * @since      0.1
 	 * @param  string $text text which should be encoded.
 	 */
-	private function encode_ssml_tags($text)
-	{
-		$text = preg_replace('/<ssml><break ([\S\s]*?)["\'](.*?)["\'](.*?)<\/ssml>/', '**AMAZONPOLLY*SSML*BREAK*$1***$2***SSML**', $text);
+	private function encode_ssml_tags( $text) {
+		$text = preg_replace( '/<ssml><break ([\S\s]*?)["\'](.*?)["\'](.*?)<\/ssml>/', '**AMAZONPOLLY*SSML*BREAK*$1***$2***SSML**', $text );
 		return $text;
 	}
 
@@ -1894,13 +2066,11 @@ class AmazonAI_Common
 	 *
 	 * @since      0.1
 	 */
-	public function is_title_adder_enabled()
-	{
-		$value = get_option('amazon_polly_add_post_title', 'on');
-		if (empty($value)) {
+	public function is_title_adder_enabled() {
+		$value = get_option( 'amazon_polly_add_post_title', 'on' );
+		if (empty( $value )) {
 			$result = false;
-		}
-		else {
+		} else {
 			$result = true;
 		}
 
@@ -1922,12 +2092,12 @@ class AmazonAI_Common
 		}
 	}
 
-  /**
-	 * Configure supported HTML tags.
-	 *
-	 * @since      0.1
-	 * @param  string $tags supported tags.
-	 */
+	/**
+	   * Configure supported HTML tags.
+	   *
+	   * @since      0.1
+	   * @param  string $tags supported tags.
+	   */
 	public function allowed_tags_tinymce( $tags ) {
 		$ssml_tags                       = array(
 			'ssml',
@@ -1954,12 +2124,12 @@ class AmazonAI_Common
 		return $tags;
 	}
 
-  /**
-	 * Configure supported HTML tags.
-	 *
-	 * @since      0.1
-	 * @param  string $tags supported tags.
-	 */
+	/**
+	   * Configure supported HTML tags.
+	   *
+	   * @since      0.1
+	   * @param  string $tags supported tags.
+	   */
 	public function allowed_tags_kses( $tags ) {
 		$tags['ssml']  = true;
 		$tags['speak'] = true;
@@ -1996,11 +2166,11 @@ class AmazonAI_Common
 
 	}
 
-    /**
-     * Register the stylesheets for the admin area.
-     *
-     * @since      0.1
-     */
+	/**
+	 * Register the stylesheets for the admin area.
+	 *
+	 * @since      0.1
+	 */
 	private function get_asset_version( string $relative_path ): string {
 		$asset_path = plugin_dir_path( __FILE__ ) . ltrim( $relative_path, '/' );
 
@@ -2011,12 +2181,12 @@ class AmazonAI_Common
 		return '1.0.1';
 	}
 
-    public function enqueue_styles() {
-        wp_enqueue_style( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), $this->get_asset_version( 'css/amazonpolly-admin.css' ), 'all' );
-        wp_enqueue_style( 'itron-aws-polly-font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
-        wp_enqueue_style( 'jquery-ui-core' );
-        wp_enqueue_style( 'jquery-ui-progressbar' );
-    }
+	public function enqueue_styles() {
+		wp_enqueue_style( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), $this->get_asset_version( 'css/amazonpolly-admin.css' ), 'all' );
+		wp_enqueue_style( 'itron-aws-polly-font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
+		wp_enqueue_style( 'jquery-ui-core' );
+		wp_enqueue_style( 'jquery-ui-progressbar' );
+	}
 
 	/**
 	 * Register the JavaScript for the admin area.
@@ -2036,7 +2206,7 @@ class AmazonAI_Common
 			)
 		);
 
-    }
+	}
 
 	/**
 	 * Register meta box for 'Enable Amazon Polly' on post creation form.
@@ -2047,14 +2217,14 @@ class AmazonAI_Common
 
 		$post_types_supported = $this->get_posttypes_array();
 
-		$meta_box = new AmazonAI_PostMetaBox($this);
+		$meta_box = new AmazonAI_PostMetaBox( $this );
 
 		add_meta_box(
 			'amazon_polly_box_id',
 			// This is HTML id of the box on edit screen.
 			'Amazon Polly',
 			// Title of the box.
-			[ $meta_box, 'display_box_content'],
+			array( $meta_box, 'display_box_content' ),
 			// Function to be called to display the checkboxes, see the function below.
 			$post_types_supported,
 			// On which edit screen the box should appear.
@@ -2065,9 +2235,9 @@ class AmazonAI_Common
 		);
 	}
 
-    public function add_settings_link($links) {
-        $settings_link = '<a href="admin.php?page=amazon_ai">Settings</a>';
-        array_push( $links, $settings_link );
-        return $links;
-    }
+	public function add_settings_link( $links) {
+		$settings_link = '<a href="admin.php?page=amazon_ai">Settings</a>';
+		array_push( $links, $settings_link );
+		return $links;
+	}
 }
