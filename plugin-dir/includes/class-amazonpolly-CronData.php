@@ -1,11 +1,11 @@
 <?php
 
 class AmazonAI_CronData {
-	public array $data = [];
+	public array $data = array();
 	public string $task;
 	public bool $unique;
 
-	public function __construct( string $task, array $data = [], bool $unique = false ) {
+	public function __construct( string $task, array $data = array(), bool $unique = false ) {
 		$this->task   = $task;
 		$this->data   = $data;
 		$this->unique = $unique;

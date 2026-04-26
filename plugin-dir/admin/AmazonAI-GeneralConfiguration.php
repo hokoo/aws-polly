@@ -10,108 +10,136 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AmazonAI_GeneralConfiguration
-{
+class AmazonAI_GeneralConfiguration {
+
 	/**
 	 * @var AmazonAI_Common
 	 */
 	private $common;
 
 	private const OPTION_PREFIX = 'aws_polly_';
-	private const CONST_PREFIX = 'AWS_POLLY_';
+	private const CONST_PREFIX  = 'AWS_POLLY_';
 
 	/**
 	 * AmazonAI_GeneralConfiguration constructor.
 	 *
 	 * @param AmazonAI_Common $common
 	 */
-	public function __construct(AmazonAI_Common $common) {
+	public function __construct( AmazonAI_Common $common) {
 		$this->common = $common;
 	}
 
-    public function amazon_ai_add_menu()
-    {
-	    $this->plugin_screen_hook_suffix = add_menu_page( __( 'AI Text-to-Speech', 'ai-text-to-speech-using-aws-polly' ),
-		    __( 'AI TTS', 'ai-text-to-speech-using-aws-polly' ),
-		    'manage_options',
-		    'amazon_ai',
-		    array(
-			    $this,
-			    'amazonai_gui'
-		    ),
-		    'dashicons-controls-volumeon'
-	    );
-	    $this->plugin_screen_hook_suffix = add_submenu_page( 'amazon_ai',
-		    'General',
-		    'General',
-		    'manage_options',
-		    'amazon_ai',
-		    array(
-			    $this,
-			    'amazonai_gui'
-		    ) );
-    }
+	public function amazon_ai_add_menu() {
+		$this->plugin_screen_hook_suffix = add_menu_page(
+			__( 'AI Text-to-Speech', 'ai-text-to-speech-using-aws-polly' ),
+			__( 'AI TTS', 'ai-text-to-speech-using-aws-polly' ),
+			'manage_options',
+			'amazon_ai',
+			array(
+				$this,
+				'amazonai_gui',
+			),
+			'dashicons-controls-volumeon'
+		);
+		$this->plugin_screen_hook_suffix = add_submenu_page(
+			'amazon_ai',
+			'General',
+			'General',
+			'manage_options',
+			'amazon_ai',
+			array(
+				$this,
+				'amazonai_gui',
+			)
+		);
+	}
 
-    public function amazonai_gui()
-    {
-?>
+	public function amazonai_gui() {
+		?>
 				 <div class="wrap">
 				 <div id="icon-options-general" class="icon32"></div>
 				 <h1><?php esc_html_e( 'AI Text-to-Speech', 'ai-text-to-speech-using-aws-polly' ); ?></h1>
 				 <form method="post" action="options.php">
 						 <?php
 
-				settings_errors();
-        settings_fields("amazon_ai");
-        do_settings_sections("amazon_ai");
-        submit_button();
+							settings_errors();
+							settings_fields( 'amazon_ai' );
+							do_settings_sections( 'amazon_ai' );
+							submit_button();
 
-?>
+							?>
 				 </form>
 
 		 </div>
 		 <?php
-    }
+	}
 
-    function display_options()
-    {
+	function display_options() {
 
-        // ************************************************* *
-        // ************** GENERAL SECTION ************** *
-	    add_settings_section( 'amazon_ai_general', "", array(
-		    $this,
-		    'general_gui'
-	    ), 'amazon_ai' );
-	    add_settings_field( self::OPTION_PREFIX . 's3_access_key', __( 'AWS access key:', 'ai-text-to-speech-using-aws-polly' ), array(
-		    $this,
-		    'access_key_gui'
-	    ), 'amazon_ai', 'amazon_ai_general', array(
-		    'label_for' => 'amazon_polly_access_key'
-	    ) );
-	    add_settings_field( self::OPTION_PREFIX . 's3_secret_key', __( 'AWS secret key:', 'ai-text-to-speech-using-aws-polly' ), array(
-		    $this,
-		    'secret_key_gui'
-	    ), 'amazon_ai', 'amazon_ai_general', array(
-		    'label_for' => 'amazon_polly_secret_key_fake'
-	    ) );
-	    add_settings_field( self::OPTION_PREFIX . 's3_bucket_name',
-		    __( 'Amazon S3 bucket name:', 'ai-text-to-speech-using-aws-polly' ),
-		    array( $this, 's3_bucket_gui' ),
-		    'amazon_ai',
-		    'amazon_ai_general',
-		    array( 'label_for' => 'amazon_polly_s3_bucket_name' ) );
-	    add_settings_field( self::OPTION_PREFIX . 's3_region', __( 'AWS Region:', 'ai-text-to-speech-using-aws-polly' ), array(
-		    $this,
-		    'region_gui'
-	    ), 'amazon_ai', 'amazon_ai_general', array(
-		    'label_for' => 'amazon_polly_region'
-	    ) );
+		// ************************************************* *
+		// ************** GENERAL SECTION ************** *
+		add_settings_section(
+			'amazon_ai_general',
+			'',
+			array(
+				$this,
+				'general_gui',
+			),
+			'amazon_ai'
+		);
+		add_settings_field(
+			self::OPTION_PREFIX . 's3_access_key',
+			__( 'AWS access key:', 'ai-text-to-speech-using-aws-polly' ),
+			array(
+				$this,
+				'access_key_gui',
+			),
+			'amazon_ai',
+			'amazon_ai_general',
+			array(
+				'label_for' => 'amazon_polly_access_key',
+			)
+		);
+		add_settings_field(
+			self::OPTION_PREFIX . 's3_secret_key',
+			__( 'AWS secret key:', 'ai-text-to-speech-using-aws-polly' ),
+			array(
+				$this,
+				'secret_key_gui',
+			),
+			'amazon_ai',
+			'amazon_ai_general',
+			array(
+				'label_for' => 'amazon_polly_secret_key_fake',
+			)
+		);
+		add_settings_field(
+			self::OPTION_PREFIX . 's3_bucket_name',
+			__( 'Amazon S3 bucket name:', 'ai-text-to-speech-using-aws-polly' ),
+			array( $this, 's3_bucket_gui' ),
+			'amazon_ai',
+			'amazon_ai_general',
+			array( 'label_for' => 'amazon_polly_s3_bucket_name' )
+		);
+		add_settings_field(
+			self::OPTION_PREFIX . 's3_region',
+			__( 'AWS Region:', 'ai-text-to-speech-using-aws-polly' ),
+			array(
+				$this,
+				'region_gui',
+			),
+			'amazon_ai',
+			'amazon_ai_general',
+			array(
+				'label_for' => 'amazon_polly_region',
+			)
+		);
 
-	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
-	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_text_option' ) );
-	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
-	    $this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
-    }
+		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
+	}
 
 	private function register_sanitized_setting( string $option_group, string $option_name, callable $sanitize_callback ): void {
 		register_setting(
@@ -159,41 +187,41 @@ class AmazonAI_GeneralConfiguration
 	}
 
 
-    /**
-     * Render the Access Key input for this plugin
-     *
-     * @since      0.1
-     */
-    function access_key_gui() {
-		$name = 's3_access_key';
-		$option = self::OPTION_PREFIX . $name;
+	/**
+	 * Render the Access Key input for this plugin
+	 *
+	 * @since      0.1
+	 */
+	function access_key_gui() {
+		$name        = 's3_access_key';
+		$option      = self::OPTION_PREFIX . $name;
 		$is_disabled = self::is_overloaded( $name );
-        echo '<input' . disabled( $is_disabled, true, false ) . ' type="text" class="regular-text" name="' . esc_attr( $option ) . '" id="' . esc_attr( $option ) . '" value="' . esc_attr( self::get_aws_access_key() ) . '" autocomplete="off"> ';
-	    if ( $is_disabled ) {
+		echo '<input' . disabled( $is_disabled, true, false ) . ' type="text" class="regular-text" name="' . esc_attr( $option ) . '" id="' . esc_attr( $option ) . '" value="' . esc_attr( self::get_aws_access_key() ) . '" autocomplete="off"> ';
+		if ( $is_disabled ) {
 			echo '<p class="description" id="' . esc_attr( $option ) . '">Defined as php constant</p>';
-	    }
-    }
+		}
+	}
 
 
 
-    /**
-     * Render the Secret Key input for this plugin
-     *
-     * @since      0.1
-     */
-    function secret_key_gui() {
-	    $name = 's3_secret_key';
-	    $option = self::OPTION_PREFIX . $name;
+	/**
+	 * Render the Secret Key input for this plugin
+	 *
+	 * @since      0.1
+	 */
+	function secret_key_gui() {
+		$name        = 's3_secret_key';
+		$option      = self::OPTION_PREFIX . $name;
 		$is_disabled = self::is_overloaded( $name );
-	    echo '<input' . disabled( $is_disabled, true, false ) . ' type="password" class="regular-text" name="' . esc_attr( $option ) . '" id="' . esc_attr( $option ) . '" value="' . esc_attr( self::get_aws_secret_key() ) . '" autocomplete="off"> ';
-	    if ( $is_disabled ) {
-		    echo '<p class="description" id="' . esc_attr( $option ) . '">Defined as php constant</p>';
-	    }
-    }
+		echo '<input' . disabled( $is_disabled, true, false ) . ' type="password" class="regular-text" name="' . esc_attr( $option ) . '" id="' . esc_attr( $option ) . '" value="' . esc_attr( self::get_aws_secret_key() ) . '" autocomplete="off"> ';
+		if ( $is_disabled ) {
+			echo '<p class="description" id="' . esc_attr( $option ) . '">Defined as php constant</p>';
+		}
+	}
 
 	function s3_bucket_gui() {
-		$name = 's3_bucket_name';
-		$option = self::OPTION_PREFIX . $name;
+		$name        = 's3_bucket_name';
+		$option      = self::OPTION_PREFIX . $name;
 		$is_disabled = self::is_overloaded( $name );
 		echo '<input' . disabled( $is_disabled, true, false ) . ' type="text" class="regular-text" name="' . esc_attr( $option ) . '" id="' . esc_attr( $option ) . '" value="' . esc_attr( self::get_bucket_name() ) . '" autocomplete="off"> ';
 		if ( $is_disabled ) {
@@ -201,11 +229,11 @@ class AmazonAI_GeneralConfiguration
 		}
 	}
 
-    /**
-     * Render the region input.
-     *
-     * @since      0.1
-     */
+	/**
+	 * Render the region input.
+	 *
+	 * @since      0.1
+	 */
 	function region_gui() {
 		$name            = 's3_region';
 		$option          = self::OPTION_PREFIX . $name;
@@ -232,15 +260,13 @@ class AmazonAI_GeneralConfiguration
 
 
 
-    function general_gui()
-    {
-        //Empty
-    }
+	function general_gui() {
+		//Empty
+	}
 
-    function storage_gui()
-    {
-        //Empty
-    }
+	function storage_gui() {
+		//Empty
+	}
 
 	private static function is_overloaded( $option_slug ): bool {
 		return defined( self::CONST_PREFIX . strtoupper( $option_slug ) );
@@ -277,6 +303,8 @@ class AmazonAI_GeneralConfiguration
 	}
 
 	public static function get_aws_region() {
-		return self::get_option( 's3_region' ) ?: 'us-east-1';
+		$region = self::get_option( 's3_region' );
+
+		return '' === $region ? 'us-east-1' : $region;
 	}
 }

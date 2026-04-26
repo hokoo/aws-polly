@@ -8,8 +8,8 @@
 
 class Amazonpolly_Object_Cache {
 
-	const GROUP = 'amazon_polly';
-	const AUDIO_HEAD_TTL = 300;
+	const GROUP                          = 'amazon_polly';
+	const AUDIO_HEAD_TTL                 = 300;
 	const AUDIO_HEAD_CONTEXT_VERSION_KEY = 'audio_head_context_version';
 
 	/**

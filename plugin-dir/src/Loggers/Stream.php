@@ -10,13 +10,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Stream extends AbstractLogger {
 
-	public function log( $level, $message, array $context = [], string $module = 'general' ) : void {
+	public function log( $level, $message, array $context = array(), string $module = 'general' ) : void {
 		$calling = function () use ( $level, $message, $context, $module ) {
-			$meta = [];
+			$meta = array();
 			if ( ! empty( $context ) ) {
-				$meta = array_map( function ( $value ) {
-					return is_scalar( $value ) ? $value : wp_json_encode( $value, JSON_UNESCAPED_UNICODE );
-				}, $context );
+				$meta = array_map(
+					function ( $value ) {
+						return is_scalar( $value ) ? $value : wp_json_encode( $value, JSON_UNESCAPED_UNICODE );
+					},
+					$context
+				);
 			}
 			do_action( 'itron_aws_polly_stream_logger_write', $level, $message, $meta, $module );
 		};

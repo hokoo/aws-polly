@@ -21,9 +21,9 @@ class Amazonpolly_Public {
 	private $styles_enqueued = false;
 
 	public function __construct( $plugin_name, $version, AmazonAI_Common $common, Amazonpolly_Object_Cache $object_cache ) {
-		$this->plugin_name = $plugin_name;
-		$this->version     = $version;
-		$this->common      = $common;
+		$this->plugin_name  = $plugin_name;
+		$this->version      = $version;
+		$this->common       = $common;
 		$this->object_cache = $object_cache;
 	}
 
@@ -34,7 +34,7 @@ class Amazonpolly_Public {
 	 */
 	public function content_filter( $content ) {
 
-		if (!isset($GLOBALS) || !array_key_exists('post', $GLOBALS)) {
+		if ( ! isset( $GLOBALS ) || ! array_key_exists( 'post', $GLOBALS )) {
 			return $content;
 		}
 
@@ -79,7 +79,7 @@ class Amazonpolly_Public {
 		$voice_by_part = '';
 		if ( $common->is_poweredby_enabled() ) {
 			if ( is_singular() ) {
-				$credit = sprintf(
+				$credit        = sprintf(
 					'<span class="itron-aws-polly-credit-text">%s</span>',
 					esc_html__( 'Text-to-speech via AWS Polly', 'ai-text-to-speech-using-aws-polly' )
 				);
@@ -143,15 +143,15 @@ class Amazonpolly_Public {
 	}
 
 	private function include_coming_soon() {
-		$template = '<div id="amazon-polly-coming-soon">%s</div>';
+		$template         = '<div id="amazon-polly-coming-soon">%s</div>';
 		$coming_soon_text = wpautop( esc_html( (string) get_option( 'amazon_polly_coming_soon_text' ) ) );
 		return sprintf( $template, $coming_soon_text );
 	}
 
 	private function include_audio_player( $audio_location, $autoplay ) {
-		$common = $this->common;
+		$common       = $this->common;
 		$controlsList = '';
-		if ( !$common->is_audio_download_enabled() ) {
+		if ( ! $common->is_audio_download_enabled() ) {
 			$controlsList = ' controlsList="nodownload" ';
 		}
 
