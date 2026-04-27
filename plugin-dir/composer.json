@@ -1,6 +1,7 @@
 {
     "name": "hokoo/aws-polly",
     "description": "AI Text-to-Speech using AWS Polly WordPress plugin.",
+    "license": "GPL-3.0-only",
     "authors": [
         {
             "name": "Igor Tron",
@@ -17,7 +18,7 @@
         "php": ">=8.1",
         "aws/aws-sdk-php": "3.*",
         "hokoo/wp-lock": "^1.1",
-        "psr/log": "^1.1",
+        "psr/log": "^3.0",
         "ext-json": "*"
     },
     "require-dev": {
