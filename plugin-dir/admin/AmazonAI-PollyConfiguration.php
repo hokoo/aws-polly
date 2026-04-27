@@ -125,7 +125,6 @@ class AmazonAI_PollyConfiguration {
 					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_autoplay', array( $this, 'sanitize_checkbox_option' ) );
 					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_coming_soon_text', array( $this, 'sanitize_textarea_option' ) );
 
-					//                  register_setting('amazon_ai_polly', 'amazon_polly_update_all');
 					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_add_post_title', array( $this, 'sanitize_checkbox_option' ) );
 					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_polly_add_post_excerpt', array( $this, 'sanitize_checkbox_option' ) );
 					$this->register_sanitized_setting( 'amazon_ai_polly', 'amazon_ai_medialibrary_enabled', array( $this, 'sanitize_checkbox_option' ) );
