@@ -136,7 +136,7 @@ class AmazonAI_GeneralConfiguration {
 		);
 
 		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
-		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_secret_option' ) );
 		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
 		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
 	}
@@ -173,6 +173,20 @@ class AmazonAI_GeneralConfiguration {
 
 	public function sanitize_text_option( $value ): string {
 		return sanitize_text_field( wp_unslash( (string) $value ) );
+	}
+
+	/**
+	 * Sanitizes the AWS secret key without using sanitize_text_field().
+	 *
+	 * AWS secret keys may contain characters that are valid for credentials but
+	 * can be stripped or altered by text-field sanitization. Keep the secret
+	 * value intact while removing invalid UTF-8 and single-line control chars.
+	 */
+	public function sanitize_secret_option( $value ): string {
+		$value = wp_check_invalid_utf8( wp_unslash( (string) $value ) );
+		$value = str_replace( array( "\r", "\n", "\t", "\0", "\x0B" ), '', $value );
+
+		return trim( $value );
 	}
 
 	public function sanitize_region( $value ): string {

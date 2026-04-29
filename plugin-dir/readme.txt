@@ -4,7 +4,7 @@ Tags: text-to-speech, audio, aws polly, speech synthesis, podcast
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPL-3.0-only
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -57,8 +57,9 @@ AWS Polly is used to convert post content into audio files.
 
 Data sent when audio is generated: the post title, post excerpt, post content prepared for speech synthesis, selected voice and playback settings, selected AWS region, and the AWS credentials you configure for the plugin.
 
-Terms of service: https://aws.amazon.com/service-terms/
+Terms of service: https://aws.amazon.com/service-terms/ (AWS Service Terms, including the AWS Machine Learning and Artificial Intelligence Services section that covers Amazon Polly)
 Privacy policy: https://aws.amazon.com/privacy/
+Additional AWS data privacy information: https://aws.amazon.com/compliance/data-privacy-faq/
 
 = Amazon S3 =
 
@@ -68,8 +69,9 @@ Data sent when audio is generated: the resulting audio files, file names/object 
 
 When S3 storage is enabled and CloudFront is not configured, visitors also download the generated audio files directly from your Amazon S3 bucket when they load a page with audio. Those requests include the audio file URL and standard browser request data such as the visitor IP address and user agent.
 
-Terms of service: https://aws.amazon.com/service-terms/
+Terms of service: https://aws.amazon.com/service-terms/ (AWS Service Terms for AWS services)
 Privacy policy: https://aws.amazon.com/privacy/
+Additional AWS data privacy information: https://aws.amazon.com/compliance/data-privacy-faq/
 
 = Amazon CloudFront =
 
@@ -77,8 +79,9 @@ Amazon CloudFront is used only when you configure a CloudFront domain for audio 
 
 Data sent when visitors load a page with audio: requests for the generated audio files are served through your configured CloudFront distribution. Those requests include the audio file URL and standard browser request data such as the visitor IP address and user agent.
 
-Terms of service: https://aws.amazon.com/service-terms/
+Terms of service: https://aws.amazon.com/service-terms/ (AWS Service Terms, including the Amazon CloudFront section)
 Privacy policy: https://aws.amazon.com/privacy/
+Additional AWS data privacy information: https://aws.amazon.com/compliance/data-privacy-faq/
 
 == Frequently Asked Questions ==
 
@@ -95,6 +98,11 @@ Yes. The plugin supports storing generated audio in Amazon S3 and serving it thr
 Yes. You can enable audio generation for individual posts and the plugin will keep track of queued, running, and ready states.
 
 == Changelog ==
+
+= 1.0.4 =
+
+* Updated the bundled AWS SDK for PHP to the latest stable 3.379.x release.
+* Added dedicated AWS secret key sanitization that preserves valid secret key characters.
 
 = 1.0.3 =
 
