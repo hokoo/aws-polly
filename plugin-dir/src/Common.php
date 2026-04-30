@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Common operations used by the AWS for WordPress plugin.
  *
@@ -9,12 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AmazonAI_Common {
+class Common {
 
 
-	const POLLY_VOICES_TRANSIENT_PREFIX = 'amazon_polly_voices_';
+	const POLLY_VOICES_TRANSIENT_PREFIX = 'itron_polly_tts_voices_';
 	const POLLY_VOICES_TRANSIENT_TTL    = 43200;
-	const AUDIO_STATE_META_KEY          = 'amazon_polly_audio_state';
+	const AUDIO_STATE_META_KEY          = 'itron_polly_tts_audio_state';
 	const AUDIO_STATE_NONE              = 'none';
 	const AUDIO_STATE_QUEUED            = 'queued';
 	const AUDIO_STATE_RUNNING           = 'running';
@@ -313,7 +315,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function __construct() {
-		$this->logger = new AmazonAI_Logger();
+		$this->logger = new Logger();
 	}
 
 	public function prepare_paragraphs( $post_id) {
@@ -432,7 +434,7 @@ class AmazonAI_Common {
 	}
 
 	public function has_post_audio( int $post_id ): bool {
-		return '' !== trim( (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true ) );
+		return '' !== trim( (string) get_post_meta( $post_id, 'itron_polly_tts_audio_link_location', true ) );
 	}
 
 	public function get_post_audio_state( int $post_id ): string {
@@ -481,7 +483,7 @@ class AmazonAI_Common {
 					AND p.post_status NOT IN ('auto-draft', 'trash', 'inherit')
 					AND state_meta.meta_id IS NULL",
 				self::AUDIO_STATE_META_KEY,
-				'amazon_polly_audio_link_location',
+				'itron_polly_tts_audio_link_location',
 				self::AUDIO_STATE_READY,
 				self::AUDIO_STATE_NONE,
 				self::AUDIO_STATE_META_KEY,
@@ -679,7 +681,7 @@ class AmazonAI_Common {
 	}
 
 	public function is_polly_neural_requested() {
-		return ! empty( get_option( 'amazon_polly_neural', '' ) );
+		return ! empty( get_option( 'itron_polly_tts_neural', '' ) );
 	}
 
 	public function is_voice_compatible_with_neural_setting( $voice, $neural_requested = null ) {
@@ -763,7 +765,7 @@ class AmazonAI_Common {
 					return $voice;
 				}
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			return null;
 		}
 
@@ -830,11 +832,11 @@ class AmazonAI_Common {
 
 	public function init() {
 		$aws_sdk_config     = $this->get_aws_sdk_config();
-		$this->sdk          = new Aws\Sdk( $aws_sdk_config );
+		$this->sdk          = new \Aws\Sdk( $aws_sdk_config );
 		$this->polly_client = $this->sdk->createPolly();
 
-		$this->s3_handler         = new AmazonAI_S3FileHandler( $this );
-		$this->local_file_handler = new AmazonAI_LocalFileHandler( $this );
+		$this->s3_handler         = new S3FileHandler( $this );
+		$this->local_file_handler = new LocalFileHandler( $this );
 
 		$this->s3_handler->set_s3_client( $this->sdk->createS3() );
 	}
@@ -935,7 +937,7 @@ class AmazonAI_Common {
 			return false;
 		}
 
-		$value = get_option( 'amazon_polly_auto_breaths', 'on' );
+		$value = get_option( 'itron_polly_tts_auto_breaths', 'on' );
 
 		if ( empty( $value ) ) {
 			$result = false;
@@ -952,7 +954,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function get_post_source_language( $post_id) {
-		$value = get_post_meta( $post_id, 'amazon_ai_source_language', true );
+		$value = get_post_meta( $post_id, 'itron_polly_tts_source_language', true );
 
 		if (empty( $value )) {
 			$value = $this->get_source_language();
@@ -967,7 +969,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function get_source_language() {
-		$value = get_option( 'amazon_ai_source_language', 'en' );
+		$value = get_option( 'itron_polly_tts_source_language', 'en' );
 		if (empty( $value )) {
 			$value = 'en';
 		}
@@ -986,7 +988,7 @@ class AmazonAI_Common {
 
 	public function is_polly_enabled_for_new_posts() {
 		if ( $this->is_polly_enabled() ) {
-			$default_configuration = get_option( 'amazon_polly_defconf' );
+			$default_configuration = get_option( 'itron_polly_tts_defconf' );
 			if ( 'Amazon Polly enabled' === $default_configuration ) {
 				return true;
 			} else {
@@ -996,7 +998,7 @@ class AmazonAI_Common {
 	}
 
 	public function is_audio_download_enabled() {
-			$value = $this->checked_validator( 'amazon_ai_download_enabled' );
+			$value = $this->checked_validator( 'itron_polly_tts_download_enabled' );
 		if ('checked' == trim( $value )) {
 			return true;
 		} else {
@@ -1010,7 +1012,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_logging_enabled() {
-			$value = $this->checked_validator( 'amazon_ai_logging' );
+			$value = $this->checked_validator( 'itron_polly_tts_logging' );
 		if ('checked' == trim( $value )) {
 			return true;
 		} else {
@@ -1029,7 +1031,7 @@ class AmazonAI_Common {
 			return false;
 		}
 
-			$value = $this->checked_validator( 'amazon_ai_polly_enable' );
+			$value = $this->checked_validator( 'itron_polly_tts_polly_enable' );
 		if ('checked' == trim( $value )) {
 			return true;
 		} else {
@@ -1052,8 +1054,8 @@ class AmazonAI_Common {
 
 	public function get_s3_object_link( $post_id, $language) {
 
-		$file_name    = 'amazon_polly_' . $post_id . $language . '.mp3';
-		$s3BucketName = AmazonAI_GeneralConfiguration::get_bucket_name();
+		$file_name    = 'itron_polly_tts_' . $post_id . $language . '.mp3';
+		$s3BucketName = GeneralConfiguration::get_bucket_name();
 
 		if ( get_option( 'uploads_use_yearmonth_folders' ) ) {
 			$key = get_the_date( 'Y', $post_id ) . '/' . get_the_date( 'm', $post_id ) . '/' . $file_name;
@@ -1061,7 +1063,7 @@ class AmazonAI_Common {
 			$key = $file_name;
 		}
 
-		$selected_region     = AmazonAI_GeneralConfiguration::get_aws_region();
+		$selected_region     = GeneralConfiguration::get_aws_region();
 		$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
 
 		return $audio_location_link;
@@ -1074,15 +1076,15 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 * @return bool
 	 */
-	public function validate_amazon_polly_access( $persist_state = true, $show_notices = true ): bool {
+	public function validate_itron_polly_tts_access( $persist_state = true, $show_notices = true ): bool {
 		try {
 			$this->is_s3_enabled() && $this->check_aws_access( $persist_state ) && $this->s3_handler->is_bucket_accessible();
-		} catch (S3BucketNotAccException $e) {
+		} catch (S3BucketNotAccessibleException $e) {
 			if ( $show_notices ) {
 				$this->show_error_notice( 'notice-info', "The S3 bucket doesn't exist or can't be accessed." );
 			}
 			return false;
-		} catch (CredsException $e) {
+		} catch (CredentialsException $e) {
 			if ( $persist_state ) {
 				$this->deactivate_all();
 			}
@@ -1090,12 +1092,12 @@ class AmazonAI_Common {
 				$this->show_error_notice( 'notice-error', "Can't connect to AWS. Check your AWS credentials." );
 			}
 			return false;
-		} catch (S3BucketNotCreException $e) {
+		} catch (S3BucketNotCreatedException $e) {
 			if ( $show_notices ) {
 				$this->show_error_notice( 'notice-error', 'Could not create S3 bucket.' );
 			}
 			return false;
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			if ( $persist_state ) {
 				$this->deactivate_all();
 			}
@@ -1114,7 +1116,7 @@ class AmazonAI_Common {
 
 
 	public function deactivate_polly() {
-		update_option( 'amazon_ai_polly_enable', '' );
+		update_option( 'itron_polly_tts_polly_enable', '' );
 	}
 
 
@@ -1173,7 +1175,7 @@ class AmazonAI_Common {
 
 
 	public function get_sample_rate() {
-		$sample_rate = $this->normalize_sample_rate( get_option( 'amazon_polly_sample_rate' ) );
+		$sample_rate = $this->normalize_sample_rate( get_option( 'itron_polly_tts_sample_rate' ) );
 
 		$this->logger->log( sprintf( '%s Sample rate: %s ', __METHOD__, $sample_rate ) );
 
@@ -1181,7 +1183,7 @@ class AmazonAI_Common {
 	}
 
 	public function get_voice_id() {
-		$voice_id = (string) get_option( 'amazon_polly_voice_id' );
+		$voice_id = (string) get_option( 'itron_polly_tts_voice_id' );
 		if ( empty( $voice_id ) ) {
 			$voice_id = 'Matthew';
 		}
@@ -1190,7 +1192,7 @@ class AmazonAI_Common {
 	}
 
 	public function is_post_voice_override_disabled() {
-		return ! empty( get_option( 'amazon_polly_disable_post_voice_override', '' ) );
+		return ! empty( get_option( 'itron_polly_tts_disable_post_voice_override', '' ) );
 	}
 
 	public function is_post_voice_override_disabled_checked() {
@@ -1198,13 +1200,13 @@ class AmazonAI_Common {
 	}
 
 	/**
-	 * @todo Move to AmazonAI_GeneralConfiguration
+	 * @todo Move to GeneralConfiguration
 	 * Returns the name of the AWS region, which should be used by the plugin.
 	 *
 	 * @since      0.1
 	 */
 	public function get_aws_region() {
-		return AmazonAI_GeneralConfiguration::get_aws_region();
+		return GeneralConfiguration::get_aws_region();
 	}
 
 	public function get_polly_voices( $force_refresh = false ) {
@@ -1229,7 +1231,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function get_posttypes() {
-		return $this->normalize_posttypes( get_option( 'amazon_polly_posttypes', 'post' ) );
+		return $this->normalize_posttypes( get_option( 'itron_polly_tts_posttypes', 'post' ) );
 	}
 
 	/**
@@ -1238,7 +1240,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function get_audio_speed() {
-		return $this->normalize_audio_speed( get_option( 'amazon_polly_speed' ) );
+		return $this->normalize_audio_speed( get_option( 'itron_polly_tts_speed' ) );
 	}
 
 	/**
@@ -1247,7 +1249,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function get_lexicons() {
-		$lexicons = get_option( 'amazon_polly_lexicons', '' );
+		$lexicons = get_option( 'itron_polly_tts_lexicons', '' );
 		$lexicons = trim( $lexicons );
 		return $lexicons;
 	}
@@ -1258,7 +1260,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_poweredby_enabled() {
-		$poweredby = get_option( 'amazon_polly_poweredby', '' );
+		$poweredby = get_option( 'itron_polly_tts_poweredby', '' );
 
 		if (empty( $poweredby )) {
 			$result = false;
@@ -1275,7 +1277,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_ssml_enabled() {
-		$ssml_enabled = get_option( 'amazon_polly_ssml', 'on' );
+		$ssml_enabled = get_option( 'itron_polly_tts_ssml', 'on' );
 		if (empty( $ssml_enabled )) {
 			$result = false;
 		} else {
@@ -1320,16 +1322,16 @@ class AmazonAI_Common {
 	}
 
 	public function get_requested_polly_speaking_style() {
-		$style = get_option( 'amazon_polly_speaking_style', null );
+		$style = get_option( 'itron_polly_tts_speaking_style', null );
 		if ( null !== $style ) {
 			return $this->normalize_polly_speaking_style( $style );
 		}
 
-		if ( ! empty( get_option( 'amazon_polly_news', '' ) ) ) {
+		if ( ! empty( get_option( 'itron_polly_tts_news', '' ) ) ) {
 			return 'news';
 		}
 
-		if ( ! empty( get_option( 'amazon_polly_conversational', '' ) ) ) {
+		if ( ! empty( get_option( 'itron_polly_tts_conversational', '' ) ) ) {
 			return 'conversational';
 		}
 
@@ -1337,8 +1339,8 @@ class AmazonAI_Common {
 	}
 
 	private function sync_legacy_polly_speaking_style_options( $style ) {
-		update_option( 'amazon_polly_news', 'news' === $style ? 'on' : '' );
-		update_option( 'amazon_polly_conversational', 'conversational' === $style ? 'on' : '' );
+		update_option( 'itron_polly_tts_news', 'news' === $style ? 'on' : '' );
+		update_option( 'itron_polly_tts_conversational', 'conversational' === $style ? 'on' : '' );
 	}
 
 	public function sync_polly_speaking_style( $style = null, $persist_style_option = true ) {
@@ -1349,7 +1351,7 @@ class AmazonAI_Common {
 		$style = $this->normalize_polly_speaking_style( $style );
 
 		if ( $persist_style_option ) {
-			update_option( 'amazon_polly_speaking_style', $style );
+			update_option( 'itron_polly_tts_speaking_style', $style );
 		}
 
 		$this->sync_legacy_polly_speaking_style_options( $style );
@@ -1431,7 +1433,7 @@ class AmazonAI_Common {
 
 	public function is_conversational_supported_in_region() {
 
-		$selected_region                  = AmazonAI_GeneralConfiguration::get_aws_region();
+		$selected_region                  = GeneralConfiguration::get_aws_region();
 		$conversational_supported_regions = array( 'us-east-1', 'us-west-2', 'eu-west-1' );
 
 		if (in_array( $selected_region, $conversational_supported_regions )) {
@@ -1443,7 +1445,7 @@ class AmazonAI_Common {
 
 	public function is_neural_supported_in_region() {
 
-		$selected_region          = AmazonAI_GeneralConfiguration::get_aws_region();
+		$selected_region          = GeneralConfiguration::get_aws_region();
 		$neural_supported_regions = array( 'us-east-1', 'us-west-2', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'us-gov-west-1' );
 
 		if (in_array( $selected_region, $neural_supported_regions )) {
@@ -1495,7 +1497,7 @@ class AmazonAI_Common {
 		}
 
 		$neural_only_voices = array( 'Olivia', 'Kevin', 'Gabrielle' );
-		$logger             = new AmazonAI_Logger();
+		$logger             = new Logger();
 		$voice_data         = $this->get_polly_voice( $voice );
 
 		$logger->log( 'Checking for neural: ' . $voice );
@@ -1543,7 +1545,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_medialibrary_enabled() {
-		$value = get_option( 'amazon_ai_medialibrary_enabled' );
+		$value = get_option( 'itron_polly_tts_medialibrary_enabled' );
 		if (empty( $value )) {
 			$result = false;
 		} else {
@@ -1559,7 +1561,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_s3_enabled() {
-		$value = get_option( 'amazon_polly_s3', 'on' );
+		$value = get_option( 'itron_polly_tts_s3', 'on' );
 		if (empty( $value )) {
 			$result = false;
 		} else {
@@ -1578,14 +1580,14 @@ class AmazonAI_Common {
 		try {
 			$voice_list = $this->get_polly_voices( true );
 			if ( $persist_state ) {
-				update_option( 'amazon_polly_valid_keys', '1' );
+				update_option( 'itron_polly_tts_valid_keys', '1' );
 			}
 			return true;
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			if ( $persist_state ) {
-				update_option( 'amazon_polly_valid_keys', '0' );
+				update_option( 'itron_polly_tts_valid_keys', '0' );
 			}
-			throw new CredsException( 'Could not connect to AWS. Check your AWS credentials.' );
+			throw new CredentialsException( 'Could not connect to AWS. Check your AWS credentials.' );
 		}
 	}
 
@@ -1596,13 +1598,13 @@ class AmazonAI_Common {
 	 */
 	private function get_aws_sdk_config( $region = null) {
 		$aws_sdk_config = array(
-			'region'    => AmazonAI_GeneralConfiguration::get_aws_region(),
+			'region'    => GeneralConfiguration::get_aws_region(),
 			'version'   => 'latest',
 			'ua_append' => array( 'request-source/aws-for-wordpress' ),
 		);
 		$credentials    = false;
-		$aws_access_key = AmazonAI_GeneralConfiguration::get_aws_access_key();
-		$aws_secret_key = AmazonAI_GeneralConfiguration::get_aws_secret_key();
+		$aws_access_key = GeneralConfiguration::get_aws_access_key();
+		$aws_secret_key = GeneralConfiguration::get_aws_secret_key();
 
 		if ($aws_access_key && $aws_secret_key) {
 			$credentials = array(
@@ -1611,7 +1613,7 @@ class AmazonAI_Common {
 			);
 		}
 
-		$credentials = apply_filters( 'amazon_polly_aws_sdk_credentials', $credentials );
+		$credentials = apply_filters( 'itron_polly_tts_aws_sdk_credentials', $credentials );
 
 		if ( $credentials ) {
 			$aws_sdk_config['credentials'] = $credentials;
@@ -1632,7 +1634,7 @@ class AmazonAI_Common {
 	public function get_price_message_for_update_all() {
 		$post_types_supported = $this->get_posttypes_array();
 		$number_of_characters = 0;
-		$posts_per_page       = apply_filters( 'amazon_polly_posts_per_page', 5 );
+		$posts_per_page       = apply_filters( 'itron_polly_tts_posts_per_page', 5 );
 		$count_posts          = wp_count_posts()->publish;
 		$max_count_posts      = 100;
 
@@ -1642,7 +1644,7 @@ class AmazonAI_Common {
 		$post_count = 0;
 		do {
 			$paged++;
-			$wp_query        = new WP_Query(
+			$wp_query        = new \WP_Query(
 				array(
 					'posts_per_page' => $posts_per_page,
 					'post_type'      => $post_types_supported,
@@ -1676,7 +1678,7 @@ class AmazonAI_Common {
 
 		// Price for converting single character according to Amazon Polly pricing.
 
-		$amazon_polly_price = 0.000004;
+		$itron_polly_tts_price = 0.000004;
 
 		// Estimating average number of characters per post.
 
@@ -1688,7 +1690,7 @@ class AmazonAI_Common {
 
 		// Estimating the total price of convertion of all posts.
 
-		$total_price = 2 * $amazon_polly_price * $count_posts * $post_chars_count_avg;
+		$total_price = 2 * $itron_polly_tts_price * $count_posts * $post_chars_count_avg;
 		$message     = 'You are about to convert ' . number_format( $count_posts, 0, '.', ',' ) . ' pieces of text-based content, which totals approximately ' . number_format( $number_of_characters, 0, '.', ',' ) . ' characters. Based on the Amazon Polly pricing ($4 dollars per 1 million characters) it will cost you about $' . $total_price . ' to convert all of your content into to speech-based audio. Some or all of your costs might be covered by the Free Tier (conversion of 5 million characters per month for free, for the first 12 months, starting from the first request for speech). For more information, see https://aws.amazon.com/polly/';
 		return $message;
 	}
@@ -1765,7 +1767,7 @@ class AmazonAI_Common {
 
 		$parts = $this->modify_speed( $parts );
 
-		$logger = new AmazonAI_Logger();
+		$logger = new Logger();
 
 		foreach ($parts as $part) {
 			$logger->log( sprintf( '%s <<< PART >>> ', __METHOD__ ) );
@@ -1813,7 +1815,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_excerpt_adder_enabled() {
-		$value = get_option( 'amazon_polly_add_post_excerpt', 'on' );
+		$value = get_option( 'itron_polly_tts_add_post_excerpt', 'on' );
 		if (empty( $value )) {
 			$result = false;
 		} else {
@@ -1868,7 +1870,7 @@ class AmazonAI_Common {
 		}
 
 		$clean_text = $clean_text . get_post_field( 'post_content', $post_id );
-		$clean_text = apply_filters( 'amazon_polly_content', $clean_text );
+		$clean_text = apply_filters( 'itron_polly_tts_content', $clean_text );
 
 		if ($only_title) {
 			$clean_text = get_the_title( $post_id );
@@ -1947,14 +1949,14 @@ class AmazonAI_Common {
 
 	private function get_audio_state_meta_keys() {
 		return array(
-			'amazon_polly_audio_link_location',
-			'amazon_polly_audio_location',
-			'amazon_polly_generated_voice_id',
-			'amazon_polly_audio_playtime',
-			'amazon_polly_audio_hash',
-			'amazon_polly_media_library_attachment_id',
-			'amazon_polly_settings_hash',
-			'amazon_polly_transcript_source_lan',
+			'itron_polly_tts_audio_link_location',
+			'itron_polly_tts_audio_location',
+			'itron_polly_tts_generated_voice_id',
+			'itron_polly_tts_audio_playtime',
+			'itron_polly_tts_audio_hash',
+			'itron_polly_tts_media_library_attachment_id',
+			'itron_polly_tts_settings_hash',
+			'itron_polly_tts_transcript_source_lan',
 		);
 	}
 
@@ -1976,17 +1978,17 @@ class AmazonAI_Common {
 		}
 
 		foreach ( $this->get_all_polly_languages() as $language_code ) {
-			delete_post_meta( $post_id, 'amazon_polly_translation_' . $language_code );
-			delete_post_meta( $post_id, 'amazon_polly_transcript_' . $language_code );
+			delete_post_meta( $post_id, 'itron_polly_tts_translation_' . $language_code );
+			delete_post_meta( $post_id, 'itron_polly_tts_transcript_' . $language_code );
 		}
 	}
 
 	public function clear_post_audio_runtime_cache( int $post_id ): void {
-		do_action( 'amazon_polly_clear_post_audio_runtime_cache', $post_id );
+		do_action( 'itron_polly_tts_clear_post_audio_runtime_cache', $post_id );
 	}
 
 	public function clear_post_audio_state( int $post_id ): void {
-		$media_library_att_id = (int) get_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', true );
+		$media_library_att_id = (int) get_post_meta( $post_id, 'itron_polly_tts_media_library_attachment_id', true );
 		if ( $media_library_att_id > 0 ) {
 			wp_delete_attachment( $media_library_att_id, true );
 		}
@@ -2009,12 +2011,12 @@ class AmazonAI_Common {
 			// Deleting audio file.
 			$this->init();
 
-			$audio_location = get_post_meta( $post_id, 'amazon_polly_audio_location', true );
-			$file           = 'amazon_polly_' . $post_id . '.mp3';
+			$audio_location = get_post_meta( $post_id, 'itron_polly_tts_audio_location', true );
+			$file           = 'itron_polly_tts_' . $post_id . '.mp3';
 			$wp_filesystem  = $this->prepare_wp_filesystem();
 			$file_handler   = $this->get_file_handler_for_audio_location( $audio_location );
 			$file_handler->delete( $wp_filesystem, $file, $post_id );
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			$deletion_error = $e;
 		}
 
@@ -2022,7 +2024,7 @@ class AmazonAI_Common {
 
 		if ( $deletion_error ) {
 			$this->show_error_notice( 'notice-error', 'Encountered an error while deleting the file.' );
-			$logger = new AmazonAI_Logger();
+			$logger = new Logger();
 			$logger->log( sprintf( '%s Delete post audio failed: %s', __METHOD__, $deletion_error->getMessage() ) );
 		}
 
@@ -2067,7 +2069,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function is_title_adder_enabled() {
-		$value = get_option( 'amazon_polly_add_post_title', 'on' );
+		$value = get_option( 'itron_polly_tts_add_post_title', 'on' );
 		if (empty( $value )) {
 			$result = false;
 		} else {
@@ -2087,7 +2089,7 @@ class AmazonAI_Common {
 		if ( $this->is_ssml_enabled() && wp_script_is( 'quicktags' ) ) {
 			wp_add_inline_script(
 				'quicktags',
-				"QTags.addButton('itron_aws_polly_ssml_break', 'SSML Break', '<ssml><break time=\"1s\"/></ssml>', '', '', 'AWS Polly SSML Break Tag', 111);"
+				"QTags.addButton('itron_polly_tts_ssml_break', 'SSML Break', '<ssml><break time=\"1s\"/></ssml>', '', '', 'AWS Polly SSML Break Tag', 111);"
 			);
 		}
 	}
@@ -2145,7 +2147,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function get_skiptags_array() {
-		$array = get_option( 'amazon_ai_skip_tags' );
+		$array = get_option( 'itron_polly_tts_skip_tags' );
 		$array = explode( ' ', $array );
 
 		return $array;
@@ -2160,7 +2162,7 @@ class AmazonAI_Common {
 	public function get_posttypes_array() {
 		$posttypes_array = explode( ' ', $this->get_posttypes() );
 		$posttypes_array = array_values( array_filter( $posttypes_array ) );
-		$posttypes_array = apply_filters( 'amazon_polly_post_types', $posttypes_array );
+		$posttypes_array = apply_filters( 'itron_polly_tts_post_types', $posttypes_array );
 
 		return $posttypes_array;
 
@@ -2172,7 +2174,7 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	private function get_asset_version( string $relative_path ): string {
-		$asset_path = plugin_dir_path( __FILE__ ) . ltrim( $relative_path, '/' );
+		$asset_path = plugin_dir_path( dirname( __DIR__ ) . '/itron-polly-tts.php' ) . 'admin/' . ltrim( $relative_path, '/' );
 
 		if ( file_exists( $asset_path ) ) {
 			return (string) filemtime( $asset_path );
@@ -2182,8 +2184,9 @@ class AmazonAI_Common {
 	}
 
 	public function enqueue_styles() {
-		wp_enqueue_style( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'css/amazonpolly-admin.css', array(), $this->get_asset_version( 'css/amazonpolly-admin.css' ), 'all' );
-		wp_enqueue_style( 'itron-aws-polly-font-awesome', plugin_dir_url( __FILE__ ) . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
+		$admin_asset_url = plugin_dir_url( dirname( __DIR__ ) . '/itron-polly-tts.php' ) . 'admin/';
+		wp_enqueue_style( 'itron-polly-tts-admin', $admin_asset_url . 'css/itron-polly-tts-admin.css', array(), $this->get_asset_version( 'css/itron-polly-tts-admin.css' ), 'all' );
+		wp_enqueue_style( 'itron-polly-tts-font-awesome', $admin_asset_url . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
 		wp_enqueue_style( 'jquery-ui-core' );
 		wp_enqueue_style( 'jquery-ui-progressbar' );
 	}
@@ -2194,15 +2197,16 @@ class AmazonAI_Common {
 	 * @since      0.1
 	 */
 	public function enqueue_scripts() {
-		wp_enqueue_script( 'itron-aws-polly-admin', plugin_dir_url( __FILE__ ) . 'js/amazonpolly-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/amazonpolly-admin.js' ), false );
+		$admin_asset_url = plugin_dir_url( dirname( __DIR__ ) . '/itron-polly-tts.php' ) . 'admin/';
+		wp_enqueue_script( 'itron-polly-tts-admin', $admin_asset_url . 'js/itron-polly-tts-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/itron-polly-tts-admin.js' ), false );
 		wp_enqueue_script( 'jquery-ui-core' );
 		wp_enqueue_script( 'jquery-ui-progressbar' );
 		wp_localize_script(
-			'itron-aws-polly-admin',
-			'itronAwsPollyAdmin',
+			'itron-polly-tts-admin',
+			'itronPollyTTSAdmin',
 			array(
-				'ajaxAction' => 'itron_aws_polly_transcribe',
-				'ajaxNonce'  => wp_create_nonce( 'pollyajaxnonce' ),
+				'ajaxAction' => 'itron_polly_tts_transcribe',
+				'ajaxNonce'  => wp_create_nonce( 'itron_polly_tts_ajax' ),
 			)
 		);
 
@@ -2217,10 +2221,10 @@ class AmazonAI_Common {
 
 		$post_types_supported = $this->get_posttypes_array();
 
-		$meta_box = new AmazonAI_PostMetaBox( $this );
+		$meta_box = new PostMetaBox( $this );
 
 		add_meta_box(
-			'amazon_polly_box_id',
+			'itron_polly_tts_box_id',
 			// This is HTML id of the box on edit screen.
 			'Amazon Polly',
 			// Title of the box.
@@ -2236,7 +2240,7 @@ class AmazonAI_Common {
 	}
 
 	public function add_settings_link( $links) {
-		$settings_link = '<a href="admin.php?page=amazon_ai">Settings</a>';
+		$settings_link = '<a href="admin.php?page=itron_polly_tts">Settings</a>';
 		array_push( $links, $settings_link );
 		return $links;
 	}

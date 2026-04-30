@@ -1,27 +1,27 @@
-#amazon-polly-audio-table {
+#itron-polly-tts-audio-table {
 	display:table;
 	width:100%;
 	border: 0 !important;
 }
-#amazon-polly-audio-table tbody {
+#itron-polly-tts-audio-table tbody {
 	border: 0 !important;
 }
-#amazon-polly-audio-table tr {
+#itron-polly-tts-audio-table tr {
 	border: 0 !important;
 }
-#amazon-polly-audio-tab {
+#itron-polly-tts-audio-tab {
 width: auto;
 display:table-cell;
 border: 0;
 }
-#amazon-ai-player-label {
+#itron-polly-tts-player-label {
 font-size: 80%;
 font-family: "Arial", Helvetica, sans-serif;
 }
-#amazon-polly-by-tab {
+#itron-polly-tts-by-tab {
 font-size: .6em;
 text-align: right;
 }
-.amazon-ai-player {
+.itron-polly-tts-player {
 width: 100%;
 }

@@ -1,6 +1,8 @@
 <?php
 
-use iTRON\AWS\Polly\Factory;
+namespace iTRON\PollyTTS;
+
+use iTRON\PollyTTS\Factory;
 use Psr\Log\LogLevel;
 
 /**
@@ -9,7 +11,7 @@ use Psr\Log\LogLevel;
  * @since      0.1
  *
  */
-class AmazonAI_Logger {
+class Logger {
 	public function log( $log ) {
 		Factory::getLogger()->log( LogLevel::DEBUG, $log );
 	}

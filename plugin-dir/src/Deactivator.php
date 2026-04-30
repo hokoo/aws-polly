@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Fired during plugin deactivation
  *
@@ -14,7 +16,7 @@
  * @since      0.1
  * @author     iTRON
  */
-class Amazonpolly_Deactivator {
+class Deactivator {
 
 	/**
 	 * Short Description. (use period)

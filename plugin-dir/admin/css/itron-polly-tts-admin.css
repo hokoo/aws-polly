@@ -6,16 +6,16 @@
   position: relative;
   margin-top: 1em;
 }
-#amazon-polly-progressbar {
+#itron-polly-tts-progressbar {
   height: 24px;
   border: 1px solid #ccd0d4;
   background: #f0f0f1;
 }
-#amazon-polly-progressbar .ui-progressbar-value {
+#itron-polly-tts-progressbar .ui-progressbar-value {
   height: 100%;
   background: #2271b1;
 }
-.amazon-polly-progress-label {
+.itron-polly-tts-progress-label {
   position: absolute;
   left: 45%;
   top: 4px;
@@ -23,10 +23,10 @@
   text-shadow: 1px 1px 0 #fff;
   display: none;
 }
-#label_amazon_polly_update_all, #amazon_polly_update_all_pricing_message {
+#label_itron_polly_tts_update_all, #itron_polly_tts_update_all_pricing_message {
   display: none;
 }
-#amazon-polly-translate-reminder {
+#itron-polly-tts-translate-reminder {
   font-size: .8em;
   color: blue;
 }

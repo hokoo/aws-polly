@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  *
  *
@@ -6,7 +8,7 @@
  *
  */
 
-abstract class AmazonAI_FileHandler {
+abstract class FileHandler {
 
 	abstract public function save( $wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name);
 	abstract public function delete( $wp_filesystem, $file, $post_id);
@@ -24,6 +26,6 @@ abstract class AmazonAI_FileHandler {
 		 *
 		 * @param string $prefix The file prefix
 		 */
-		return apply_filters( 'amazon_polly_file_prefix', $prefix );
+		return apply_filters( 'itron_polly_tts_file_prefix', $prefix );
 	}
 }

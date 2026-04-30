@@ -1,16 +1,16 @@
 /**
  * Admin-facing JavaScript for AWS Text-to-Speech plugin.
  *
- * @package    Amazonpolly
- * @subpackage Amazonpolly/admin/js
+ * @package    iTRON_Polly_TTS
+ * @subpackage iTRON_Polly_TTS/admin/js
  */
 
 	(function( $ ) {
 		'use strict';
-		var adminConfig = window.itronAwsPollyAdmin || {};
+		var adminConfig = window.itronPollyTTSAdmin || {};
 
 		function getSelectedPollyVoiceOption() {
-			var voiceSelect = $( '#amazon_polly_voice_id' );
+			var voiceSelect = $( '#itron_polly_tts_voice_id' );
 			if ( ! voiceSelect.length ) {
 				return $();
 			}
@@ -19,11 +19,11 @@
 		}
 
 		function getSelectedPollySpeakingStyleInput() {
-			return $( 'input[name="amazon_polly_speaking_style"]:checked' );
+			return $( 'input[name="itron_polly_tts_speaking_style"]:checked' );
 		}
 
 		function getFirstPollyVoiceValue( predicate ) {
-			var voiceSelect = $( '#amazon_polly_voice_id' );
+			var voiceSelect = $( '#itron_polly_tts_voice_id' );
 			var fallbackValue = null;
 			if ( ! voiceSelect.length ) {
 				return fallbackValue;
@@ -47,8 +47,8 @@
 		}
 
 		function syncPollyVoiceSelectWithNeural( triggerSource ) {
-			var neuralCheckbox = $( '#amazon_polly_neural' );
-			var voiceSelect = $( '#amazon_polly_voice_id' );
+			var neuralCheckbox = $( '#itron_polly_tts_neural' );
+			var voiceSelect = $( '#itron_polly_tts_voice_id' );
 			var selectedOption;
 			var isNeuralOnly;
 			var supportsNeural;
@@ -73,7 +73,7 @@
 					neuralCheckbox.prop( 'checked', true );
 				} else if ( supportsStandard && ! supportsNeural && neuralCheckbox.is( ':checked' ) ) {
 					neuralCheckbox.prop( 'checked', false );
-					$( '#amazon_polly_speaking_style_default' ).prop( 'checked', true );
+					$( '#itron_polly_tts_speaking_style_default' ).prop( 'checked', true );
 				}
 			}
 
@@ -95,7 +95,7 @@
 				}
 
 				if ( ! neuralCheckbox.is( ':checked' ) ) {
-					$( '#amazon_polly_speaking_style_default' ).prop( 'checked', true );
+					$( '#itron_polly_tts_speaking_style_default' ).prop( 'checked', true );
 				}
 			}
 		}
@@ -107,9 +107,9 @@
 				return;
 			}
 
-			var input = container.find( '.amazon-polly-dynamic-option-input' );
-			var description = container.find( '.amazon-polly-dynamic-option-description' );
-			var statusMessage = container.find( '.amazon-polly-dynamic-option-message' );
+			var input = container.find( '.itron-polly-tts-dynamic-option-input' );
+			var description = container.find( '.itron-polly-tts-dynamic-option-description' );
+			var statusMessage = container.find( '.itron-polly-tts-dynamic-option-message' );
 
 			if ( isAvailable ) {
 				input.show();
@@ -134,17 +134,17 @@
 
 			var supportsNews = '1' === String( selectedOption.data( 'supports-news' ) );
 			var supportsConversational = '1' === String( selectedOption.data( 'supports-conversational' ) );
-			var neuralCheckbox = $( '#amazon_polly_neural' );
+			var neuralCheckbox = $( '#itron_polly_tts_neural' );
 			var neuralRequested = neuralCheckbox.length && ! neuralCheckbox.prop( 'disabled' ) && neuralCheckbox.is( ':checked' );
-			var neuralContainer = $( '#amazon_polly_neural_ui' );
-			var speakingStyleContainer = $( '#amazon_polly_speaking_style_ui' );
+			var neuralContainer = $( '#itron_polly_tts_neural_ui' );
+			var speakingStyleContainer = $( '#itron_polly_tts_speaking_style_ui' );
 			var isNeuralRegionSupported = '1' === String( neuralContainer.data( 'region-supported' ) );
-			var styleInput = speakingStyleContainer.find( '.amazon-polly-dynamic-option-input' );
-			var styleDescription = speakingStyleContainer.find( '.amazon-polly-dynamic-option-description' );
-			var styleMessage = speakingStyleContainer.find( '.amazon-polly-dynamic-option-message' );
-			var newsChoice = speakingStyleContainer.find( '.amazon-polly-style-choice-news' );
-			var conversationalChoice = speakingStyleContainer.find( '.amazon-polly-style-choice-conversational' );
-			var defaultChoice = speakingStyleContainer.find( '.amazon-polly-style-choice-default input' );
+			var styleInput = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-input' );
+			var styleDescription = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-description' );
+			var styleMessage = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-message' );
+			var newsChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-news' );
+			var conversationalChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-conversational' );
+			var defaultChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-default input' );
 			var selectedStyle = getSelectedPollySpeakingStyleInput().val() || '';
 			var hasSupportedStyle = supportsNews || supportsConversational;
 			var canShowStyles = isNeuralRegionSupported && neuralRequested && hasSupportedStyle;
@@ -154,7 +154,7 @@
 			if ( neuralContainer.length ) {
 				var supportsNeural = '1' === String( selectedOption.data( 'supports-neural' ) );
 				syncPollyDynamicOption(
-					'amazon_polly_neural',
+					'itron_polly_tts_neural',
 					isNeuralRegionSupported && supportsNeural,
 					isNeuralRegionSupported ? neuralContainer.data( 'message-voice' ) : neuralContainer.data( 'message-region' )
 				);
@@ -195,7 +195,7 @@
 			styleDescription.hide();
 			styleMessage.text( styleUnavailableMessage || '' ).show();
 			defaultChoice.prop( 'disabled', false );
-			speakingStyleContainer.find( 'input[name="amazon_polly_speaking_style"]' ).not( defaultChoice ).prop( 'disabled', true );
+			speakingStyleContainer.find( 'input[name="itron_polly_tts_speaking_style"]' ).not( defaultChoice ).prop( 'disabled', true );
 		}
 
 		function refreshPollySettingsUi( triggerSource ) {
@@ -203,30 +203,30 @@
 			syncPollySpeakingStyleState();
 		}
 
-		function amazonPollyProcessStep() {
-			var amazonPollyProgressbar = $( "#amazon-polly-progressbar" );
+		function itronPollyTTSProcessStep() {
+			var itronPollyTTSProgressbar = $( "#itron-polly-tts-progressbar" );
 
 			$.ajax({
 				type: 'POST',
 				url: ajaxurl,
 				data: {
-					action: adminConfig.ajaxAction || 'itron_aws_polly_transcribe',
+					action: adminConfig.ajaxAction || 'itron_polly_tts_transcribe',
 					nonce: adminConfig.ajaxNonce || '',
 				},
 				dataType: "json",
 				beforeSend: function() {
-					$('.amazon-polly-progress-label').show();
+					$('.itron-polly-tts-progress-label').show();
 				},
 				success: function( response ) {
 					if( 'done' != response.step ) {
-						amazonPollyProcessStep();
+						itronPollyTTSProcessStep();
 					}
 
-					$( "#amazon-polly-progressbar" ).progressbar({
+					$( "#itron-polly-tts-progressbar" ).progressbar({
 						value: response.percentage
 					});
 
-					amazonPollyProgressbar.progressbar( "value", response.percentage);
+					itronPollyTTSProgressbar.progressbar( "value", response.percentage);
 				}
 			}).fail(function (response) {
 				if ( window.console && window.console.log ) {
@@ -239,12 +239,12 @@
 			var form = document.querySelector( '.wrap form' );
 			var targetUrl = adminConfig.findPostsWithoutAudioUrl || '';
 
-			if ( ! form || ! targetUrl || document.getElementById( 'itron-aws-polly-find-posts-panel' ) ) {
+			if ( ! form || ! targetUrl || document.getElementById( 'itron-polly-tts-find-posts-panel' ) ) {
 				return;
 			}
 
 			var panel = document.createElement( 'div' );
-			panel.id = 'itron-aws-polly-find-posts-panel';
+			panel.id = 'itron-polly-tts-find-posts-panel';
 			panel.style.marginTop = '20px';
 			panel.style.padding = '15px';
 			panel.style.background = '#fff';
@@ -262,95 +262,95 @@
 		function(){
 			injectFindPostsWithoutAudioPanel();
 
-			var amazonPollyProgressbar = $( "#amazon-polly-progressbar" );
-			var amazonPollyProgressLabel = $( ".amazon-polly-progress-label" );
+			var itronPollyTTSProgressbar = $( "#itron-polly-tts-progressbar" );
+			var itronPollyTTSProgressLabel = $( ".itron-polly-tts-progress-label" );
 
-			$( '#amazon_polly_batch_transcribe' ).click(
+			$( '#itron_polly_tts_batch_transcribe' ).click(
 				function(){
-					$('#amazon_polly_batch_transcribe').hide();
+					$('#itron_polly_tts_batch_transcribe').hide();
 
-					amazonPollyProgressbar.progressbar({
+					itronPollyTTSProgressbar.progressbar({
 						value: false,
 						change: function() {
-							amazonPollyProgressLabel.text( "Starting" );
+							itronPollyTTSProgressLabel.text( "Starting" );
 						},
 						complete: function() {
-							amazonPollyProgressLabel.text( "Complete!" );
+							itronPollyTTSProgressLabel.text( "Complete!" );
 						}
 					});
-					amazonPollyProcessStep();
+					itronPollyTTSProcessStep();
 				}
 			);
 
-			$( '#amazon_polly_s3' ).change(
+			$( '#itron_polly_tts_s3' ).change(
 				function() {
-					if ($( "#amazon_polly_s3" ).is( ':checked' )) {
-						$( "#amazon_polly_s3_bucket_name_box" ).show();
+					if ($( "#itron_polly_tts_s3" ).is( ':checked' )) {
+						$( "#itron_polly_tts_s3_bucket_name_box" ).show();
 					} else {
-						$( "#amazon_polly_s3_bucket_name_box" ).hide();
+						$( "#itron_polly_tts_s3_bucket_name_box" ).hide();
 					}
 				}
 			);
 
-			$( '#amazon_polly_bulk_update_div' ).hide();
-			$( '#amazon_ai_plugin_cost_info' ).hide();
+			$( '#itron_polly_tts_bulk_update_div' ).hide();
+			$( '#itron_polly_tts_plugin_cost_info' ).hide();
 
-			$( '#amazon_polly_enable' ).change(
+			$( '#itron_polly_tts_enable' ).change(
 				function() {
-					if ($( "#amazon_polly_enable" ).is( ':checked' )) {
-						$( "#amazon_polly_post_options" ).show();
+					if ($( "#itron_polly_tts_enable" ).is( ':checked' )) {
+						$( "#itron_polly_tts_post_options" ).show();
 					} else {
-						$( "#amazon_polly_post_options" ).hide();
+						$( "#itron_polly_tts_post_options" ).hide();
 					}
 				}
 			);
 
-			$( '.wrap input, .wrap select' ).not('#amazon_polly_update_all').change(
+			$( '.wrap input, .wrap select' ).not('#itron_polly_tts_update_all').change(
 				function() {
-					$( '#amazon_polly_update_all' ).prop("disabled", true);
-					$( '#amazon_polly_update_all' ).show();
-					$( '#label_amazon_polly_update_all' ).show();
-					$( '#amazon_polly_bulk_update_div' ).hide();
-					$( '#amazon_polly_update_all_pricing_message' ).hide();
+					$( '#itron_polly_tts_update_all' ).prop("disabled", true);
+					$( '#itron_polly_tts_update_all' ).show();
+					$( '#label_itron_polly_tts_update_all' ).show();
+					$( '#itron_polly_tts_bulk_update_div' ).hide();
+					$( '#itron_polly_tts_update_all_pricing_message' ).hide();
 				}
 			);
 
-			$( '#amazon_polly_update_all' ).click(
+			$( '#itron_polly_tts_update_all' ).click(
 				function(e) {
 					e.stopPropagation();
 					e.preventDefault();
 
-					$( '#amazon_polly_update_all' ).hide();
-					$( "#amazon_polly_bulk_update_div" ).show();
-					$( '#amazon_polly_update_all_pricing_message' ).show();
+					$( '#itron_polly_tts_update_all' ).hide();
+					$( "#itron_polly_tts_bulk_update_div" ).show();
+					$( '#itron_polly_tts_update_all_pricing_message' ).show();
 				}
 			);
 
-			$( '#amazon_polly_price_checker_button' ).click(
+			$( '#itron_polly_tts_price_checker_button' ).click(
 				function(){
-					if ( $('#amazon_ai_plugin_cost_info').is(":hidden") ) {
-						$( '#amazon_ai_plugin_cost_info' ).show();
+					if ( $('#itron_polly_tts_plugin_cost_info').is(":hidden") ) {
+						$( '#itron_polly_tts_plugin_cost_info' ).show();
 					} else {
-						$( '#amazon_ai_plugin_cost_info' ).hide();
+						$( '#itron_polly_tts_plugin_cost_info' ).hide();
 					}
 				}
 			);
 
 			refreshPollySettingsUi( 'init' );
 
-			$( '#amazon_polly_neural' ).change(
+			$( '#itron_polly_tts_neural' ).change(
 				function() {
 					refreshPollySettingsUi( 'neural' );
 				}
 			);
 
-			$( '#amazon_polly_voice_id' ).change(
+			$( '#itron_polly_tts_voice_id' ).change(
 				function() {
 					refreshPollySettingsUi( 'voice' );
 				}
 			);
 
-			$( 'input[name="amazon_polly_speaking_style"]' ).change(
+			$( 'input[name="itron_polly_tts_speaking_style"]' ).change(
 				function() {
 					refreshPollySettingsUi( 'style' );
 				}

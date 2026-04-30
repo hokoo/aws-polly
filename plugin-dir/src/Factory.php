@@ -1,8 +1,8 @@
 <?php
 
-namespace iTRON\AWS\Polly;
+namespace iTRON\PollyTTS;
 
-use iTRON\AWS\Polly\Loggers\Stream;
+use iTRON\PollyTTS\Loggers\Stream;
 use Psr\Log\LoggerInterface;
 class Factory {
 	private static LoggerInterface $logger;
@@ -12,7 +12,7 @@ class Factory {
 			return self::$logger;
 		}
 
-		self::$logger = apply_filters( 'itron_aws_polly_get_logger', new Stream() );
+		self::$logger = apply_filters( 'itron_polly_tts_get_logger', new Stream() );
 
 		return self::$logger;
 	}

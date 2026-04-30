@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Register all actions and filters for the plugin
  *
@@ -19,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Amazonpolly_Loader {
+class HookLoader {
 
 	/**
 	 * The array of actions registered with WordPress.

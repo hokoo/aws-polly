@@ -1,15 +1,17 @@
 <?php
 
+namespace iTRON\PollyTTS;
+
 /**
  * Post meta box to enable/disable polly
  */
-class AmazonAI_PostMetaBox {
+class PostMetaBox {
 	/**
-	 * @var AmazonAI_Common
+	 * @var Common
 	 */
 	private $common;
 
-	public function __construct( AmazonAI_Common $common) {
+	public function __construct( Common $common) {
 		$this->common = $common;
 	}
 
@@ -66,12 +68,12 @@ class AmazonAI_PostMetaBox {
 	 * @since      0.1
 	 */
 	public function display_polly_gui( $post) {
-		$nonce = wp_create_nonce( 'amazon-polly' );
+		$nonce = wp_create_nonce( 'itron-polly-tts' );
 
-		echo '<input type="hidden" name="amazon-polly-post-nonce" value="' . esc_attr( $nonce ) . '" />';
+		echo '<input type="hidden" name="itron-polly-tts-post-nonce" value="' . esc_attr( $nonce ) . '" />';
 
 		if ($this->common->is_polly_enabled()) {
-			$is_polly_enabled_for_post = get_post_meta( $post->ID, 'amazon_polly_enable', true );
+			$is_polly_enabled_for_post = get_post_meta( $post->ID, 'itron_polly_tts_enable', true );
 			if ('1' === $is_polly_enabled_for_post) {
 				$polly_checked = 'checked';
 			} elseif ('0' === $is_polly_enabled_for_post) {
@@ -86,12 +88,12 @@ class AmazonAI_PostMetaBox {
 
 			$post_options_visibility = '';
 
-			echo '<p><input type="checkbox" name="amazon_polly_enable" id="amazon_polly_enable" value="1"  ' . esc_attr( $polly_checked ) . '/><label for="amazon_polly_enable">Enable Text-To-Speech (Amazon Polly)</label> </p>';
-			echo '<div id="amazon_polly_post_options" style="' . esc_attr( $post_options_visibility ) . '">';
+			echo '<p><input type="checkbox" name="itron_polly_tts_enable" id="itron_polly_tts_enable" value="1"  ' . esc_attr( $polly_checked ) . '/><label for="itron_polly_tts_enable">Enable Text-To-Speech (Amazon Polly)</label> </p>';
+			echo '<div id="itron_polly_tts_post_options" style="' . esc_attr( $post_options_visibility ) . '">';
 
 			try {
 				$language_code                   = $this->common->get_post_source_language( $post->ID );
-				$post_voice_id                   = get_post_meta( $post->ID, 'amazon_polly_voice_id', true );
+				$post_voice_id                   = get_post_meta( $post->ID, 'itron_polly_tts_voice_id', true );
 				$is_post_voice_override_disabled = $this->common->is_post_voice_override_disabled();
 				$global_voice_id                 = $this->common->resolve_polly_voice_id( $language_code, $this->common->get_voice_id(), 'Matthew' );
 				$voice_id                        = $is_post_voice_override_disabled
@@ -106,7 +108,7 @@ class AmazonAI_PostMetaBox {
 					echo '<p>Voice name: <strong>' . esc_html( $voice_id ) . '</strong></p>';
 					echo '<p class="description">Custom per-post voice selection is disabled in plugin settings. This post will use the global voice.</p>';
 				} else {
-					echo '<p>Voice name: <select name="amazon_polly_voice_id" id="amazon_polly_voice_id" >';
+					echo '<p>Voice name: <select name="itron_polly_tts_voice_id" id="itron_polly_tts_voice_id" >';
 					if ( ! $this->render_voice_options( $language_code, $voice_id ) ) {
 						echo '</select></p>';
 						echo '<p class="description">No supported voices are currently available for this language in the selected AWS region.</p>';
@@ -116,15 +118,15 @@ class AmazonAI_PostMetaBox {
 					echo '</select></p>';
 					echo '<p class="description">Neural-only voices require the global Neural setting to stay enabled.</p>';
 				}
-			} catch ( Exception $e ) {
+			} catch ( \Exception $e ) {
 				echo '<p class="description">Unable to load supported Amazon Polly voices right now.</p>';
 			}
 
 			echo '</div>';
 		}
 
-		echo '<p><button type="button" class="button" id="amazon_polly_price_checker_button" >How much will this cost to convert?</button></p>';
-		echo '<div id="amazon_ai_plugin_cost_info">';
+		echo '<p><button type="button" class="button" id="itron_polly_tts_price_checker_button" >How much will this cost to convert?</button></p>';
+		echo '<div id="itron_polly_tts_plugin_cost_info">';
 		if ($this->common->is_polly_enabled()) {
 			echo '<p><b>-> Text-To-Speech Functionality</b><p>';
 			echo '<p>For Amazon Polly\'s Standard voices, <b>the free tier includes 5 million characters per month</b> for speech or Speech Marks requests, for the first 12 months, starting from your first request for speech. For Neural voices, the free tier includes 1 million characters per month for speech or Speech Marks requests, for the first 12 months, starting from your first request. <p>';

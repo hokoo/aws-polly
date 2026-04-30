@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  *
  *
@@ -6,18 +8,18 @@
  *
  */
 
-class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
+class LocalFileHandler extends FileHandler {
 	/**
-	 * @var AmazonAI_Common
+	 * @var Common
 	 */
 	private $common;
 
 	/**
-	 * AmazonAI_LocalFileHandler constructor.
+	 * LocalFileHandler constructor.
 	 *
-	 * @param AmazonAI_Common $common
+	 * @param Common $common
 	 */
-	public function __construct( AmazonAI_Common $common) {
+	public function __construct( Common $common) {
 		$this->common = $common;
 	}
 
@@ -46,9 +48,9 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
 		$files      = array( $file );
 
 		foreach ( $this->common->get_all_polly_languages() as $language_code ) {
-			$translation_meta = get_post_meta( $post_id, 'amazon_polly_translation_' . $language_code, true );
+			$translation_meta = get_post_meta( $post_id, 'itron_polly_tts_translation_' . $language_code, true );
 			if ( ! empty( $translation_meta ) ) {
-				$files[] = 'amazon_polly_' . $post_id . $language_code . '.mp3';
+				$files[] = 'itron_polly_tts_' . $post_id . $language_code . '.mp3';
 			}
 		}
 
@@ -94,7 +96,7 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
 			$wp_filesystem->move( $file_final_full_name, $temp_media_library_file, true );
 			// Deleting old media library attachment.
 
-			$media_library_att_id = get_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', true );
+			$media_library_att_id = get_post_meta( $post_id, 'itron_polly_tts_media_library_attachment_id', true );
 			wp_delete_attachment( $media_library_att_id, true );
 
 			// Getting back to proper name
@@ -144,7 +146,7 @@ class AmazonAI_LocalFileHandler extends AmazonAI_FileHandler {
 		$attach_data = wp_generate_attachment_metadata( $attach_id, $filename );
 		wp_update_attachment_metadata( $attach_id, $attach_data );
 
-		update_post_meta( $post_id, 'amazon_polly_media_library_attachment_id', $attach_id );
+		update_post_meta( $post_id, 'itron_polly_tts_media_library_attachment_id', $attach_id );
 
 	}
 

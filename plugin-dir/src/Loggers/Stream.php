@@ -1,6 +1,6 @@
 <?php
 
-namespace iTRON\AWS\Polly\Loggers;
+namespace iTRON\PollyTTS\Loggers;
 
 use Psr\Log\AbstractLogger;
 
@@ -21,7 +21,7 @@ class Stream extends AbstractLogger {
 					$context
 				);
 			}
-			do_action( 'itron_aws_polly_stream_logger_write', $level, $message, $meta, $module );
+			do_action( 'itron_polly_tts_stream_logger_write', $level, $message, $meta, $module );
 		};
 
 		if ( ! did_action( 'wp_stream_after_connectors_registration' ) ) {

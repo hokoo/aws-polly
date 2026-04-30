@@ -1,6 +1,6 @@
 <?php
 
-namespace iTRON\AWS\Polly\Integrations;
+namespace iTRON\PollyTTS\Integrations;
 
 use Psr\Log\LogLevel;
 use WP_Stream\Connector;
@@ -12,7 +12,7 @@ class StreamConnector extends Connector {
 	 *
 	 * @var string
 	 */
-	public $name = 'aws-polly-logger';
+	public $name = 'itron-polly-tts-logger';
 
 	/**
 	 * Actions registered for this connector.
@@ -24,7 +24,7 @@ class StreamConnector extends Connector {
 	 * @var array
 	 */
 	public $actions = array(
-		'itron_aws_polly_stream_logger_write',
+		'itron_polly_tts_stream_logger_write',
 	);
 
 	/**
@@ -44,7 +44,7 @@ class StreamConnector extends Connector {
 	public function get_context_labels(): array {
 		/* @TODO Create logic for adding list of used labels (modules). */
 		return apply_filters(
-			'itron_aws_polly_wp_stream_connector_get_context_labels',
+			'itron_polly_tts_wp_stream_connector_get_context_labels',
 			array(
 				'general' => 'General',
 			)
@@ -93,7 +93,7 @@ class StreamConnector extends Connector {
 	 *
 	 * @return void
 	 */
-	public function callback_itron_aws_polly_stream_logger_write( $level, $message, $data, $module ) {
+	public function callback_itron_polly_tts_stream_logger_write( $level, $message, $data, $module ) {
 		// Getting $message sprintf-ready error message string.
 		$message = str_replace( '%', '%%', $message );
 

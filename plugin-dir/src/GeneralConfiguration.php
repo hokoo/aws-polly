@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Class responsible for providing GUI for general configuration of the plugin
  *
@@ -10,51 +12,51 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AmazonAI_GeneralConfiguration {
+class GeneralConfiguration {
 
 	/**
-	 * @var AmazonAI_Common
+	 * @var Common
 	 */
 	private $common;
 
-	private const OPTION_PREFIX = 'aws_polly_';
-	private const CONST_PREFIX  = 'AWS_POLLY_';
+	private const OPTION_PREFIX = 'itron_polly_tts_';
+	private const CONST_PREFIX  = 'ITRON_POLLY_TTS_';
 
 	/**
-	 * AmazonAI_GeneralConfiguration constructor.
+	 * GeneralConfiguration constructor.
 	 *
-	 * @param AmazonAI_Common $common
+	 * @param Common $common
 	 */
-	public function __construct( AmazonAI_Common $common) {
+	public function __construct( Common $common) {
 		$this->common = $common;
 	}
 
-	public function amazon_ai_add_menu() {
+	public function itron_polly_tts_add_menu() {
 		$this->plugin_screen_hook_suffix = add_menu_page(
 			__( 'AI Text-to-Speech', 'ai-text-to-speech-using-aws-polly' ),
 			__( 'AI TTS', 'ai-text-to-speech-using-aws-polly' ),
 			'manage_options',
-			'amazon_ai',
+			'itron_polly_tts',
 			array(
 				$this,
-				'amazonai_gui',
+				'render_settings_page',
 			),
 			'dashicons-controls-volumeon'
 		);
 		$this->plugin_screen_hook_suffix = add_submenu_page(
-			'amazon_ai',
+			'itron_polly_tts',
 			'General',
 			'General',
 			'manage_options',
-			'amazon_ai',
+			'itron_polly_tts',
 			array(
 				$this,
-				'amazonai_gui',
+				'render_settings_page',
 			)
 		);
 	}
 
-	public function amazonai_gui() {
+	public function render_settings_page() {
 		?>
 				 <div class="wrap">
 				 <div id="icon-options-general" class="icon32"></div>
@@ -63,8 +65,8 @@ class AmazonAI_GeneralConfiguration {
 						 <?php
 
 							settings_errors();
-							settings_fields( 'amazon_ai' );
-							do_settings_sections( 'amazon_ai' );
+							settings_fields( 'itron_polly_tts' );
+							do_settings_sections( 'itron_polly_tts' );
 							submit_button();
 
 							?>
@@ -79,13 +81,13 @@ class AmazonAI_GeneralConfiguration {
 		// ************************************************* *
 		// ************** GENERAL SECTION ************** *
 		add_settings_section(
-			'amazon_ai_general',
+			'itron_polly_tts_general',
 			'',
 			array(
 				$this,
 				'general_gui',
 			),
-			'amazon_ai'
+			'itron_polly_tts'
 		);
 		add_settings_field(
 			self::OPTION_PREFIX . 's3_access_key',
@@ -94,10 +96,10 @@ class AmazonAI_GeneralConfiguration {
 				$this,
 				'access_key_gui',
 			),
-			'amazon_ai',
-			'amazon_ai_general',
+			'itron_polly_tts',
+			'itron_polly_tts_general',
 			array(
-				'label_for' => 'amazon_polly_access_key',
+				'label_for' => 'itron_polly_tts_s3_access_key',
 			)
 		);
 		add_settings_field(
@@ -107,19 +109,19 @@ class AmazonAI_GeneralConfiguration {
 				$this,
 				'secret_key_gui',
 			),
-			'amazon_ai',
-			'amazon_ai_general',
+			'itron_polly_tts',
+			'itron_polly_tts_general',
 			array(
-				'label_for' => 'amazon_polly_secret_key_fake',
+				'label_for' => 'itron_polly_tts_secret_key_fake',
 			)
 		);
 		add_settings_field(
 			self::OPTION_PREFIX . 's3_bucket_name',
 			__( 'Amazon S3 bucket name:', 'ai-text-to-speech-using-aws-polly' ),
 			array( $this, 's3_bucket_gui' ),
-			'amazon_ai',
-			'amazon_ai_general',
-			array( 'label_for' => 'amazon_polly_s3_bucket_name' )
+			'itron_polly_tts',
+			'itron_polly_tts_general',
+			array( 'label_for' => 'itron_polly_tts_s3_bucket_name' )
 		);
 		add_settings_field(
 			self::OPTION_PREFIX . 's3_region',
@@ -128,17 +130,17 @@ class AmazonAI_GeneralConfiguration {
 				$this,
 				'region_gui',
 			),
-			'amazon_ai',
-			'amazon_ai_general',
+			'itron_polly_tts',
+			'itron_polly_tts_general',
 			array(
-				'label_for' => 'amazon_polly_region',
+				'label_for' => 'itron_polly_tts_s3_region',
 			)
 		);
 
-		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
-		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_secret_option' ) );
-		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
-		$this->register_sanitized_setting( 'amazon_ai', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts', self::OPTION_PREFIX . 's3_access_key', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts', self::OPTION_PREFIX . 's3_secret_key', array( $this, 'sanitize_secret_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts', self::OPTION_PREFIX . 's3_bucket_name', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts', self::OPTION_PREFIX . 's3_region', array( $this, 'sanitize_region' ) );
 	}
 
 	private function register_sanitized_setting( string $option_group, string $option_name, callable $sanitize_callback ): void {
@@ -268,7 +270,7 @@ class AmazonAI_GeneralConfiguration {
 		echo '</select>';
 
 		if ( $is_disabled ) {
-			echo '<p class="description" id="amazon_polly_region">Defined as php constant</p>';
+			echo '<p class="description" id="itron_polly_tts_s3_region">Defined as php constant</p>';
 		}
 	}
 
@@ -299,7 +301,7 @@ class AmazonAI_GeneralConfiguration {
 	}
 
 	/**
-	 * Get S3 bucket name. The method uses filter 'amazon_polly_s3_bucket_name,
+	 * Get S3 bucket name. The method uses filter 'itron_polly_tts_s3_bucket_name,
 	 * which allows to use customer S3 bucket name instead of default one.
 	 *
 	 * @since      0.1

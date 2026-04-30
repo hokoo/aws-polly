@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Object cache helpers for Amazon Polly runtime state.
  *
@@ -6,21 +8,21 @@
  *
  */
 
-class Amazonpolly_Object_Cache {
+class ObjectCache {
 
-	const GROUP                          = 'amazon_polly';
+	const GROUP                          = 'itron_polly_tts';
 	const AUDIO_HEAD_TTL                 = 300;
 	const AUDIO_HEAD_CONTEXT_VERSION_KEY = 'audio_head_context_version';
 
 	/**
-	 * @var AmazonAI_Common
+	 * @var Common
 	 */
 	private $common;
 
 	/**
-	 * @param AmazonAI_Common $common
+	 * @param Common $common
 	 */
-	public function __construct( AmazonAI_Common $common ) {
+	public function __construct( Common $common ) {
 		$this->common = $common;
 	}
 
@@ -29,7 +31,7 @@ class Amazonpolly_Object_Cache {
 	}
 
 	private function get_polly_voices_transient_key( string $region ): string {
-		return AmazonAI_Common::POLLY_VOICES_TRANSIENT_PREFIX . md5( $region );
+		return Common::POLLY_VOICES_TRANSIENT_PREFIX . md5( $region );
 	}
 
 	private function get_audio_head_context_version(): string {
@@ -47,10 +49,10 @@ class Amazonpolly_Object_Cache {
 			wp_json_encode(
 				array(
 					'version'    => $this->get_audio_head_context_version(),
-					's3'         => (string) get_option( 'amazon_polly_s3', '' ),
-					'cloudfront' => (string) get_option( 'amazon_polly_cloudfront', '' ),
-					'region'     => (string) AmazonAI_GeneralConfiguration::get_aws_region(),
-					'bucket'     => (string) AmazonAI_GeneralConfiguration::get_bucket_name(),
+					's3'         => (string) get_option( 'itron_polly_tts_s3', '' ),
+					'cloudfront' => (string) get_option( 'itron_polly_tts_cloudfront', '' ),
+					'region'     => (string) GeneralConfiguration::get_aws_region(),
+					'bucket'     => (string) GeneralConfiguration::get_bucket_name(),
 				)
 			)
 		);
@@ -59,7 +61,7 @@ class Amazonpolly_Object_Cache {
 	private function should_invalidate_post_audio_cache_for_meta_key( $meta_key ): bool {
 		$meta_key = (string) $meta_key;
 
-		return 'amazon_ai_source_language' === $meta_key || 0 === strpos( $meta_key, 'amazon_polly_' );
+		return 'itron_polly_tts_source_language' === $meta_key || 0 === strpos( $meta_key, 'itron_polly_tts_' );
 	}
 
 	public function get_audio_head_status( int $post_id ): ?array {

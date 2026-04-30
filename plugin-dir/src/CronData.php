@@ -1,6 +1,8 @@
 <?php
 
-class AmazonAI_CronData {
+namespace iTRON\PollyTTS;
+
+class CronData {
 	public array $data = array();
 	public string $task;
 	public bool $unique;

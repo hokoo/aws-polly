@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Class for running an action in the background.
  *
@@ -8,14 +10,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AmazonAI_BackgroundTask {
+class BackgroundTask {
 
 
-	const CRON_HOOK          = 'itron_aws_polly';
-	const CRON_HANDLERS_HOOK = 'itron_aws_polly_cron_';
+	const CRON_HOOK          = 'itron_polly_tts';
+	const CRON_HANDLERS_HOOK = 'itron_polly_tts_cron_';
 
 	public function queue( string $task, $args = array(), $unique = false ) {
-		$cron_data = new AmazonAI_CronData( $task, $args, $unique );
+		$cron_data = new CronData( $task, $args, $unique );
 
 		if ( $unique && wp_next_scheduled( self::CRON_HOOK, array( $cron_data ) ) ) {
 			return;
@@ -25,28 +27,28 @@ class AmazonAI_BackgroundTask {
 	}
 
 	public function queue_audio( int $post_id ) {
-		$this->queue( AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, array( $post_id ), true );
+		$this->queue( PollyService::GENERATE_POST_AUDIO_TASK, array( $post_id ), true );
 
-		$common = new AmazonAI_Common();
+		$common = new Common();
 		if ( ! $common->has_post_audio( $post_id ) ) {
-			$common->set_post_audio_state( $post_id, AmazonAI_Common::AUDIO_STATE_QUEUED );
+			$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_QUEUED );
 		}
 	}
 
 	public function has_queued_audio( int $post_id ) {
-		$cron_data = new AmazonAI_CronData( AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, array( $post_id ), true );
+		$cron_data = new CronData( PollyService::GENERATE_POST_AUDIO_TASK, array( $post_id ), true );
 
 		return wp_next_scheduled( self::CRON_HOOK, array( $cron_data ) );
 	}
 
-	public function handle_cron( AmazonAI_CronData $cron_data ) {
+	public function handle_cron( CronData $cron_data ) {
 		try {
-			$logger = new AmazonAI_Logger();
+			$logger = new Logger();
 			$logger->log( sprintf( '%s Running cron task %s', __METHOD__, $cron_data->task ) );
 
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Internal dynamic hook with an explicitly prefixed base name.
 			do_action_ref_array( self::CRON_HANDLERS_HOOK . $cron_data->task, $cron_data->data );
-		} catch ( CronRechedulerException $e ) {
+		} catch ( CronRescheduleException $e ) {
 			$this->queue( $cron_data->task, $cron_data->data, $cron_data->unique );
 		}
 	}

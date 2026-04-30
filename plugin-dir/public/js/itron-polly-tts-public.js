@@ -4,7 +4,7 @@
  * @link       https://itron.pro/
  * @since      1.0.0
  *
- * @package    Amazonpolly
+ * @package    iTRON_Polly_TTS
  */
 
 (function( $ ) {

@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Admin enhancements for Polly audio: columns, meta box, filter, bulk actions, settings button.
  *
@@ -10,19 +12,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use iTRON\WP_Lock\WP_Lock;
 
-class AmazonAI_AudioAdmin {
-	private const AUDIO_SORT_META_ALIAS           = 'amazon_polly_audio_sort_meta';
-	private const VOICE_SORT_META_ALIAS           = 'amazon_polly_voice_sort_meta';
-	private const GENERATED_VOICE_SORT_META_ALIAS = 'amazon_polly_generated_voice_sort_meta';
+class AudioAdmin {
+	private const AUDIO_SORT_META_ALIAS           = 'itron_polly_tts_audio_sort_meta';
+	private const VOICE_SORT_META_ALIAS           = 'itron_polly_tts_voice_sort_meta';
+	private const GENERATED_VOICE_SORT_META_ALIAS = 'itron_polly_tts_generated_voice_sort_meta';
 
 	/**
-	 * @var AmazonAI_Common
+	 * @var Common
 	 */
 	private $common;
 	private array $audio_status_cache  = array();
 	private array $display_voice_cache = array();
 
-	public function __construct( AmazonAI_Common $common ) {
+	public function __construct( Common $common ) {
 		$this->common = $common;
 	}
 
@@ -116,7 +118,7 @@ class AmazonAI_AudioAdmin {
 		$clauses['join']     = $this->add_sort_meta_join(
 			$clauses['join'],
 			self::AUDIO_SORT_META_ALIAS,
-			'amazon_polly_audio_link_location'
+			'itron_polly_tts_audio_link_location'
 		);
 
 		$audio_presence = sprintf(
@@ -139,13 +141,13 @@ class AmazonAI_AudioAdmin {
 		$clauses['join'] = $this->add_sort_meta_join(
 			$clauses['join'],
 			self::VOICE_SORT_META_ALIAS,
-			'amazon_polly_voice_id'
+			'itron_polly_tts_voice_id'
 		);
 
 		$clauses['join'] = $this->add_sort_meta_join(
 			$clauses['join'],
 			self::GENERATED_VOICE_SORT_META_ALIAS,
-			'amazon_polly_generated_voice_id'
+			'itron_polly_tts_generated_voice_id'
 		);
 
 		$voice_value = sprintf(
@@ -191,7 +193,7 @@ class AmazonAI_AudioAdmin {
 		$status   = $this->get_audio_status( $post->ID );
 		$link     = $status['link'];
 		$voice    = $this->get_display_voice( $post->ID );
-		$playtime = get_post_meta( $post->ID, 'amazon_polly_audio_playtime', true );
+		$playtime = get_post_meta( $post->ID, 'itron_polly_tts_audio_playtime', true );
 
 		if ( 'yes' === $status['status'] ) {
 			echo '<p style="color:#46b450;font-weight:bold;">&#9835; Audio available</p>';
@@ -250,7 +252,7 @@ class AmazonAI_AudioAdmin {
 		$filter = $this->get_audio_filter_value();
 		if ( '' !== $filter ) {
 			$this->common->backfill_legacy_audio_states();
-			$query->set( 'amazon_polly_audio_filter', $filter );
+			$query->set( 'itron_polly_tts_audio_filter', $filter );
 			$query->set(
 				'meta_query',
 				$this->merge_meta_query_clause(
@@ -309,10 +311,10 @@ class AmazonAI_AudioAdmin {
 		}
 
 		$state   = $this->common->get_post_audio_state( $post_id );
-		$link    = (string) get_post_meta( $post_id, 'amazon_polly_audio_link_location', true );
-		$enabled = '1' === (string) get_post_meta( $post_id, 'amazon_polly_enable', true );
+		$link    = (string) get_post_meta( $post_id, 'itron_polly_tts_audio_link_location', true );
+		$enabled = '1' === (string) get_post_meta( $post_id, 'itron_polly_tts_enable', true );
 
-		if ( AmazonAI_Common::AUDIO_STATE_READY === $state && '' !== $link ) {
+		if ( Common::AUDIO_STATE_READY === $state && '' !== $link ) {
 			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'yes',
 				'phase'  => 'ready',
@@ -323,7 +325,7 @@ class AmazonAI_AudioAdmin {
 			return $this->audio_status_cache[ $post_id ];
 		}
 
-		if ( AmazonAI_Common::AUDIO_STATE_RUNNING === $state ) {
+		if ( Common::AUDIO_STATE_RUNNING === $state ) {
 			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'generating',
 				'phase'  => 'running',
@@ -334,7 +336,7 @@ class AmazonAI_AudioAdmin {
 			return $this->audio_status_cache[ $post_id ];
 		}
 
-		if ( AmazonAI_Common::AUDIO_STATE_QUEUED === $state ) {
+		if ( Common::AUDIO_STATE_QUEUED === $state ) {
 			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'generating',
 				'phase'  => 'queued',
@@ -357,8 +359,8 @@ class AmazonAI_AudioAdmin {
 			return $this->audio_status_cache[ $post_id ];
 		}
 
-		if ( $enabled && ! in_array( $state, array( AmazonAI_Common::AUDIO_STATE_READY, AmazonAI_Common::AUDIO_STATE_RUNNING, AmazonAI_Common::AUDIO_STATE_QUEUED ), true ) ) {
-			$lock = new WP_Lock( AmazonAI_PollyService::LOCK_PREFIX . $post_id );
+		if ( $enabled && ! in_array( $state, array( Common::AUDIO_STATE_READY, Common::AUDIO_STATE_RUNNING, Common::AUDIO_STATE_QUEUED ), true ) ) {
+			$lock = new WP_Lock( PollyService::LOCK_PREFIX . $post_id );
 			if ( $lock->lock_exists() ) {
 				$this->audio_status_cache[ $post_id ] = array(
 					'status' => 'generating',
@@ -382,7 +384,7 @@ class AmazonAI_AudioAdmin {
 			}
 		}
 
-		if ( AmazonAI_Common::AUDIO_STATE_ERROR === $state ) {
+		if ( Common::AUDIO_STATE_ERROR === $state ) {
 			$this->audio_status_cache[ $post_id ] = array(
 				'status' => 'no',
 				'phase'  => $enabled ? 'enabled' : 'disabled',
@@ -410,7 +412,7 @@ class AmazonAI_AudioAdmin {
 			return $this->display_voice_cache[ $post_id ];
 		}
 
-		foreach ( array( 'amazon_polly_generated_voice_id', 'amazon_polly_voice_id' ) as $meta_key ) {
+		foreach ( array( 'itron_polly_tts_generated_voice_id', 'itron_polly_tts_voice_id' ) as $meta_key ) {
 			$voice = (string) get_post_meta( $post_id, $meta_key, true );
 			if ( '' !== $voice ) {
 				$this->display_voice_cache[ $post_id ] = $voice;
@@ -431,7 +433,7 @@ class AmazonAI_AudioAdmin {
 				'',
 				$this->common->get_voice_id()
 			);
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$voice = '';
 		}
 
@@ -440,11 +442,11 @@ class AmazonAI_AudioAdmin {
 		return $this->display_voice_cache[ $post_id ];
 	}
 
-	private function get_background_task(): AmazonAI_BackgroundTask {
+	private function get_background_task(): BackgroundTask {
 		static $background_task = null;
 
 		if ( null === $background_task ) {
-			$background_task = new AmazonAI_BackgroundTask();
+			$background_task = new BackgroundTask();
 		}
 
 		return $background_task;
@@ -454,7 +456,7 @@ class AmazonAI_AudioAdmin {
 		$filter = '';
 
 		if ( null !== $query ) {
-			$filter = (string) $query->get( 'amazon_polly_audio_filter' );
+			$filter = (string) $query->get( 'itron_polly_tts_audio_filter' );
 		}
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin list-table filter value from the current URL.
@@ -473,7 +475,7 @@ class AmazonAI_AudioAdmin {
 			return array(
 				array(
 					'key'     => $state_key,
-					'value'   => AmazonAI_Common::AUDIO_STATE_READY,
+					'value'   => Common::AUDIO_STATE_READY,
 					'compare' => '=',
 				),
 			);
@@ -482,7 +484,7 @@ class AmazonAI_AudioAdmin {
 		return array(
 			array(
 				'key'     => $state_key,
-				'value'   => AmazonAI_Common::AUDIO_STATE_READY,
+				'value'   => Common::AUDIO_STATE_READY,
 				'compare' => '!=',
 			),
 		);
@@ -516,20 +518,20 @@ class AmazonAI_AudioAdmin {
 
 		$queued = 0;
 		foreach ( $post_ids as $post_id ) {
-			$is_enabled = get_post_meta( $post_id, 'amazon_polly_enable', true );
+			$is_enabled = get_post_meta( $post_id, 'itron_polly_tts_enable', true );
 			if ( '1' !== $is_enabled ) {
-				update_post_meta( $post_id, 'amazon_polly_enable', 1 );
+				update_post_meta( $post_id, 'itron_polly_tts_enable', 1 );
 			}
 
-			$voice = get_post_meta( $post_id, 'amazon_polly_voice_id', true );
+			$voice = get_post_meta( $post_id, 'itron_polly_tts_voice_id', true );
 			if ( empty( $voice ) ) {
 				$global_voice = $this->common->get_voice_id();
 				if ( ! empty( $global_voice ) ) {
-					update_post_meta( $post_id, 'amazon_polly_voice_id', $global_voice );
+					update_post_meta( $post_id, 'itron_polly_tts_voice_id', $global_voice );
 				}
 			}
 
-			$bg_task = new AmazonAI_BackgroundTask();
+			$bg_task = new BackgroundTask();
 			$bg_task->queue_audio( (int) $post_id );
 			$queued++;
 		}
@@ -563,7 +565,7 @@ class AmazonAI_AudioAdmin {
 
 	public function column_styles(): void {
 		wp_add_inline_style(
-			'itron-aws-polly-admin',
+			'itron-polly-tts-admin',
 			'.column-polly_audio { width: 120px; text-align: center; } .column-polly_voice { width: 100px; }'
 		);
 	}
@@ -582,7 +584,7 @@ class AmazonAI_AudioAdmin {
 			$this->column_styles();
 		}
 
-		if ( 'aws-tts_page_amazon_ai_polly' !== $screen->id ) {
+		if ( ! str_ends_with( (string) $screen->id, '_page_itron_polly_tts_polly' ) ) {
 			return;
 		}
 
@@ -591,8 +593,8 @@ class AmazonAI_AudioAdmin {
 		$url        = admin_url( 'edit.php?post_type=' . $post_type . '&polly_audio_filter=no_audio' );
 
 		wp_add_inline_script(
-			'itron-aws-polly-admin',
-			'window.itronAwsPollyAdmin = window.itronAwsPollyAdmin || {}; window.itronAwsPollyAdmin.findPostsWithoutAudioUrl = ' . wp_json_encode( esc_url_raw( $url ) ) . ';',
+			'itron-polly-tts-admin',
+			'window.itronPollyTTSAdmin = window.itronPollyTTSAdmin || {}; window.itronPollyTTSAdmin.findPostsWithoutAudioUrl = ' . wp_json_encode( esc_url_raw( $url ) ) . ';',
 			'before'
 		);
 	}

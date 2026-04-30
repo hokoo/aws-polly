@@ -1,4 +1,6 @@
 <?php
+
+namespace iTRON\PollyTTS;
 /**
  * Fired during plugin activation
  *
@@ -6,7 +8,7 @@
  *
  */
 
-class Amazonpolly_Activator {
+class Activator {
 
 	/**
 	 * Initial configuration of the plugin.
