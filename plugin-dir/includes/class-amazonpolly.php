@@ -107,7 +107,7 @@ class Amazonpolly {
 		$this->loader->add_action( 'init', $this, 'load_integrations', 5 );
 		$this->loader->add_filter( "plugin_action_links_{$plugin_basename}", $this->common, 'add_settings_link' );
 
-		$this->loader->add_action( sprintf( 'admin_post_%s', AmazonAI_BackgroundTask::ADMIN_POST_ACTION ), $background_task, 'run' );
+		/** @uses AmazonAI_BackgroundTask::handle_cron() */
 		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HOOK, $background_task, 'handle_cron', 50, 3 );
 
 		$this->loader->add_action( 'admin_print_footer_scripts', $this->common, 'add_quicktags' );
@@ -117,6 +117,8 @@ class Amazonpolly {
 		// $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
 		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox' );
 		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3 );
+
+		/** @uses AmazonAI_CronHandler::generate_audio() */
 		$this->loader->add_action( AmazonAI_BackgroundTask::CRON_HANDLERS_HOOK . AmazonAI_PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1 );
 
 		$this->loader->add_action( 'before_delete_post', $this->common, 'delete_post' );
