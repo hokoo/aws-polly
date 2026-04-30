@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p dist/ai-text-to-speech-using-aws-polly
           rsync -a plugin-dir/ dist/ai-text-to-speech-using-aws-polly/ \
+            --exclude-from 'plugin-dir/.distignore' \
             --exclude 'assets/' \
             --exclude 'README.md' \
             --exclude 'composer.lock'
