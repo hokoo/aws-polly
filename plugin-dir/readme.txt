@@ -4,7 +4,7 @@ Tags: text-to-speech, audio, aws polly, speech synthesis, podcast
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPL-3.0-only
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -98,6 +98,12 @@ Yes. The plugin supports storing generated audio in Amazon S3 and serving it thr
 Yes. You can enable audio generation for individual posts and the plugin will keep track of queued, running, and ready states.
 
 == Changelog ==
+
+= 1.0.5 =
+
+* Synchronized the plugin bootstrap version with the namespace refactor.
+* Moved the plugin name and version to global bootstrap constants.
+* Added `@uses` documentation for registered action callbacks in the main plugin loader.
 
 = 1.0.4 =
 

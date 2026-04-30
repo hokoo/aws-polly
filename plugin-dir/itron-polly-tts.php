@@ -13,7 +13,7 @@
  * @wordpress-plugin
  * Plugin Name:       AI Text-to-Speech using AWS Polly
  * Description:       Independent WordPress text-to-speech integration using AWS Polly.
- * Version:           1.0.4
+ * Version:           1.0.5
  * Author:            iTRON
  * Author URI:        https://itron.pro/
  * License:           GPL-3.0-only
@@ -30,7 +30,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 const ITRON_POLLY_TTS_PLUGIN_NAME = 'itron-polly-tts';
-const ITRON_POLLY_TTS_VERSION = '1.0.4';
+const ITRON_POLLY_TTS_VERSION = '1.0.5';
 
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
