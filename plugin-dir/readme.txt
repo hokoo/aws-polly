@@ -103,6 +103,8 @@ Yes. You can enable audio generation for individual posts and the plugin will ke
 
 * Updated the bundled AWS SDK for PHP to the latest stable 3.379.x release.
 * Added dedicated AWS secret key sanitization that preserves valid secret key characters.
+* Removed an unused admin-post background task endpoint in favor of the WordPress cron queue.
+* Added distribution exclusions for non-runtime vendor development files.
 
 = 1.0.3 =
 
