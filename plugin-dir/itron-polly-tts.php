@@ -29,6 +29,9 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+const ITRON_POLLY_TTS_PLUGIN_NAME = 'itron-polly-tts';
+const ITRON_POLLY_TTS_VERSION = '1.0.4';
+
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
 register_activation_hook( __FILE__, array( iTRON\PollyTTS\Activator::class, 'activate' ) );

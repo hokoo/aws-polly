@@ -2180,7 +2180,7 @@ class Common {
 			return (string) filemtime( $asset_path );
 		}
 
-		return '1.0.1';
+		return ITRON_POLLY_TTS_VERSION;
 	}
 
 	public function enqueue_styles() {

@@ -26,14 +26,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Plugin {
 
 	protected $loader;
-	protected $plugin_name;
-	protected $version;
 	protected $common;
 	protected $object_cache;
 
 	public function __construct() {
-		$this->plugin_name = 'itron-polly-tts';
-		$this->version     = '1.0.1';
 		$this->load_dependencies();
 
 		$this->common = new Common();
@@ -190,7 +186,7 @@ class Plugin {
 	}
 
 	private function define_public_hooks() {
-		$plugin_public = new PublicRenderer( $this->get_plugin_name(), $this->get_version(), $this->common, $this->object_cache );
+		$plugin_public = new PublicRenderer( ITRON_POLLY_TTS_PLUGIN_NAME, ITRON_POLLY_TTS_VERSION, $this->common, $this->object_cache );
 
 		$this->loader->add_filter( 'the_content', $plugin_public, 'content_filter', 99999 );
 	}
@@ -199,16 +195,8 @@ class Plugin {
 		$this->loader->run();
 	}
 
-	public function get_plugin_name() {
-		return $this->plugin_name;
-	}
-
 	public function get_loader() {
 		return $this->loader;
-	}
-
-	public function get_version() {
-		return $this->version;
 	}
 
 	public function load_integrations() {
