@@ -90,14 +90,16 @@ class Plugin {
 
 		/** @uses Common::add_quicktags() */
 		$this->loader->add_action( 'admin_print_footer_scripts', $this->common, 'add_quicktags' );
+
 		/** @uses Common::enqueue_styles() */
 		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_styles' );
+
 		/** @uses Common::enqueue_scripts() */
 		$this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_scripts' );
-		// Removed: method enqueue_custom_scripts does not exist in Common.
-		// $this->loader->add_action( 'admin_enqueue_scripts', $this->common, 'enqueue_custom_scripts');
+
 		/** @uses Common::field_checkbox() */
 		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox' );
+
 		/** @uses PollyService::save_post() */
 		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3 );
 
@@ -106,36 +108,48 @@ class Plugin {
 
 		/** @uses Common::delete_post() */
 		$this->loader->add_action( 'before_delete_post', $this->common, 'delete_post' );
+
 		/** @uses ObjectCache::handle_before_delete_post() */
 		$this->loader->add_action( 'before_delete_post', $object_cache, 'handle_before_delete_post' );
+
 		/** @uses ObjectCache::handle_added_post_meta() */
 		$this->loader->add_action( 'added_post_meta', $object_cache, 'handle_added_post_meta', 10, 4 );
+
 		/** @uses ObjectCache::handle_updated_post_meta() */
 		$this->loader->add_action( 'updated_post_meta', $object_cache, 'handle_updated_post_meta', 10, 4 );
+
 		/** @uses ObjectCache::handle_deleted_post_meta() */
 		$this->loader->add_action( 'deleted_post_meta', $object_cache, 'handle_deleted_post_meta', 10, 4 );
+
 		/** @uses ObjectCache::handle_clear_post_audio_runtime_cache() */
 		$this->loader->add_action( 'itron_polly_tts_clear_post_audio_runtime_cache', $object_cache, 'handle_clear_post_audio_runtime_cache', 10, 1 );
+
 		/** @uses ObjectCache::handle_polly_voices_region_change() */
 		$this->loader->add_action( 'update_option_itron_polly_tts_s3_region', $object_cache, 'handle_polly_voices_region_change', 10, 3 );
+
 		/** @uses ObjectCache::handle_polly_voices_credentials_change() */
 		$this->loader->add_action( 'update_option_itron_polly_tts_s3_access_key', $object_cache, 'handle_polly_voices_credentials_change', 10, 3 );
+
 		/** @uses ObjectCache::handle_polly_voices_credentials_change() */
 		$this->loader->add_action( 'update_option_itron_polly_tts_s3_secret_key', $object_cache, 'handle_polly_voices_credentials_change', 10, 3 );
+
 		foreach ( $audio_generation_options as $option_name ) {
 			/** @uses ObjectCache::handle_audio_generation_setting_change() */
 			$this->loader->add_action( 'update_option_' . $option_name, $object_cache, 'handle_audio_generation_setting_change', 10, 3 );
 		}
+
 		/** @uses PollyService::ajax_bulk_synthesize() */
 		$this->loader->add_action( 'wp_ajax_itron_polly_tts_transcribe', $polly_service, 'ajax_bulk_synthesize' );
 
 		/** @uses GeneralConfiguration::itron_polly_tts_add_menu() */
 		$this->loader->add_action( 'admin_menu', $general_configuration, 'itron_polly_tts_add_menu' );
+
 		/** @uses GeneralConfiguration::display_options() */
 		$this->loader->add_action( 'admin_init', $general_configuration, 'display_options' );
 
 		/** @uses PollyConfiguration::itron_polly_tts_add_menu() */
 		$this->loader->add_action( 'admin_menu', $polly_configuration, 'itron_polly_tts_add_menu' );
+
 		/** @uses PollyConfiguration::display_options() */
 		$this->loader->add_action( 'admin_menu', $polly_configuration, 'display_options' );
 
@@ -144,6 +158,7 @@ class Plugin {
 
 		foreach ( $this->common->get_posttypes_array() as $post_type ) {
 			$this->loader->add_filter( "manage_{$post_type}_posts_columns", $audio_admin, 'add_columns' );
+
 			/** @uses AudioAdmin::render_column() */
 			$this->loader->add_action( "manage_{$post_type}_posts_custom_column", $audio_admin, 'render_column', 10, 2 );
 			$this->loader->add_filter( "manage_edit-{$post_type}_sortable_columns", $audio_admin, 'sortable_columns' );
@@ -154,14 +169,19 @@ class Plugin {
 		/** @uses AudioAdmin::handle_sorting() */
 		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_sorting' );
 		$this->loader->add_filter( 'posts_clauses', $audio_admin, 'apply_sorting_clauses', 10, 2 );
+
 		/** @uses AudioAdmin::handle_filter() */
 		$this->loader->add_action( 'pre_get_posts', $audio_admin, 'handle_filter' );
+
 		/** @uses AudioAdmin::render_filter_dropdown() */
 		$this->loader->add_action( 'restrict_manage_posts', $audio_admin, 'render_filter_dropdown' );
+
 		/** @uses AudioAdmin::add_audio_meta_box() */
 		$this->loader->add_action( 'add_meta_boxes', $audio_admin, 'add_audio_meta_box' );
+
 		/** @uses AudioAdmin::enqueue_admin_assets() */
 		$this->loader->add_action( 'admin_enqueue_scripts', $audio_admin, 'enqueue_admin_assets', 20 );
+
 		/** @uses AudioAdmin::bulk_action_notice() */
 		$this->loader->add_action( 'admin_notices', $audio_admin, 'bulk_action_notice' );
 
