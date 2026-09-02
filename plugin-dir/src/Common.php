@@ -1052,24 +1052,6 @@ class Common {
 		return false;
 	}
 
-	public function get_s3_object_link( $post_id, $language) {
-
-		$file_name    = 'itron_polly_tts_' . $post_id . $language . '.mp3';
-		$s3BucketName = GeneralConfiguration::get_bucket_name();
-
-		if ( get_option( 'uploads_use_yearmonth_folders' ) ) {
-			$key = get_the_date( 'Y', $post_id ) . '/' . get_the_date( 'm', $post_id ) . '/' . $file_name;
-		} else {
-			$key = $file_name;
-		}
-
-		$selected_region     = GeneralConfiguration::get_aws_region();
-		$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
-
-		return $audio_location_link;
-
-	}
-
 	/**
 	 * Validates if AWS configuration is correct and AWS can be reached.
 	 *
@@ -1956,7 +1938,6 @@ class Common {
 			'itron_polly_tts_audio_hash',
 			'itron_polly_tts_media_library_attachment_id',
 			'itron_polly_tts_settings_hash',
-			'itron_polly_tts_transcript_source_lan',
 		);
 	}
 
@@ -1975,11 +1956,6 @@ class Common {
 	public function clear_post_audio_state_meta( int $post_id ): void {
 		foreach ( $this->get_audio_state_meta_keys() as $meta_key ) {
 			delete_post_meta( $post_id, $meta_key );
-		}
-
-		foreach ( $this->get_all_polly_languages() as $language_code ) {
-			delete_post_meta( $post_id, 'itron_polly_tts_translation_' . $language_code );
-			delete_post_meta( $post_id, 'itron_polly_tts_transcript_' . $language_code );
 		}
 	}
 

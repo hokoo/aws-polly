@@ -4,7 +4,7 @@ Tags: text-to-speech, audio, aws polly, speech synthesis, podcast
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPL-3.0-only
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -49,26 +49,28 @@ When these constants are present, the plugin uses them instead of saved options 
 
 == External services ==
 
-This plugin connects to AWS services to generate, store, and optionally deliver audio files.
+This plugin connects to services provided by Amazon Web Services, Inc. (AWS) to generate, store, and optionally deliver audio files. These connections occur only after an administrator configures AWS credentials and enables the corresponding plugin functionality.
 
-= AWS Polly =
+= Amazon Polly =
 
-AWS Polly is used to convert post content into audio files.
+Amazon Polly is used to convert post content into audio files.
 
-Data sent when audio is generated: the post title, post excerpt, post content prepared for speech synthesis, selected voice and playback settings, selected AWS region, and the AWS credentials you configure for the plugin.
+Data sent when audio is generated: the enabled portions of the post title, excerpt, and content prepared as text or SSML for speech synthesis, plus the selected voice, engine, sample rate, output format, configured lexicon names, and AWS region. The configured AWS credentials are used on the server to authenticate and sign requests; the secret access key is not sent as content.
 
+Service information: https://aws.amazon.com/polly/
 Terms of service: https://aws.amazon.com/service-terms/ (AWS Service Terms, including the AWS Machine Learning and Artificial Intelligence Services section that covers Amazon Polly)
 Privacy policy: https://aws.amazon.com/privacy/
 Additional AWS data privacy information: https://aws.amazon.com/compliance/data-privacy-faq/
 
 = Amazon S3 =
 
-Amazon S3 is used only when you enable S3 storage for generated audio files.
+Amazon Simple Storage Service (Amazon S3) is used only when you enable S3 storage for generated audio files.
 
-Data sent when audio is generated: the resulting audio files, file names/object keys, selected bucket and region, and the AWS credentials you configure for the plugin.
+Data sent when audio is generated: the resulting MP3 audio file, its object key, the selected bucket and AWS region, and the `public-read` object access setting. The configured AWS credentials are used on the server to authenticate and sign requests; the secret access key is not sent as content. Requests are sent to the Amazon S3 endpoint for the selected region, such as `s3.us-east-1.amazonaws.com`.
 
 When S3 storage is enabled and CloudFront is not configured, visitors also download the generated audio files directly from your Amazon S3 bucket when they load a page with audio. Those requests include the audio file URL and standard browser request data such as the visitor IP address and user agent.
 
+Service information: https://aws.amazon.com/s3/
 Terms of service: https://aws.amazon.com/service-terms/ (AWS Service Terms for AWS services)
 Privacy policy: https://aws.amazon.com/privacy/
 Additional AWS data privacy information: https://aws.amazon.com/compliance/data-privacy-faq/
@@ -79,6 +81,7 @@ Amazon CloudFront is used only when you configure a CloudFront domain for audio 
 
 Data sent when visitors load a page with audio: requests for the generated audio files are served through your configured CloudFront distribution. Those requests include the audio file URL and standard browser request data such as the visitor IP address and user agent.
 
+Service information: https://aws.amazon.com/cloudfront/
 Terms of service: https://aws.amazon.com/service-terms/ (AWS Service Terms, including the Amazon CloudFront section)
 Privacy policy: https://aws.amazon.com/privacy/
 Additional AWS data privacy information: https://aws.amazon.com/compliance/data-privacy-faq/
@@ -98,6 +101,12 @@ Yes. The plugin supports storing generated audio in Amazon S3 and serving it thr
 Yes. You can enable audio generation for individual posts and the plugin will keep track of queued, running, and ready states.
 
 == Changelog ==
+
+= 1.0.7 =
+
+* Removed unreachable legacy translation code left over from an earlier plugin version.
+* Updated the bundled AWS SDK for PHP to the latest stable release.
+* Clarified the existing Amazon Polly, Amazon S3, and Amazon CloudFront service disclosures.
 
 = 1.0.6 =
 

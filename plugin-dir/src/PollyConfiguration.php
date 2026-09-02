@@ -228,7 +228,7 @@ class PollyConfiguration {
 	}
 
 	/**
-	 * Render the translation source language input.
+	 * Render the Amazon Polly source language input.
 	 *
 	 * @since      0.1
 	 */

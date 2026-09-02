@@ -11,6 +11,7 @@ vendor/**/.github
 vendor/**/.gitignore
 vendor/**/.gitattributes
 vendor/**/.editorconfig
+vendor/**/.*
 vendor/**/.changes
 vendor/**/test
 vendor/**/tests

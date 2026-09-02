@@ -28,7 +28,7 @@ class StreamConnector extends Connector {
 	);
 
 	/**
-	 * Return translated connector label
+	 * Return the connector label.
 	 *
 	 * @return string
 	 */
@@ -37,7 +37,7 @@ class StreamConnector extends Connector {
 	}
 
 	/**
-	 * Return translated context labels
+	 * Return the context labels.
 	 *
 	 * @return array
 	 */
@@ -52,7 +52,7 @@ class StreamConnector extends Connector {
 	}
 
 	/**
-	 * Return translated action labels
+	 * Return the action labels.
 	 *
 	 * @return array
 	 */

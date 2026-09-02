@@ -45,19 +45,8 @@ class LocalFileHandler extends FileHandler {
 		// Getting full file path.
 		$upload_dir = trailingslashit( wp_upload_dir()['basedir'] );
 		$prefix     = $this->get_prefix( $post_id );
-		$files      = array( $file );
-
-		foreach ( $this->common->get_all_polly_languages() as $language_code ) {
-			$translation_meta = get_post_meta( $post_id, 'itron_polly_tts_translation_' . $language_code, true );
-			if ( ! empty( $translation_meta ) ) {
-				$files[] = 'itron_polly_tts_' . $post_id . $language_code . '.mp3';
-			}
-		}
-
-		foreach ( array_unique( $files ) as $target_file ) {
-			$file_full_path = $upload_dir . $prefix . $target_file;
-			$wp_filesystem->delete( $file_full_path );
-		}
+		$file_full_path = $upload_dir . $prefix . $file;
+		$wp_filesystem->delete( $file_full_path );
 
 	}
 

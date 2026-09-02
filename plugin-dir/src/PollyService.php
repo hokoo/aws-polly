@@ -238,13 +238,9 @@ class PollyService {
 				$wp_filesystem = $common->prepare_wp_filesystem();
 
 				// Actual invocation of method which will call Amazon Polly API and create audio file.
-				$this->convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem, '' );
+				$this->convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem );
 
 				update_post_meta( $post_id, 'itron_polly_tts_audio_hash', $current_hash );
-
-				// Checking what was the source language of text and updating options for translate operations.
-				update_post_meta( $post_id, 'itron_polly_tts_transcript_' . $source_language, $clean_text );
-				update_post_meta( $post_id, 'itron_polly_tts_transcript_source_lan', $source_language );
 				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_READY );
 
 				// update_post_meta() invalidates post meta caches, but it does not flush post query caches.
@@ -271,108 +267,6 @@ class PollyService {
 			$lock->release();
 		}
 	}
-	/*
-	private function start_speech_synthesis_task($common, $post_id, $sample_rate, $voice_id, $sentences, $lang) {
-
-		$full_text = '';
-
-		// Iterating through each of text parts.
-		foreach ( $sentences as $key => $text_content ) {
-
-			// Remove all tags
-			$text_content = strip_tags($text_content);
-
-			// If plugin SSML support option is enabled, plugin will try to decode all SSML tags.
-			$text_content = $this->ssml_support($common, $text_content);
-
-			$full_text = $full_text . $text_content;
-
-		}
-
-
-		// Adding breaths sounds (if enabled).
-		$full_text = $this->add_breaths($common, $full_text);
-
-		// Adding special polly mark.
-		$full_text = $this->add_mark_tag($common, $full_text);
-
-		// Adding speak polly mark.
-		$full_text = $this->add_speak_tags($common, $full_text);
-
-		//Preparing Amazon Polly client object.
-		$polly_client = $common->get_polly_client();
-
-		$s3_prefix = 'asyn/';
-		if ( get_option('uploads_use_yearmonth_folders') ) {
-			 $s3_prefix .= get_the_date( 'Y', $post_id ) . '/' . get_the_date( 'm', $post_id ) . "/";
-		}
-
-		$file_name = 'itron_polly_tts_' . $post_id . $lang . '.mp3';
-
-		//Preparing lexicons which will be used create audio.
-		$lexicons       = $common->get_lexicons();
-		$lexicons_array = explode( ' ', $lexicons );
-
-
-		//Call Amazon Polly service.
-		if ( ! empty( $lexicons ) and ( count( $lexicons_array ) > 0 ) ) {
-
-			$result = $polly_client->startSpeechSynthesisTask(
-				array(
-					'OutputFormat' => 'mp3',
-					'SampleRate'   => $sample_rate,
-					'Text'         => $full_text,
-					'TextType'     => 'ssml',
-					'VoiceId'      => $voice_id,
-					'OutputS3BucketName' => $common->get_s3_bucket_name(),
-					'OutputS3KeyPrefix' => $s3_prefix . $file_name,
-					'LexiconNames' => $lexicons_array,
-				)
-			);
-
-		} else {
-
-			$result = $polly_client->startSpeechSynthesisTask(
-				array(
-					'OutputFormat' => 'mp3',
-					'SampleRate'   => $sample_rate,
-					'Text'         => $full_text,
-					'TextType'     => 'ssml',
-					'VoiceId'      => $voice_id,
-					'OutputS3BucketName' => $common->get_s3_bucket_name(),
-					'OutputS3KeyPrefix' => $s3_prefix . $file_name
-				)
-			);
-
-		}
-
-		// Saving audio file in final destination.
-		$audio_location_link = $common->get_s3_object_link($common, $post_id, $file_name);
-
-		// This will bust the browser cache when a content revision is made.
-		$audio_location_link = add_query_arg( 'version', time(), $audio_location_link );
-
-		// We are using a hash of these values to improve the speed of queries.
-		$itron_polly_tts_settings_hash = md5( $voice_id . $sample_rate . "s3" );
-
-		if ( $lang == '' ) {
-			update_post_meta( $post_id, 'itron_polly_tts_audio_link_location', $audio_location_link );
-			update_post_meta( $post_id, 'itron_polly_tts_audio_location', "s3" );
-			update_post_meta( $post_id, 'itron_polly_tts_generated_voice_id', $voice_id );
-		} else {
-			update_post_meta( $post_id, 'itron_polly_tts_translation_' . $lang, '1' );
-		}
-
-		// Update post meta data.
-		update_post_meta( $post_id, 'itron_polly_tts_enable', 1 );
-		update_post_meta( $post_id, 'itron_polly_tts_voice_id', $voice_id );
-		update_post_meta( $post_id, 'itron_polly_tts_sample_rate', $sample_rate );
-		update_post_meta( $post_id, 'itron_polly_tts_settings_hash', $itron_polly_tts_settings_hash );
-
-
-	}
-	*/
-
 	/**
 	 * Method execute Amazon Polly API and convert content which was provided to audio file.
 	 *
@@ -381,10 +275,9 @@ class PollyService {
 	 * @param           string $voice_id                Amazon Polly voice ID.
 	 * @param           string $sentences               Sentences which should be converted to audio.
 	 * @param           string $wp_filesystem       Reference to WP File system variable.
-	 * @param           string $lang       Language
 	 * @since      0.1
 	 */
-	public function convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem, $lang ) {
+	public function convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem ) {
 
 		$logger = new Logger();
 		$logger->log( sprintf( '%s Converting to Audio', __METHOD__ ) );
@@ -392,17 +285,7 @@ class PollyService {
 		// Creating new standard common object for interacting with other methods of the plugin.
 		$common = $this->common;
 
-		// Translation support was removed from the plugin, so this branch only matters
-		// for legacy flows that still pass a target language explicitly.
-		if ( ! empty( $lang ) ) {
-			foreach ( $common->get_all_polly_languages() as $language_code ) {
-				if ( $language_code === $lang ) {
-					$voice_id = $common->get_resolved_polly_voice_option( 'itron_polly_tts_trans_langs_' . $language_code . '_voice', $language_code, $voice_id );
-				}
-			}
-		}
-
-		$voice_language    = empty( $lang ) ? $common->get_post_source_language( $post_id ) : $lang;
+		$voice_language    = $common->get_post_source_language( $post_id );
 		$resolved_voice_id = $common->resolve_polly_voice_id( $voice_language, $voice_id );
 
 		if ( $resolved_voice_id !== $voice_id ) {
@@ -417,12 +300,10 @@ class PollyService {
 				)
 			);
 
-			if ( empty( $lang ) ) {
-				if ( $common->is_post_voice_override_disabled() ) {
-					delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
-				} else {
-					update_post_meta( $post_id, 'itron_polly_tts_voice_id', $resolved_voice_id );
-				}
+			if ( $common->is_post_voice_override_disabled() ) {
+				delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
+			} else {
+				update_post_meta( $post_id, 'itron_polly_tts_voice_id', $resolved_voice_id );
 			}
 		}
 
@@ -439,18 +320,11 @@ class PollyService {
 			$sample_rate = '24000';
 		}
 
-		// In case of asynchronous synthesis flow.
-		//$itron_polly_tts_asynchronous = apply_filters( '$itron_polly_tts_asynchronous', '' );
-		//if ( $itron_polly_tts_asynchronous ) {
-		//	$this->start_speech_synthesis_task($common, $post_id, $sample_rate, $voice_id, $sentences, $lang);
-		//	return;
-		//}
-
 		// Preparing locations and names of temporary files which will be used.
 		$random              = wp_rand( 5, 10 );
 		$upload_dir          = wp_upload_dir()['basedir'];
 		$file_prefix         = 'itron_polly_tts_';
-		$file_name           = $file_prefix . $post_id . $lang . '.mp3';
+		$file_name           = $file_prefix . $post_id . '.mp3';
 		$file_temp_full_name = trailingslashit( $upload_dir ) . 'temp_' . $file_name . $random;
 		$dir_final_full_name = trailingslashit( $upload_dir );
 		if ( get_option( 'uploads_use_yearmonth_folders' ) ) {
@@ -590,13 +464,9 @@ class PollyService {
 		// We are using a hash of these values to improve the speed of queries.
 		$itron_polly_tts_settings_hash = md5( $voice_id . $sample_rate . 's3' );
 
-		if ( $lang == '' ) {
-			update_post_meta( $post_id, 'itron_polly_tts_audio_link_location', $audio_location_link );
-			update_post_meta( $post_id, 'itron_polly_tts_audio_location', $file_handler->get_type() );
-			update_post_meta( $post_id, 'itron_polly_tts_generated_voice_id', $voice_id );
-		} else {
-			update_post_meta( $post_id, 'itron_polly_tts_translation_' . $lang, '1' );
-		}
+		update_post_meta( $post_id, 'itron_polly_tts_audio_link_location', $audio_location_link );
+		update_post_meta( $post_id, 'itron_polly_tts_audio_location', $file_handler->get_type() );
+		update_post_meta( $post_id, 'itron_polly_tts_generated_voice_id', $voice_id );
 
 			// Update post meta data.
 			update_post_meta( $post_id, 'itron_polly_tts_enable', 1 );
@@ -773,7 +643,7 @@ class PollyService {
 						$clean_text    = $common->clean_text( $post_id, true, false );
 						$sentences     = $common->break_text( $clean_text );
 						$wp_filesystem = $common->prepare_wp_filesystem();
-						$this->convert_to_audio( $post_id, $itron_polly_tts_sample_rate, $itron_polly_tts_voice_id, $sentences, $wp_filesystem, '' );
+						$this->convert_to_audio( $post_id, $itron_polly_tts_sample_rate, $itron_polly_tts_voice_id, $sentences, $wp_filesystem );
 						$common->set_post_audio_state( (int) $post_id, Common::AUDIO_STATE_READY );
 					} catch ( \Throwable $e ) {
 						if ( ! $common->has_post_audio( (int) $post_id ) ) {
@@ -813,17 +683,17 @@ class PollyService {
 		$total_posts               = 0;
 		$common                    = $this->common;
 		$post_types_supported      = $common->get_posttypes_array();
-		$posts_needing_translation = $this->get_num_posts_needing_transcription();
+		$posts_needing_transcription = $this->get_num_posts_needing_transcription();
 
 		foreach ( $post_types_supported as $post_type ) {
 			$post_type_count = wp_count_posts( $post_type )->publish;
 			$total_posts    += $post_type_count;
 		}
 
-		if ( 0 >= $total_posts || 0 >= $posts_needing_translation ) {
+		if ( 0 >= $total_posts || 0 >= $posts_needing_transcription ) {
 			$percentage = 100;
 		} else {
-			$percentage = round( $posts_needing_translation / $total_posts * 100, 2 );
+			$percentage = round( $posts_needing_transcription / $total_posts * 100, 2 );
 		}
 
 		return $percentage;

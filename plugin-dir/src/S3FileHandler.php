@@ -48,24 +48,12 @@ class S3FileHandler extends FileHandler {
 	 */
 	public function delete( $wp_filesystem, $file, $post_id) {
 
-		$common = $this->common;
-
 		// Retrieve the name of the bucket where audio files are stored.
 		$s3_bucket = GeneralConfiguration::get_bucket_name();
 		$prefix    = $this->get_prefix( $post_id );
-		$keys      = array( $prefix . $file );
+		$key       = $prefix . $file;
 
-		// Delete translations if available.
-		foreach ( $common->get_all_polly_languages() as $language_code ) {
-			$value = get_post_meta( $post_id, 'itron_polly_tts_translation_' . $language_code, true );
-			if ( ! empty( $value ) ) {
-				$keys[] = $prefix . 'itron_polly_tts_' . $post_id . $language_code . '.mp3';
-			}
-		}
-
-		foreach ( array_unique( $keys ) as $key ) {
-			$this->delete_s3_object( $s3_bucket, $key );
-		}
+		$this->delete_s3_object( $s3_bucket, $key );
 
 	}
 
@@ -114,6 +102,7 @@ class S3FileHandler extends FileHandler {
 		if ( empty( $cloudfront_domain_name ) ) {
 			$selected_region = GeneralConfiguration::get_aws_region();
 
+			// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Generated audio is intentionally served from the user-configured Amazon S3 service documented in readme.txt.
 			$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
 		} else {
 			$audio_location_link = 'https://' . $cloudfront_domain_name . '/' . $key;
