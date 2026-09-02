@@ -18,6 +18,7 @@ class PollyConfiguration {
 	 */
 	private $common;
 	private $polly_access_available = null;
+	private ?string $source_language_for_sanitization = null;
 
 	/**
 	 * PollyConfiguration constructor.
@@ -168,11 +169,13 @@ class PollyConfiguration {
 	public function sanitize_source_language( $language_code ): string {
 		$language_code = sanitize_text_field( wp_unslash( (string) $language_code ) );
 
-		if ( in_array( $language_code, $this->common->get_all_languages(), true ) ) {
-			return $language_code;
+		if ( ! in_array( $language_code, $this->common->get_all_languages(), true ) ) {
+			$language_code = $this->common->get_source_language();
 		}
 
-		return $this->common->get_source_language();
+		$this->source_language_for_sanitization = $language_code;
+
+		return $language_code;
 	}
 
 	public function sanitize_player_position( $position ): string {
@@ -363,11 +366,7 @@ class PollyConfiguration {
 	}
 
 	public function sanitize_voice_id( $voice_id ) {
-	  // phpcs:disable WordPress.Security.NonceVerification.Missing -- Settings API request is verified by options.php before sanitize callbacks run.
-		$language_code = isset( $_POST['itron_polly_tts_source_language'] )
-		? sanitize_text_field( wp_unslash( $_POST['itron_polly_tts_source_language'] ) )
-		: $this->common->get_source_language();
-	  // phpcs:enable WordPress.Security.NonceVerification.Missing
+		$language_code = $this->source_language_for_sanitization ?? $this->common->get_source_language();
 
 		return $this->common->get_resolved_polly_voice_option(
 			'itron_polly_tts_voice_id',

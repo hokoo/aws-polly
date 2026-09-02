@@ -3,7 +3,6 @@
 .github
 .gitignore
 
-composer.json
 composer.lock
 
 vendor/bin

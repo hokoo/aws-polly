@@ -16,6 +16,10 @@ class AudioAdmin {
 	private const AUDIO_SORT_META_ALIAS           = 'itron_polly_tts_audio_sort_meta';
 	private const VOICE_SORT_META_ALIAS           = 'itron_polly_tts_voice_sort_meta';
 	private const GENERATED_VOICE_SORT_META_ALIAS = 'itron_polly_tts_generated_voice_sort_meta';
+	private const AUDIO_FILTER_NONCE_ACTION       = 'itron_polly_tts_audio_filter';
+	private const AUDIO_FILTER_NONCE_NAME         = 'itron_polly_tts_audio_filter_nonce';
+	private const BULK_NOTICE_NONCE_ACTION        = 'itron_polly_tts_bulk_notice';
+	private const BULK_NOTICE_NONCE_NAME          = 'itron_polly_tts_bulk_notice_nonce';
 
 	/**
 	 * @var Common
@@ -230,13 +234,13 @@ class AudioAdmin {
 
 	public function render_filter_dropdown(): void {
 		$screen = get_current_screen();
-		if ( ! $screen || ! in_array( $screen->post_type, $this->get_post_types(), true ) ) {
+		if ( ! $screen || ! in_array( $screen->post_type, $this->get_post_types(), true ) || ! $this->current_user_can_edit_post_type( $screen->post_type ) ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin list-table filter value from the current URL.
-		$selected = isset( $_GET['polly_audio_filter'] ) ? sanitize_key( wp_unslash( $_GET['polly_audio_filter'] ) ) : '';
+		$selected = $this->get_audio_filter_value();
 
+		wp_nonce_field( self::AUDIO_FILTER_NONCE_ACTION, self::AUDIO_FILTER_NONCE_NAME, false );
 		echo '<select name="polly_audio_filter">';
 		echo '<option value="">All (audio)</option>';
 		echo '<option value="no_audio"' . selected( $selected, 'no_audio', false ) . '>Without audio</option>';
@@ -249,7 +253,7 @@ class AudioAdmin {
 			return;
 		}
 
-		$filter = $this->get_audio_filter_value();
+		$filter = $this->get_audio_filter_value( $query );
 		if ( '' !== $filter ) {
 			$this->common->backfill_legacy_audio_states();
 			$query->set( 'itron_polly_tts_audio_filter', $filter );
@@ -268,21 +272,42 @@ class AudioAdmin {
 			return false;
 		}
 
-		$post_type = $query->get( 'post_type' );
+		$post_type = $this->get_admin_post_type( $query );
 
 		if ( is_array( $post_type ) ) {
 			return false;
 		}
 
-		if ( empty( $post_type ) ) {
-			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading the current admin screen post type from the URL.
-			$post_type = isset( $_GET['post_type'] )
-				? sanitize_key( wp_unslash( $_GET['post_type'] ) )
-				: 'post';
-			// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return in_array( $post_type, $this->get_post_types(), true ) && $this->current_user_can_edit_post_type( $post_type );
+	}
+
+	private function get_admin_post_type( ?\WP_Query $query = null ): string {
+		$post_type = null;
+
+		if ( null !== $query ) {
+			$post_type = $query->get( 'post_type' );
 		}
 
-		return in_array( $post_type, $this->get_post_types(), true );
+		if ( is_array( $post_type ) ) {
+			return '';
+		}
+
+		if ( empty( $post_type ) ) {
+			$screen    = get_current_screen();
+			$post_type = $screen && ! empty( $screen->post_type ) ? $screen->post_type : 'post';
+		}
+
+		return sanitize_key( (string) $post_type );
+	}
+
+	private function current_user_can_edit_post_type( string $post_type ): bool {
+		$post_type_object = get_post_type_object( $post_type );
+
+		if ( ! $post_type_object || empty( $post_type_object->cap->edit_posts ) ) {
+			return false;
+		}
+
+		return current_user_can( $post_type_object->cap->edit_posts );
 	}
 
 	private function normalize_sort_order( $order ): string {
@@ -459,11 +484,18 @@ class AudioAdmin {
 			$filter = (string) $query->get( 'itron_polly_tts_audio_filter' );
 		}
 
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin list-table filter value from the current URL.
 		if ( '' === $filter && isset( $_GET['polly_audio_filter'] ) ) {
+			if ( ! isset( $_GET[ self::AUDIO_FILTER_NONCE_NAME ] ) ) {
+				return '';
+			}
+
+			$nonce = sanitize_text_field( wp_unslash( $_GET[ self::AUDIO_FILTER_NONCE_NAME ] ) );
+			if ( ! wp_verify_nonce( $nonce, self::AUDIO_FILTER_NONCE_ACTION ) || ! $this->current_user_can_edit_post_type( $this->get_admin_post_type( $query ) ) ) {
+				return '';
+			}
+
 			$filter = sanitize_key( wp_unslash( $_GET['polly_audio_filter'] ) );
 		}
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		return in_array( $filter, array( 'no_audio', 'has_audio' ), true ) ? $filter : '';
 	}
@@ -536,16 +568,29 @@ class AudioAdmin {
 			$queued++;
 		}
 
-		return add_query_arg( 'polly_queued', $queued, $redirect_to );
+		return add_query_arg(
+			array(
+				'polly_queued'                => $queued,
+				self::BULK_NOTICE_NONCE_NAME => wp_create_nonce( self::BULK_NOTICE_NONCE_ACTION ),
+			),
+			$redirect_to
+		);
 	}
 
 	public function bulk_action_notice(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin redirect flag from the current URL.
 		if ( ! isset( $_GET['polly_queued'] ) ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a sanitized admin redirect flag from the current URL.
+		if ( ! isset( $_GET[ self::BULK_NOTICE_NONCE_NAME ] ) ) {
+			return;
+		}
+
+		$nonce = sanitize_text_field( wp_unslash( $_GET[ self::BULK_NOTICE_NONCE_NAME ] ) );
+		if ( ! wp_verify_nonce( $nonce, self::BULK_NOTICE_NONCE_ACTION ) || ! $this->current_user_can_edit_post_type( $this->get_admin_post_type() ) ) {
+			return;
+		}
+
 		$count = absint( wp_unslash( $_GET['polly_queued'] ) );
 		if ( 0 === $count ) {
 			return;
@@ -590,7 +635,14 @@ class AudioAdmin {
 
 		$post_types = $this->get_post_types();
 		$post_type  = ! empty( $post_types[0] ) ? $post_types[0] : 'post';
-		$url        = admin_url( 'edit.php?post_type=' . $post_type . '&polly_audio_filter=no_audio' );
+		$url        = add_query_arg(
+			array(
+				'post_type'                   => $post_type,
+				'polly_audio_filter'          => 'no_audio',
+				self::AUDIO_FILTER_NONCE_NAME => wp_create_nonce( self::AUDIO_FILTER_NONCE_ACTION ),
+			),
+			admin_url( 'edit.php' )
+		);
 
 		wp_add_inline_script(
 			'itron-polly-tts-admin',
