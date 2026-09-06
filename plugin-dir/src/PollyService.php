@@ -81,7 +81,7 @@ class PollyService {
 						$common->get_voice_id()
 					);
 				} catch ( \Exception $e ) {
-					$logger->log( sprintf( '%s Unable to validate selected voice while saving post ( id=%s ): %s', __METHOD__, $post_id, $e->getMessage() ) );
+					$logger->log( sprintf( '%s Unable to validate selected voice while saving post ( id=%s ): %s', __METHOD__, $post_id, get_class( $e ) ) );
 				}
 				update_post_meta( $post_id, 'itron_polly_tts_voice_id', $voice_id );
 			}
@@ -230,10 +230,6 @@ class PollyService {
 				// Sammple Rate
 				$sample_rate = $common->get_sample_rate();
 
-				$logger->log( sprintf( '%s <<< Clean Text >>> ', __METHOD__ ) );
-				$logger->log( sprintf( '%s', $clean_text ) );
-				$logger->log( sprintf( '%s __________', __METHOD__ ) );
-
 				// Breaking text into smaller parts, which will be then send to Amazon Polly for conversion.
 				$sentences = $common->break_text( $clean_text );
 
@@ -266,7 +262,7 @@ class PollyService {
 			if ( ! $common->has_post_audio( $post_id ) ) {
 				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_ERROR );
 			}
-			$logger->log( sprintf( '%s Error: %s', __METHOD__, $e->getMessage() ) );
+			$logger->log( sprintf( '%s Error: %s', __METHOD__, get_class( $e ) ) );
 		} finally {
 			$lock->release();
 		}
@@ -327,9 +323,6 @@ class PollyService {
 		// Iterating through each of text parts.
 		foreach ( $sentences as $key => $text_content ) {
 
-			$logger->log( sprintf( '%s Part:', __METHOD__ ) );
-			$logger->log( sprintf( '%s', $text_content ) );
-
 			// Remove all tags
 			$text_content = wp_strip_all_tags( $text_content, false );
 
@@ -366,14 +359,7 @@ class PollyService {
 			$news_style           = $common->should_news_style_be_used( $voice_id );
 			$conversational_style = $common->should_conversational_style_be_used( $voice_id );
 
-			$log  = sprintf( '%s Final Polly text:', __METHOD__ );
-			$log .= sprintf( '%s', $text_content );
-			$log .= sprintf( '%s Engine: %s ', __METHOD__, $engine );
-			$log .= sprintf( '%s Voice: %s ', __METHOD__, $voice_id );
-			$log .= sprintf( '%s SampleRate: %s ', __METHOD__, $sample_rate );
-			$log .= sprintf( '%s News Style Enabled: %s ', __METHOD__, $news_style );
-			$log .= sprintf( '%s Conversational Style Enabled: %s ', __METHOD__, $conversational_style );
-			$logger->log( $log );
+			$logger->log( sprintf( '%s Synthesis post=%d part=%d engine=%s voice=%s sample_rate=%s news=%d conversational=%d', __METHOD__, $post_id, $key, $engine, $voice_id, $sample_rate, $news_style, $conversational_style ) );
 
 			//Call Amazon Polly service.
 			if ( ! empty( $lexicons ) and ( count( $lexicons_array ) > 0 ) ) {
@@ -410,7 +396,7 @@ class PollyService {
 			// Save first part of the audio stream in the parial temporary file.
 			$wp_filesystem->put_contents( $file_temp_full_name . '_part_' . $key, $contents );
 
-			$logger->log( sprintf( '%s Part created ( %s )', __METHOD__, $file_temp_full_name . '_part_' . $key ) );
+			$logger->log( sprintf( '%s Part created post=%d part=%d', __METHOD__, $post_id, $key ) );
 
 			// Merge new temporary file with previous ones.
 			if ( $first_part ) {

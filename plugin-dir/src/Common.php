@@ -1011,13 +1011,8 @@ class Common {
 	 *
 	 * @since      0.1
 	 */
-	public function is_logging_enabled() {
-			$value = $this->checked_validator( 'itron_polly_tts_logging' );
-		if ('checked' == trim( $value )) {
-			return true;
-		} else {
-			return false;
-		}
+	public function is_logging_enabled( $enabled = true ): bool {
+		return (bool) $enabled && ! empty( get_option( 'itron_polly_tts_logging', false ) );
 	}
 
 	/**
@@ -1680,13 +1675,6 @@ class Common {
 
 		$parts = $this->modify_speed( $parts );
 
-		$logger = new Logger();
-
-		foreach ($parts as $part) {
-			$logger->log( sprintf( '%s <<< PART >>> ', __METHOD__ ) );
-			$logger->log( sprintf( '%s', $part ) );
-		}
-
 		return $parts;
 	}
 
@@ -1982,7 +1970,7 @@ class Common {
 		if ( $deletion_error ) {
 			$this->show_error_notice( 'notice-error', 'Encountered an error while deleting the file.' );
 			$logger = new Logger();
-			$logger->log( sprintf( '%s Delete post audio failed: %s', __METHOD__, $deletion_error->getMessage() ) );
+			$logger->log( sprintf( '%s Delete post audio failed: %s', __METHOD__, get_class( $deletion_error ) ) );
 		}
 
 	}

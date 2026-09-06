@@ -2,6 +2,7 @@
 
 namespace iTRON\PollyTTS\Loggers;
 
+use iTRON\PollyTTS\Logger;
 use Psr\Log\AbstractLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,7 +12,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Stream extends AbstractLogger {
 
 	public function log( $level, $message, array $context = array(), string $module = 'general' ) : void {
+		if ( ! Logger::is_enabled() ) {
+			return;
+		}
+
 		$calling = function () use ( $level, $message, $context, $module ) {
+			if ( ! Logger::is_enabled() ) {
+				return;
+			}
+
 			$meta = array();
 			if ( ! empty( $context ) ) {
 				$meta = array_map(
