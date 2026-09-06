@@ -35,7 +35,6 @@ delete_option( 'itron_polly_tts_position' );
 delete_option( 'itron_polly_tts_player_label' );
 delete_option( 'itron_polly_tts_defconf' );
 delete_option( 'itron_polly_tts_autoplay' );
-delete_option( 'itron_polly_tts_update_all' );
 delete_option( 'itron_polly_tts_add_post_title' );
 delete_option( 'itron_polly_tts_add_post_excerpt' );
 delete_option( 'itron_polly_tts_medialibrary_enabled' );

@@ -2,27 +2,3 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
-.ui-progressbar {
-  position: relative;
-  margin-top: 1em;
-}
-#itron-polly-tts-progressbar {
-  height: 24px;
-  border: 1px solid #ccd0d4;
-  background: #f0f0f1;
-}
-#itron-polly-tts-progressbar .ui-progressbar-value {
-  height: 100%;
-  background: #2271b1;
-}
-.itron-polly-tts-progress-label {
-  position: absolute;
-  left: 45%;
-  top: 4px;
-  font-weight: bold;
-  text-shadow: 1px 1px 0 #fff;
-  display: none;
-}
-#label_itron_polly_tts_update_all, #itron_polly_tts_update_all_pricing_message {
-  display: none;
-}

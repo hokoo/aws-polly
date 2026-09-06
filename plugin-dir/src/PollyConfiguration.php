@@ -97,7 +97,6 @@ class PollyConfiguration {
 					add_settings_field( 'itron_polly_tts_coming_soon_text', __( 'Coming Soon Text:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'coming_soon_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_coming_soon' ) );
 
 					add_settings_section( 'itron_polly_tts_pollyadditional', __( 'Additional configuration', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'pollyadditional_gui' ), 'itron_polly_tts_polly' );
-					//                  add_settings_field( 'itron_polly_tts_update_all', __( 'Bulk update all posts:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'update_all_gui' ),'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_update_all' ) );
 					add_settings_field( 'itron_polly_tts_add_post_title', __( 'Add post title to audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'add_post_title_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_add_post_title' ) );
 					add_settings_field( 'itron_polly_tts_add_post_excerpt', __( 'Add post excerpt to audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'add_post_excerpt_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_add_post_excerpt' ) );
 					add_settings_field( 'itron_polly_tts_medialibrary_enabled', __( 'Enable Media Library support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'medialibrary_enabled_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_medialibrary_enabled' ) );
@@ -254,27 +253,6 @@ class PollyConfiguration {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Render the Update All input for this plugin
-	 *
-	 * @since      0.1
-	 */
-	public function update_all_gui() {
-
-			$message = $this->common->get_price_message_for_update_all();
-			echo '<p>';
-				echo '<button type="button" class="button" name="itron_polly_tts_update_all" id="itron_polly_tts_update_all" disabled>Bulk Update</button>';
-				echo '<label id="label_itron_polly_tts_update_all" for="itron_polly_tts_update_all"> Changes must be saved before proceeding with a bulk update.</label>';
-		echo '<p class="description" for="itron_polly_tts_update_all">Functionality is disabled in this plugin version.</p>';
-			echo '</p>';
-			echo '<div id="itron_polly_tts_bulk_update_div">';
-				echo '<p id="itron_polly_tts_update_all_pricing_message" class="description">' . esc_html( $message ) . '</p>';
-				echo '<p><button type="button" class="button button-primary" id="itron_polly_tts_batch_transcribe" >Bulk Update</button></p>';
-				echo '<div id="itron-polly-tts-progressbar"><div class="itron-polly-tts-progress-label">Loading...</div></div>';
-			echo '</div>';
-
 	}
 
 	/**

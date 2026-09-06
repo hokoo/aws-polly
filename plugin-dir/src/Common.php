@@ -1609,75 +1609,6 @@ class Common {
 	}
 
 	/**
-	 * Calculate the total price of converting all posts into audio.
-	 *
-	 * @since      0.1
-	 */
-	public function get_price_message_for_update_all() {
-		$post_types_supported = $this->get_posttypes_array();
-		$number_of_characters = 0;
-		$posts_per_page       = apply_filters( 'itron_polly_tts_posts_per_page', 5 );
-		$count_posts          = wp_count_posts()->publish;
-		$max_count_posts      = 100;
-
-		// Retrieving the number of characters in all posts.
-
-		$paged      = 0;
-		$post_count = 0;
-		do {
-			$paged++;
-			$wp_query        = new \WP_Query(
-				array(
-					'posts_per_page' => $posts_per_page,
-					'post_type'      => $post_types_supported,
-					'fields'         => 'ids',
-					'paged'          => $paged,
-				)
-			);
-			$number_of_posts = $wp_query->max_num_pages;
-			while ($wp_query->have_posts()) {
-				$post_count++;
-				$wp_query->the_post();
-				$post_id        = get_the_ID();
-				$clean_text     = $this->clean_text( $post_id, true, false );
-				$post_sentences = $this->break_text( $clean_text );
-				if ( ! empty( $post_sentences )) {
-					foreach ($post_sentences as $sentence) {
-						$sentence              = str_replace( '**AMAZONPOLLY*SSML*BREAK*time=***1s***SSML**', '', $sentence );
-						$sentence              = str_replace( '**AMAZONPOLLY*SSML*BREAK*time=***500ms***SSML**', '', $sentence );
-						$number_of_characters += strlen( $sentence );
-					}
-				}
-			}
-
-			// If we reached the number of posts which we wanted to read, we stop
-			// reading next posts.
-
-			if ($post_count >= $max_count_posts) {
-				break;
-			}
-		} while ($paged < $number_of_posts);
-
-		// Price for converting single character according to Amazon Polly pricing.
-
-		$itron_polly_tts_price = 0.000004;
-
-		// Estimating average number of characters per post.
-
-		if (0 !== $post_count) {
-			$post_chars_count_avg = $number_of_characters / $post_count;
-		} else {
-			$post_chars_count_avg = 0;
-		}
-
-		// Estimating the total price of convertion of all posts.
-
-		$total_price = 2 * $itron_polly_tts_price * $count_posts * $post_chars_count_avg;
-		$message     = 'You are about to convert ' . number_format( $count_posts, 0, '.', ',' ) . ' pieces of text-based content, which totals approximately ' . number_format( $number_of_characters, 0, '.', ',' ) . ' characters. Based on the Amazon Polly pricing ($4 dollars per 1 million characters) it will cost you about $' . $total_price . ' to convert all of your content into to speech-based audio. Some or all of your costs might be covered by the Free Tier (conversion of 5 million characters per month for free, for the first 12 months, starting from the first request for speech). For more information, see https://aws.amazon.com/polly/';
-		return $message;
-	}
-
-	/**
 	 * Method prepare WP_Filesystem variable for interacting with local file system.
 	 *
 	 * @since      0.1
@@ -2163,8 +2094,6 @@ class Common {
 		$admin_asset_url = plugin_dir_url( dirname( __DIR__ ) . '/itron-polly-tts.php' ) . 'admin/';
 		wp_enqueue_style( 'itron-polly-tts-admin', $admin_asset_url . 'css/itron-polly-tts-admin.css', array(), $this->get_asset_version( 'css/itron-polly-tts-admin.css' ), 'all' );
 		wp_enqueue_style( 'itron-polly-tts-font-awesome', $admin_asset_url . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
-		wp_enqueue_style( 'jquery-ui-core' );
-		wp_enqueue_style( 'jquery-ui-progressbar' );
 	}
 
 	/**
@@ -2175,17 +2104,6 @@ class Common {
 	public function enqueue_scripts() {
 		$admin_asset_url = plugin_dir_url( dirname( __DIR__ ) . '/itron-polly-tts.php' ) . 'admin/';
 		wp_enqueue_script( 'itron-polly-tts-admin', $admin_asset_url . 'js/itron-polly-tts-admin.js', array( 'jquery' ), $this->get_asset_version( 'js/itron-polly-tts-admin.js' ), false );
-		wp_enqueue_script( 'jquery-ui-core' );
-		wp_enqueue_script( 'jquery-ui-progressbar' );
-		wp_localize_script(
-			'itron-polly-tts-admin',
-			'itronPollyTTSAdmin',
-			array(
-				'ajaxAction' => 'itron_polly_tts_transcribe',
-				'ajaxNonce'  => wp_create_nonce( 'itron_polly_tts_ajax' ),
-			)
-		);
-
 	}
 
 	/**

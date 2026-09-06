@@ -203,38 +203,6 @@
 			syncPollySpeakingStyleState();
 		}
 
-		function itronPollyTTSProcessStep() {
-			var itronPollyTTSProgressbar = $( "#itron-polly-tts-progressbar" );
-
-			$.ajax({
-				type: 'POST',
-				url: ajaxurl,
-				data: {
-					action: adminConfig.ajaxAction || 'itron_polly_tts_transcribe',
-					nonce: adminConfig.ajaxNonce || '',
-				},
-				dataType: "json",
-				beforeSend: function() {
-					$('.itron-polly-tts-progress-label').show();
-				},
-				success: function( response ) {
-					if( 'done' != response.step ) {
-						itronPollyTTSProcessStep();
-					}
-
-					$( "#itron-polly-tts-progressbar" ).progressbar({
-						value: response.percentage
-					});
-
-					itronPollyTTSProgressbar.progressbar( "value", response.percentage);
-				}
-			}).fail(function (response) {
-				if ( window.console && window.console.log ) {
-					console.log( response );
-				}
-			});
-		}
-
 		function injectFindPostsWithoutAudioPanel() {
 			var form = document.querySelector( '.wrap form' );
 			var targetUrl = adminConfig.findPostsWithoutAudioUrl || '';
@@ -262,26 +230,6 @@
 		function(){
 			injectFindPostsWithoutAudioPanel();
 
-			var itronPollyTTSProgressbar = $( "#itron-polly-tts-progressbar" );
-			var itronPollyTTSProgressLabel = $( ".itron-polly-tts-progress-label" );
-
-			$( '#itron_polly_tts_batch_transcribe' ).click(
-				function(){
-					$('#itron_polly_tts_batch_transcribe').hide();
-
-					itronPollyTTSProgressbar.progressbar({
-						value: false,
-						change: function() {
-							itronPollyTTSProgressLabel.text( "Starting" );
-						},
-						complete: function() {
-							itronPollyTTSProgressLabel.text( "Complete!" );
-						}
-					});
-					itronPollyTTSProcessStep();
-				}
-			);
-
 			$( '#itron_polly_tts_s3' ).change(
 				function() {
 					if ($( "#itron_polly_tts_s3" ).is( ':checked' )) {
@@ -292,7 +240,6 @@
 				}
 			);
 
-			$( '#itron_polly_tts_bulk_update_div' ).hide();
 			$( '#itron_polly_tts_plugin_cost_info' ).hide();
 
 			$( '#itron_polly_tts_enable' ).change(
@@ -302,27 +249,6 @@
 					} else {
 						$( "#itron_polly_tts_post_options" ).hide();
 					}
-				}
-			);
-
-			$( '.wrap input, .wrap select' ).not('#itron_polly_tts_update_all').change(
-				function() {
-					$( '#itron_polly_tts_update_all' ).prop("disabled", true);
-					$( '#itron_polly_tts_update_all' ).show();
-					$( '#label_itron_polly_tts_update_all' ).show();
-					$( '#itron_polly_tts_bulk_update_div' ).hide();
-					$( '#itron_polly_tts_update_all_pricing_message' ).hide();
-				}
-			);
-
-			$( '#itron_polly_tts_update_all' ).click(
-				function(e) {
-					e.stopPropagation();
-					e.preventDefault();
-
-					$( '#itron_polly_tts_update_all' ).hide();
-					$( "#itron_polly_tts_bulk_update_div" ).show();
-					$( '#itron_polly_tts_update_all_pricing_message' ).show();
 				}
 			);
 

@@ -134,9 +134,6 @@ class Plugin {
 			$this->loader->add_action( 'update_option_' . $option_name, $object_cache, 'handle_audio_generation_setting_change', 10, 3 );
 		}
 
-		/** @uses PollyService::ajax_bulk_synthesize() */
-		$this->loader->add_action( 'wp_ajax_itron_polly_tts_transcribe', $polly_service, 'ajax_bulk_synthesize' );
-
 		/** @uses GeneralConfiguration::itron_polly_tts_add_menu() */
 		$this->loader->add_action( 'admin_menu', $general_configuration, 'itron_polly_tts_add_menu' );
 
