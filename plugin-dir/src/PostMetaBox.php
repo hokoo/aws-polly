@@ -73,6 +73,7 @@ class PostMetaBox {
 		echo '<input type="hidden" name="itron-polly-tts-post-nonce" value="' . esc_attr( $nonce ) . '" />';
 
 		if ($this->common->is_polly_enabled()) {
+			echo '<input type="hidden" name="itron_polly_tts_settings_present" value="1" />';
 			$is_polly_enabled_for_post = get_post_meta( $post->ID, 'itron_polly_tts_enable', true );
 			if ('1' === $is_polly_enabled_for_post) {
 				$polly_checked = 'checked';
@@ -123,6 +124,8 @@ class PostMetaBox {
 			}
 
 			echo '</div>';
+		} elseif ( $this->common->has_post_audio( (int) $post->ID ) ) {
+			echo '<p class="notice notice-warning">' . esc_html__( 'Text-to-speech is off. If this update changes the speech content or synthesis settings, the existing audio will be removed without generating a replacement. An unchanged save will keep it.', 'ai-text-to-speech-using-aws-polly' ) . '</p>';
 		}
 
 		echo '<p><button type="button" class="button" id="itron_polly_tts_price_checker_button" >How much will this cost to convert?</button></p>';

@@ -106,7 +106,7 @@ class Plugin {
 		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox' );
 
 		/** @uses PollyService::save_post() */
-		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3 );
+		$this->loader->add_action( 'wp_after_insert_post', $polly_service, 'save_post', 10, 3 );
 
 		/** @uses CronHandler::generate_audio() */
 		$this->loader->add_action( BackgroundTask::CRON_HANDLERS_HOOK . PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1 );

@@ -37,11 +37,6 @@ class PollyService {
 	 * @since      0.1
 	 */
 	public function save_post( $post_id, $post, $updated ) {
-		static $single_run = 0;
-
-		if ( $single_run++ ) {
-			return;
-		}
 
 		$common = $this->common;
 		$logger = new Logger();
@@ -52,8 +47,7 @@ class PollyService {
 			return;
 		}
 
-		// Check to make sure this is not a new post creation.
-		if ( ! $updated ) {
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 			return;
 		}
 
@@ -64,10 +58,11 @@ class PollyService {
 			return;
 		}
 
-		// If nonce is valid then update post meta
-		// If it's not valid then this is probably a quick or bulk edit request in which case we won't update the polly post meta
-		if ( isset( $_POST[ self::NONCE_NAME ] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_NAME ] ) ), 'itron-polly-tts' ) ) {
-			update_post_meta( $post_id, 'itron_polly_tts_enable', (int) isset( $_POST['itron_polly_tts_enable'] ) );
+		// Core fires wp_after_insert_post after REST fields and post metadata are saved.
+		if ( current_user_can( 'edit_post', $post_id ) && isset( $_POST[ self::NONCE_NAME ] ) && is_string( $_POST[ self::NONCE_NAME ] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_NAME ] ) ), 'itron-polly-tts' ) ) {
+			if ( $common->is_polly_enabled() && isset( $_POST['itron_polly_tts_settings_present'] ) ) {
+				update_post_meta( $post_id, 'itron_polly_tts_enable', (int) isset( $_POST['itron_polly_tts_enable'] ) );
+			}
 
 			if ( $common->is_post_voice_override_disabled() ) {
 				delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
@@ -75,11 +70,13 @@ class PollyService {
 				// Update post voice ID
 				$voice_id = sanitize_text_field( wp_unslash( $_POST['itron_polly_tts_voice_id'] ) );
 				try {
-					$voice_id = $common->resolve_polly_voice_id(
-						$common->get_post_source_language( $post_id ),
-						$voice_id,
-						$common->get_voice_id()
-					);
+					if ( $common->is_polly_enabled() ) {
+						$voice_id = $common->resolve_polly_voice_id(
+							$common->get_post_source_language( $post_id ),
+							$voice_id,
+							$common->get_voice_id()
+						);
+					}
 				} catch ( \Exception $e ) {
 					$logger->log( sprintf( '%s Unable to validate selected voice while saving post ( id=%s ): %s', __METHOD__, $post_id, get_class( $e ) ) );
 				}
@@ -87,7 +84,13 @@ class PollyService {
 			}
 		}
 
-		if ( ! ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) ) {
+		if ( ! $common->is_polly_enabled() ) {
+			try {
+				$this->generate_audio( $post_id );
+			} catch ( ConcurrentAudioGenerationException $e ) {
+				( new BackgroundTask() )->queue_audio( $post_id );
+			}
+		} else {
 			$logger->log( sprintf( '%s Starting background task process ( id=%s )', __METHOD__, $post_id ) );
 			$background_task = new BackgroundTask();
 			$background_task->queue_audio( $post_id );
@@ -133,25 +136,27 @@ class PollyService {
 			throw new ConcurrentAudioGenerationException();
 		}
 
-		$is_key_valid = (bool) get_option( 'itron_polly_tts_valid_keys' );
-		if ( ! $is_key_valid ) {
-			$is_key_valid = $common->validate_itron_polly_tts_access( true, false );
-		}
-		if ( ! $is_key_valid ) {
-			if ( ! $common->has_post_audio( $post_id ) ) {
-				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_ERROR );
-			}
-			$lock->release();
-			$logger->log( sprintf( '%s AWS keys are not valid. Skipping audio generation for post ( id=%s )', __METHOD__, $post_id ) );
-			return;
-		}
-
 		$is_polly_enabled = (bool) get_post_meta( $post_id, 'itron_polly_tts_enable', true );
 		$voice_id         = get_post_meta( $post_id, 'itron_polly_tts_voice_id', true );
 		$source_language  = $common->get_post_source_language( $post_id );
 
 		try {
+			$post = get_post( $post_id );
+			if ( ! $post || ! in_array( $post->post_type, $common->get_posttypes_array(), true ) || in_array( $post->post_status, array( 'trash', 'auto-draft', 'inherit' ), true ) ) {
+				return;
+			}
+
+			if ( ! $common->is_polly_enabled() ) {
+				if ( $common->has_post_audio( $post_id ) && ! $common->is_post_audio_current( (int) $post_id ) ) {
+					$common->delete_post_audio( $post_id );
+				}
+				return;
+			}
+
 			if ( $is_polly_enabled ) {
+				if ( ! $common->validate_itron_polly_tts_access( true, false ) ) {
+					throw new CredentialsException( 'AWS configuration is unavailable.' );
+				}
 				if ( ! $common->has_post_audio( $post_id ) ) {
 					$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_RUNNING );
 				}
