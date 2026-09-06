@@ -121,6 +121,7 @@ Yes. You can enable audio generation for individual posts and the plugin will ke
 = 1.0.8 =
 
 * Removed the obsolete disabled bulk-update interface and unused legacy capability gates and assets.
+* Updated supported Polly regions and languages, and removed obsolete Conversational SSML and inherited AWS project request identifiers.
 * Added public-audio confirmation for password-protected posts and strengthened metadata, bulk-action, and player security.
 * Fixed speech-change detection, normal-speed generation, and stale-audio cleanup while generation is disabled.
 * Preserved original audio storage locations for safe cleanup, added failure notices, and removed forced S3 object ACLs.
