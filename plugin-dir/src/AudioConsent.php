@@ -95,24 +95,31 @@ class AudioConsent {
 	public function capture_classic_choice( int $post_id, \WP_Post $post, bool $updated ): void {
 		unset( $updated );
 
-		if ( ! $this->is_supported_post( $post ) || ! current_user_can( 'edit_post', $post_id ) ) {
+		if ( ! $this->is_supported_post( $post ) ) {
 			return;
 		}
 
-		// Removing protection invalidates any old protected-context grant.
+		// Core has saved this post; invalidate old grants even for programmatic saves.
 		if ( ! $this->needs_confirmation( $post_id ) ) {
-			delete_post_meta( $post_id, self::META_KEY );
+			$this->revoke_choice( $post_id );
 			return;
 		}
+		if ( ! $this->is_allowed( $post_id ) ) {
+			$this->revoke_choice( $post_id );
+		}
 
-		if ( ! isset( $_POST[ self::CLASSIC_NONCE_NAME ], $_POST[ self::CLASSIC_CHOICE ] ) ) {
+		if ( ! isset( $_POST[ self::CLASSIC_NONCE_NAME ], $_POST[ self::CLASSIC_CHOICE ] ) || ! is_string( $_POST[ self::CLASSIC_NONCE_NAME ] ) || ! is_string( $_POST[ self::CLASSIC_CHOICE ] ) ) {
+			return;
+		}
+		$nonce = sanitize_text_field( wp_unslash( $_POST[ self::CLASSIC_NONCE_NAME ] ) );
+		if ( ! wp_verify_nonce( $nonce, $this->get_classic_nonce_action( $post_id ) ) ) {
 			return;
 		}
 
 		$this->record_classic_choice(
 			$post_id,
-			wp_unslash( $_POST[ self::CLASSIC_CHOICE ] ),
-			wp_unslash( $_POST[ self::CLASSIC_NONCE_NAME ] )
+			sanitize_text_field( wp_unslash( $_POST[ self::CLASSIC_CHOICE ] ) ),
+			$nonce
 		);
 	}
 
@@ -212,10 +219,7 @@ class AudioConsent {
 		}
 
 		if ( ! $choice ) {
-			delete_post_meta( $post_id, self::META_KEY );
-			if ( '' !== get_post_meta( $post_id, self::META_KEY, true ) ) {
-				update_post_meta( $post_id, self::META_KEY, 'revoked' );
-			}
+			$this->revoke_choice( $post_id );
 			return true;
 		}
 
@@ -226,6 +230,13 @@ class AudioConsent {
 		update_post_meta( $post_id, self::META_KEY, $this->get_fingerprint( $post_id ) );
 
 		return $this->is_allowed( $post_id );
+	}
+
+	private function revoke_choice( int $post_id ): void {
+		delete_post_meta( $post_id, self::META_KEY );
+		if ( '' !== get_post_meta( $post_id, self::META_KEY, true ) ) {
+			update_post_meta( $post_id, self::META_KEY, 'revoked' );
+		}
 	}
 
 	private function get_fingerprint( int $post_id ): string {

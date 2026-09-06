@@ -90,6 +90,7 @@ class PostMetaBox {
 			$post_options_visibility = '';
 
 			echo '<p><input type="checkbox" name="itron_polly_tts_enable" id="itron_polly_tts_enable" value="1"  ' . esc_attr( $polly_checked ) . '/><label for="itron_polly_tts_enable">Enable Text-To-Speech (Amazon Polly)</label> </p>';
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant contains the itron_polly_tts_ prefixed consent hook.
 			do_action( AudioConsent::META_BOX_HOOK, $post );
 			echo '<div id="itron_polly_tts_post_options" style="' . esc_attr( $post_options_visibility ) . '">';
 

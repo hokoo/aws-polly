@@ -280,6 +280,22 @@ namespace {
 	$GLOBALS['test_posts'][1]->post_password = 'new-password';
 	assert_false( ( new AudioConsent( $common ) )->is_allowed( 1 ), 'Adding a password to a formerly public post must not inherit consent.' );
 
+	$_POST = array();
+	$consent->record_classic_choice( 2, '1', 'nonce:itron_polly_tts_audio_consent_2' );
+	$GLOBALS['test_posts'][2]->post_password = 'changed-password';
+	$consent->capture_classic_choice( 2, $GLOBALS['test_posts'][2], true );
+	$GLOBALS['test_posts'][2]->post_password = 'first-password';
+	$consent->capture_classic_choice( 2, $GLOBALS['test_posts'][2], true );
+	assert_false( $consent->is_allowed( 2 ), 'Restoring a previously changed and saved password must not restore revoked consent.' );
+
+	$consent->record_classic_choice( 2, '1', 'nonce:itron_polly_tts_audio_consent_2' );
+	$GLOBALS['test_editable_posts'][2] = false;
+	$GLOBALS['test_posts'][2]->speech = 'Programmatically changed speech';
+	$consent->capture_classic_choice( 2, $GLOBALS['test_posts'][2], true );
+	$GLOBALS['test_posts'][2]->speech = 'Protected speech';
+	assert_false( $consent->is_allowed( 2 ), 'A core programmatic save revokes a stale grant even without a logged-in editor.' );
+	$GLOBALS['test_editable_posts'][2] = true;
+
 	ob_start();
 	$consent->render_classic_fields( $GLOBALS['test_posts'][2] );
 	$fields = ob_get_clean();

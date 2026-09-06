@@ -567,12 +567,13 @@ class AudioAdmin {
 
 		$queued          = 0;
 		$consent_skipped = 0;
-		$consent_choice  = isset( $_REQUEST[ AudioConsent::BULK_CHOICE ] )
-			? $this->audio_consent->normalize_choice( wp_unslash( $_REQUEST[ AudioConsent::BULK_CHOICE ] ) )
-			: null;
-		$consent_nonce   = isset( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] )
-			? wp_unslash( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] )
+		$consent_choice  = null;
+		$consent_nonce   = isset( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] ) && is_string( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] )
+			? sanitize_text_field( wp_unslash( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] ) )
 			: '';
+		if ( wp_verify_nonce( $consent_nonce, AudioConsent::BULK_NONCE_ACTION ) && isset( $_REQUEST[ AudioConsent::BULK_CHOICE ] ) && is_string( $_REQUEST[ AudioConsent::BULK_CHOICE ] ) ) {
+			$consent_choice = $this->audio_consent->normalize_choice( sanitize_text_field( wp_unslash( $_REQUEST[ AudioConsent::BULK_CHOICE ] ) ) );
+		}
 
 		foreach ( $post_ids as $post_id ) {
 			$is_positive_integer = is_int( $post_id ) && 0 < $post_id;
