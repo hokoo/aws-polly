@@ -46,6 +46,7 @@ class Plugin {
 	}
 
 	private function define_global_hooks() {
+		( new AudioConsent( $this->common ) )->register();
 		add_filter( 'itron_polly_tts_logging_enabled', array( $this->common, 'is_logging_enabled' ) );
 		add_filter( 'is_protected_meta', array( $this, 'protect_internal_post_meta' ), 10, 3 );
 	}

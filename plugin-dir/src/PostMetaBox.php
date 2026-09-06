@@ -90,6 +90,7 @@ class PostMetaBox {
 			$post_options_visibility = '';
 
 			echo '<p><input type="checkbox" name="itron_polly_tts_enable" id="itron_polly_tts_enable" value="1"  ' . esc_attr( $polly_checked ) . '/><label for="itron_polly_tts_enable">Enable Text-To-Speech (Amazon Polly)</label> </p>';
+			do_action( AudioConsent::META_BOX_HOOK, $post );
 			echo '<div id="itron_polly_tts_post_options" style="' . esc_attr( $post_options_visibility ) . '">';
 
 			try {
@@ -128,15 +129,6 @@ class PostMetaBox {
 			echo '<p class="notice notice-warning">' . esc_html__( 'Text-to-speech is off. If this update changes the speech content or synthesis settings, the existing audio will be removed without generating a replacement. An unchanged save will keep it.', 'ai-text-to-speech-using-aws-polly' ) . '</p>';
 		}
 
-		echo '<p><button type="button" class="button" id="itron_polly_tts_price_checker_button" >How much will this cost to convert?</button></p>';
-		echo '<div id="itron_polly_tts_plugin_cost_info">';
-		if ($this->common->is_polly_enabled()) {
-			echo '<p><b>-> Text-To-Speech Functionality</b><p>';
-			echo '<p>For Amazon Polly\'s Standard voices, <b>the free tier includes 5 million characters per month</b> for speech or Speech Marks requests, for the first 12 months, starting from your first request for speech. For Neural voices, the free tier includes 1 million characters per month for speech or Speech Marks requests, for the first 12 months, starting from your first request. <p>';
-			echo '<p>You are billed monthly for the number of characters of text that you processed. Amazon Polly\'s Standard voices are priced at $4.00 per 1 million characters for speech or Speech Marks requests (when outside the free tier). Amazon Polly\'s Neural voices are priced at $16.00 per 1 million characters for speech or Speech Marks requested (when outside the free tier). <p>';
-			echo '<p>When you update your post, plugin needs to convert the whole content to audio again.  <p>';
-			echo '<p>You can find full information about pricing of Amazon Polly here: https://aws.amazon.com/polly/pricing/ <p>';
-		}
-		echo '</div>';
+		echo '<p>' . esc_html__( 'AWS charges may apply.', 'ai-text-to-speech-using-aws-polly' ) . ' <a href="https://aws.amazon.com/polly/pricing/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View official Amazon Polly pricing.', 'ai-text-to-speech-using-aws-polly' ) . '</a></p>';
 	}
 }

@@ -18,16 +18,22 @@ namespace {
 	class WP_Post {
 		public int $ID;
 		public string $post_type;
+		public string $post_password;
 
-		public function __construct( int $id, string $post_type ) {
+		public function __construct( int $id, string $post_type, string $post_password = '' ) {
 			$this->ID        = $id;
 			$this->post_type = $post_type;
+			$this->post_password = $post_password;
 		}
 	}
 
 	function add_filter( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ): bool {
 		$GLOBALS['test_filters'][ $hook ][ $priority ][] = array( $callback, $accepted_args );
 		return true;
+	}
+
+	function add_action( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		return add_filter( $hook, $callback, $priority, $accepted_args );
 	}
 
 	function apply_filters( string $hook, $value, ...$args ) {
@@ -79,12 +85,37 @@ namespace {
 		return true;
 	}
 
+	function delete_post_meta( int $post_id, string $meta_key ): bool {
+		unset( $GLOBALS['test_post_meta'][ $post_id ][ $meta_key ] );
+		return true;
+	}
+
 	function absint( $value ): int {
 		return abs( (int) $value );
 	}
 
 	function wp_create_nonce( string $action ): string {
 		return 'nonce:' . $action;
+	}
+
+	function wp_verify_nonce( string $nonce, string $action ): bool {
+		return 'nonce:' . $action === $nonce;
+	}
+
+	function wp_unslash( $value ) {
+		return $value;
+	}
+
+	function sanitize_text_field( string $value ): string {
+		return $value;
+	}
+
+	function wp_salt( string $scheme ): string {
+		return 'test-salt:' . $scheme;
+	}
+
+	function wp_json_encode( $value ) {
+		return json_encode( $value );
 	}
 
 	function add_query_arg( array $args, string $url ): string {
@@ -94,6 +125,10 @@ namespace {
 
 namespace iTRON\PollyTTS {
 	class Common {
+		public function is_polly_enabled(): bool {
+			return $GLOBALS['test_polly_enabled'] ?? true;
+		}
+
 		public function get_posttypes_array(): array {
 			return $GLOBALS['test_supported_types'];
 		}
@@ -105,6 +140,11 @@ namespace iTRON\PollyTTS {
 		public function is_logging_enabled(): bool {
 			return false;
 		}
+
+		public function clean_text( int $post_id, bool $with_title, bool $only_title ): string {
+			unset( $with_title, $only_title );
+			return 'speech:' . $post_id;
+		}
 	}
 
 	class BackgroundTask {
@@ -113,12 +153,18 @@ namespace iTRON\PollyTTS {
 		}
 	}
 
+	class AudioStorage {
+		public function register_hooks(): void {}
+	}
+
 	require_once dirname( __DIR__ ) . '/plugin-dir/src/Plugin.php';
+	require_once dirname( __DIR__ ) . '/plugin-dir/src/AudioConsent.php';
 	require_once dirname( __DIR__ ) . '/plugin-dir/src/AudioAdmin.php';
 }
 
 namespace {
 	use iTRON\PollyTTS\AudioAdmin;
+	use iTRON\PollyTTS\AudioConsent;
 	use iTRON\PollyTTS\Common;
 	use iTRON\PollyTTS\Plugin;
 
@@ -160,10 +206,14 @@ namespace {
 	$GLOBALS['test_posts'][2]          = new WP_Post( 2, 'post' );
 	$GLOBALS['test_posts'][3]          = new WP_Post( 3, 'page' );
 	$GLOBALS['test_posts'][4]          = new WP_Post( 4, 'book' );
+	$GLOBALS['test_posts'][5]          = new WP_Post( 5, 'post', 'protected' );
+	$GLOBALS['test_posts'][6]          = new WP_Post( 6, 'post' );
 	$GLOBALS['test_editable_posts'][1] = true;
 	$GLOBALS['test_editable_posts'][2] = false;
 	$GLOBALS['test_editable_posts'][3] = true;
 	$GLOBALS['test_editable_posts'][4] = true;
+	$GLOBALS['test_editable_posts'][5] = true;
+	$GLOBALS['test_editable_posts'][6] = true;
 
 	assert_false(
 		current_user_can( 'edit_post_meta', 1, 'itron_polly_tts_media_library_attachment_id' ),
@@ -234,6 +284,58 @@ namespace {
 		'Unrelated bulk actions must remain unchanged.'
 	);
 	assert_same( $before, array( $GLOBALS['test_meta_reads'], $GLOBALS['test_meta_writes'], $GLOBALS['test_queued_posts'] ), 'Unrelated actions must have no side effects.' );
+
+	$GLOBALS['test_polly_enabled'] = false;
+	$redirect = $audio_admin->handle_bulk_action( '/wp-admin/edit.php', 'polly_generate_audio', array( 1, 4 ) );
+	assert_same( $before, array( $GLOBALS['test_meta_reads'], $GLOBALS['test_meta_writes'], $GLOBALS['test_queued_posts'] ), 'Globally disabled bulk generation must not mutate or queue posts.' );
+	assert_true( false !== strpos( $redirect, 'polly_generation_disabled=1' ), 'Disabled generation must produce an explanatory notice.' );
+	$GLOBALS['test_polly_enabled'] = true;
+
+	$GLOBALS['test_post_meta'][5] = array(
+		'itron_polly_tts_enable'   => '0',
+		'itron_polly_tts_voice_id' => '',
+	);
+	$GLOBALS['test_post_meta'][6] = array(
+		'itron_polly_tts_enable'   => '0',
+		'itron_polly_tts_voice_id' => '',
+	);
+	$GLOBALS['test_meta_reads']   = array();
+	$GLOBALS['test_meta_writes']  = array();
+	$GLOBALS['test_queued_posts'] = array();
+	$_REQUEST                     = array();
+
+	$redirect = $audio_admin->handle_bulk_action( '/wp-admin/edit.php', 'polly_generate_audio', array( 5, 6 ) );
+	assert_same( array( 6 ), $GLOBALS['test_queued_posts'], 'Missing consent skips a protected post but still queues a public selected post.' );
+	assert_true( false !== strpos( $redirect, 'polly_consent_skipped=1' ), 'The redirect reports the protected post skipped by the server gate.' );
+	assert_false( isset( $GLOBALS['test_post_meta'][5][ AudioConsent::META_KEY ] ), 'Missing bulk input must not grant protected audio consent.' );
+
+	$GLOBALS['test_meta_writes']  = array();
+	$GLOBALS['test_queued_posts'] = array();
+	$_REQUEST                     = array(
+		AudioConsent::BULK_CHOICE     => '1',
+		AudioConsent::BULK_NONCE_NAME => 'nonce:' . AudioConsent::BULK_NONCE_ACTION,
+	);
+	$audio_admin->handle_bulk_action( '/wp-admin/edit.php', 'polly_generate_audio', array( 5, 6 ) );
+	assert_same( array( 5, 6 ), $GLOBALS['test_queued_posts'], 'One valid bulk grant queues protected and public selected posts.' );
+	assert_true( ( new AudioConsent( $common ) )->is_allowed( 5 ), 'The bulk grant is persisted for generation pipeline instances.' );
+
+	$GLOBALS['test_meta_writes']  = array();
+	$GLOBALS['test_queued_posts'] = array();
+	$_REQUEST                     = array(
+		AudioConsent::BULK_CHOICE     => '0',
+		AudioConsent::BULK_NONCE_NAME => 'nonce:' . AudioConsent::BULK_NONCE_ACTION,
+	);
+	$audio_admin->handle_bulk_action( '/wp-admin/edit.php', 'polly_generate_audio', array( 5, 6 ) );
+	assert_same( array( 6 ), $GLOBALS['test_queued_posts'], 'Bulk refusal skips only the protected audio job.' );
+	assert_false( ( new AudioConsent( $common ) )->is_allowed( 5 ), 'Bulk refusal revokes the persistent grant for other instances.' );
+	assert_false(
+		(bool) array_filter(
+			$GLOBALS['test_meta_writes'],
+			static fn( array $write ): bool => 5 === $write[0] && in_array( $write[1], array( 'itron_polly_tts_enable', 'itron_polly_tts_voice_id' ), true )
+		),
+		'Refused protected posts must not receive generation metadata mutations.'
+	);
+	$_REQUEST = array();
 
 	echo "meta-bulk-security: PASS\n";
 }

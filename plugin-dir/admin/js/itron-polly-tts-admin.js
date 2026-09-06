@@ -230,24 +230,12 @@
 		function(){
 			injectFindPostsWithoutAudioPanel();
 
-			$( '#itron_polly_tts_plugin_cost_info' ).hide();
-
 			$( '#itron_polly_tts_enable' ).change(
 				function() {
 					if ($( "#itron_polly_tts_enable" ).is( ':checked' )) {
 						$( "#itron_polly_tts_post_options" ).show();
 					} else {
 						$( "#itron_polly_tts_post_options" ).hide();
-					}
-				}
-			);
-
-			$( '#itron_polly_tts_price_checker_button' ).click(
-				function(){
-					if ( $('#itron_polly_tts_plugin_cost_info').is(":hidden") ) {
-						$( '#itron_polly_tts_plugin_cost_info' ).show();
-					} else {
-						$( '#itron_polly_tts_plugin_cost_info' ).hide();
 					}
 				}
 			);

@@ -25,11 +25,13 @@ class AudioAdmin {
 	 * @var Common
 	 */
 	private $common;
+	private AudioConsent $audio_consent;
 	private array $audio_status_cache  = array();
 	private array $display_voice_cache = array();
 
-	public function __construct( Common $common ) {
-		$this->common = $common;
+	public function __construct( Common $common, ?AudioConsent $audio_consent = null ) {
+		$this->common        = $common;
+		$this->audio_consent = $audio_consent ?? new AudioConsent( $common );
 	}
 
 	/**
@@ -69,6 +71,10 @@ class AudioAdmin {
 				}
 			} else {
 				echo '<span style="color:#a00;" title="' . esc_attr( $status['title'] ) . '">&#10005; No</span>';
+			}
+
+			if ( $this->audio_consent->needs_confirmation( $post_id ) ) {
+				echo '<span class="itron-polly-tts-protected-audio" data-post-id="' . esc_attr( (string) $post_id ) . '" hidden></span>';
 			}
 		}
 
@@ -548,7 +554,26 @@ class AudioAdmin {
 			return $redirect_to;
 		}
 
-		$queued = 0;
+		if ( ! $this->common->is_polly_enabled() ) {
+			return add_query_arg(
+				array(
+					'polly_queued'                => 0,
+					'polly_generation_disabled'   => 1,
+					self::BULK_NOTICE_NONCE_NAME => wp_create_nonce( self::BULK_NOTICE_NONCE_ACTION ),
+				),
+				$redirect_to
+			);
+		}
+
+		$queued          = 0;
+		$consent_skipped = 0;
+		$consent_choice  = isset( $_REQUEST[ AudioConsent::BULK_CHOICE ] )
+			? $this->audio_consent->normalize_choice( wp_unslash( $_REQUEST[ AudioConsent::BULK_CHOICE ] ) )
+			: null;
+		$consent_nonce   = isset( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] )
+			? wp_unslash( $_REQUEST[ AudioConsent::BULK_NONCE_NAME ] )
+			: '';
+
 		foreach ( $post_ids as $post_id ) {
 			$is_positive_integer = is_int( $post_id ) && 0 < $post_id;
 			$is_positive_string  = is_string( $post_id ) && 1 === preg_match( '/^[1-9][0-9]*$/', $post_id );
@@ -561,6 +586,18 @@ class AudioAdmin {
 			$post    = get_post( $post_id );
 			if ( ! $post || ! in_array( $post->post_type, $this->get_post_types(), true ) || ! current_user_can( 'edit_post', $post_id ) ) {
 				continue;
+			}
+
+			// Recheck current protection server-side in case the list-table marker is stale.
+			if ( $this->audio_consent->needs_confirmation( $post_id ) ) {
+				if ( null !== $consent_choice ) {
+					$this->audio_consent->record_bulk_choice( $post_id, $consent_choice, $consent_nonce );
+				}
+
+				if ( false === $consent_choice || ! $this->audio_consent->is_allowed( $post_id ) ) {
+					$consent_skipped++;
+					continue;
+				}
 			}
 
 			$is_enabled = get_post_meta( $post_id, 'itron_polly_tts_enable', true );
@@ -584,6 +621,7 @@ class AudioAdmin {
 		return add_query_arg(
 			array(
 				'polly_queued'                => $queued,
+				'polly_consent_skipped'       => $consent_skipped,
 				self::BULK_NOTICE_NONCE_NAME => wp_create_nonce( self::BULK_NOTICE_NONCE_ACTION ),
 			),
 			$redirect_to
@@ -604,17 +642,31 @@ class AudioAdmin {
 			return;
 		}
 
-		$count = absint( wp_unslash( $_GET['polly_queued'] ) );
-		if ( 0 === $count ) {
+		if ( isset( $_GET['polly_generation_disabled'] ) ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Text-to-speech is turned off in plugin settings. No audio was queued.', 'ai-text-to-speech-using-aws-polly' ) . '</p></div>';
 			return;
 		}
 
-		$message = sprintf(
-			/* translators: %d: queued posts count. */
-			__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech-using-aws-polly' ),
-			$count
-		);
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		$count   = absint( wp_unslash( $_GET['polly_queued'] ) );
+		$skipped = isset( $_GET['polly_consent_skipped'] ) ? absint( wp_unslash( $_GET['polly_consent_skipped'] ) ) : 0;
+
+		if ( 0 < $count ) {
+			$message = sprintf(
+				/* translators: %d: queued posts count. */
+				__( 'Audio generation queued for %d post(s). It will be processed in the background via WP-Cron.', 'ai-text-to-speech-using-aws-polly' ),
+				$count
+			);
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		}
+
+		if ( 0 < $skipped ) {
+			$message = sprintf(
+				/* translators: %d: password-protected posts count. */
+				__( 'Audio generation skipped for %d password-protected post(s) without current public-audio consent.', 'ai-text-to-speech-using-aws-polly' ),
+				$skipped
+			);
+			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		}
 	}
 
 	// =========================================================================
@@ -642,6 +694,10 @@ class AudioAdmin {
 			$this->column_styles();
 		}
 
+		if ( in_array( $screen->base, array( 'edit', 'post' ), true ) && in_array( $screen->post_type, $this->get_post_types(), true ) ) {
+			$this->enqueue_audio_consent_assets( $screen );
+		}
+
 		if ( ! str_ends_with( (string) $screen->id, '_page_itron_polly_tts_polly' ) ) {
 			return;
 		}
@@ -661,6 +717,47 @@ class AudioAdmin {
 			'itron-polly-tts-admin',
 			'window.itronPollyTTSAdmin = window.itronPollyTTSAdmin || {}; window.itronPollyTTSAdmin.findPostsWithoutAudioUrl = ' . wp_json_encode( esc_url_raw( $url ) ) . ';',
 			'before'
+		);
+	}
+
+	private function enqueue_audio_consent_assets( $screen ): void {
+		$plugin_file = dirname( __DIR__ ) . '/itron-polly-tts.php';
+		$relative    = 'admin/js/audio-consent.js';
+		$asset_path  = plugin_dir_path( $plugin_file ) . $relative;
+		$version     = file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : ITRON_POLLY_TTS_VERSION;
+
+		wp_enqueue_script(
+			'itron-polly-tts-audio-consent',
+			plugin_dir_url( $plugin_file ) . $relative,
+			array( 'wp-api-fetch', 'wp-data' ),
+			$version,
+			true
+		);
+
+		global $post;
+		$post_id      = $post instanceof \WP_Post ? (int) $post->ID : 0;
+		$post_enabled = 0 < $post_id ? get_post_meta( $post_id, 'itron_polly_tts_enable', true ) : '';
+		if ( '1' !== $post_enabled && '0' !== $post_enabled ) {
+			$post_enabled = $this->common->is_polly_enabled_for_new_posts() ? '1' : '0';
+		}
+
+		wp_localize_script(
+			'itron-polly-tts-audio-consent',
+			'itronPollyAudioConsent',
+			array(
+				'globalEnabled'          => $this->common->is_polly_enabled(),
+				'postEnabled'            => '1' === $post_enabled,
+				'postPasswordProtected'  => 0 < $post_id && $this->audio_consent->needs_confirmation( $post_id ),
+				'isBlockEditor'          => is_callable( array( $screen, 'is_block_editor' ) ) && $screen->is_block_editor(),
+				'classicChoiceField'      => AudioConsent::CLASSIC_CHOICE,
+				'bulkNonceField'          => AudioConsent::BULK_NONCE_NAME,
+				'bulkNonce'               => wp_create_nonce( AudioConsent::BULK_NONCE_ACTION ),
+				'bulkChoiceField'         => AudioConsent::BULK_CHOICE,
+				'restField'               => AudioConsent::REST_FIELD,
+				'restRoutes'              => $this->audio_consent->get_supported_rest_routes(),
+				'confirmMessage'          => __( 'Generated audio is publicly accessible even when this post is password protected. Allow public audio for this protected content?', 'ai-text-to-speech-using-aws-polly' ),
+				'bulkConfirmMessage'      => __( 'Some selected posts are password protected. Allow public audio for all selected password-protected posts?', 'ai-text-to-speech-using-aws-polly' ),
+			)
 		);
 	}
 }
