@@ -29,277 +29,222 @@ class Common {
 		array(
 			'code'  => 'af',
 			'name'  => 'Afrikaans',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'sq',
 			'name'  => 'Albanian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'am',
 			'name'  => 'Amharic',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ar',
 			'name'  => 'Arabic',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'az',
 			'name'  => 'Azerbaijani',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'bn',
 			'name'  => 'Bengali',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'bs',
 			'name'  => 'Bosnian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'bg',
 			'name'  => 'Bulgarian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'fr-CA',
 			'name'  => 'Canadian French',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'da',
 			'name'  => 'Danish',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'nl',
 			'name'  => 'Dutch',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'zh',
 			'name'  => 'Chinese',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'hr',
 			'name'  => 'Croatian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'cs',
 			'name'  => 'Czech',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'fa-AF',
 			'name'  => 'Dari',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'en',
 			'name'  => 'English',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'et',
 			'name'  => 'Estonian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'fi',
 			'name'  => 'Finish',
-			'polly' => '',
 		),
 		array(
 			'code'  => 'fr',
 			'name'  => 'French',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'ka',
 			'name'  => 'Georgian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'de',
 			'name'  => 'German',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'el',
 			'name'  => 'Greek',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ha',
 			'name'  => 'Hausa',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'he',
 			'name'  => 'Hebrew',
-			'polly' => '',
 		),
 		array(
 			'code'  => 'hi',
 			'name'  => 'Hindi',
-			'polly' => '',
 		),
 		array(
 			'code'  => 'hu',
 			'name'  => 'Hungarian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'is',
 			'name'  => 'Icelandic',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'it',
 			'name'  => 'Italian',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'id',
 			'name'  => 'Indonesian',
-			'polly' => '',
 		),
 		array(
 			'code'  => 'ja',
 			'name'  => 'Japanese',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'ko',
 			'name'  => 'Korean',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'lv',
 			'name'  => 'Latvian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ms',
 			'name'  => 'Malay',
-			'polly' => '',
 		),
 		array(
 			'code'  => 'no',
 			'name'  => 'Norwegian',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'fa',
 			'name'  => 'Persian',
-			'polly' => '',
 		),
 		array(
 			'code'  => 'pl',
 			'name'  => 'Polish',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'pt',
 			'name'  => 'Portuguese',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'ps',
 			'name'  => 'Pushto',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ro',
 			'name'  => 'Romanian',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'sr',
 			'name'  => 'Serbian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'sk',
 			'name'  => 'Slovak',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'sl',
 			'name'  => 'Slovenian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'so',
 			'name'  => 'Somali',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'sw',
 			'name'  => 'Swahili',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ru',
 			'name'  => 'Russian',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'es',
 			'name'  => 'Spanish',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'sv',
 			'name'  => 'Swedish',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'tl',
 			'name'  => 'Tagalog',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ta',
 			'name'  => 'Tamil',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'th',
 			'name'  => 'Thai',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'tr',
 			'name'  => 'Turkish',
-			'polly' => '1',
 		),
 		array(
 			'code'  => 'uk',
 			'name'  => 'Ukrainian',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'ur',
 			'name'  => 'Urdu',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'vi',
 			'name'  => 'Vietnamese',
-			'polly' => '0',
 		),
 		array(
 			'code'  => 'cy',
 			'name'  => 'Welsh',
-			'polly' => '1',
 		),
 	);
 
@@ -384,22 +329,6 @@ class Common {
 		return $supported_languages;
 	}
 
-
-	public function get_all_polly_languages() {
-
-		$supported_languages = array();
-
-		foreach ($this->languages as $language_data) {
-			$language_code         = $language_data['code'];
-			$is_language_supported = $language_data['polly'];
-
-			if ( ! empty( $is_language_supported ) ) {
-				array_push( $supported_languages, $language_code );
-			}
-		}
-
-		return $supported_languages;
-	}
 
 	private function get_polly_voices_transient_key() {
 		return self::POLLY_VOICES_TRANSIENT_PREFIX . md5( (string) $this->get_aws_region() );
@@ -558,7 +487,7 @@ class Common {
 			$match_data['exact'][] = $language_code;
 		}
 
-		if ( ! empty( $primary_language ) ) {
+		if ( ! empty( $primary_language ) && false === strpos( $language_code, '-' ) ) {
 			$match_data['roots'][] = $primary_language;
 		}
 
@@ -648,7 +577,7 @@ class Common {
 			return in_array( 'standard', $this->get_supported_synthesis_engines( $voice_data ), true );
 		}
 
-		return ! $this->is_neural_only_voice( $voice );
+		return false;
 	}
 
 	public function get_polly_voice_capability( $voice ) {
@@ -1021,30 +950,11 @@ class Common {
 	 * @since      0.1
 	 */
 	public function is_polly_enabled() {
-
-		if ( ! $this->is_language_supported_for_polly()) {
-			return false;
-		}
-
-			$value = $this->checked_validator( 'itron_polly_tts_polly_enable' );
-		if ('checked' == trim( $value )) {
-			return true;
-		} else {
-			return false;
-		}
+		return ! empty( get_option( 'itron_polly_tts_polly_enable', '' ) );
 	}
 
-	public function is_language_supported_for_polly() {
-
-		$selected_source_language = $this->get_source_language();
-
-		foreach ($this->get_all_polly_languages() as $language_code) {
-			if (strcmp( $selected_source_language, $language_code ) === 0) {
-				return true;
-			}
-		}
-
-		return false;
+	public function has_aws_credentials(): bool {
+		return ! empty( $this->get_aws_sdk_config()['credentials'] );
 	}
 
 	/**
@@ -1054,48 +964,35 @@ class Common {
 	 * @return bool
 	 */
 	public function validate_itron_polly_tts_access( $persist_state = true, $show_notices = true ): bool {
+		if ( ! $this->is_polly_enabled() || ! $this->has_aws_credentials() ) {
+			return false;
+		}
 		try {
-			$this->is_s3_enabled() && $this->check_aws_access( $persist_state ) && $this->s3_handler->is_bucket_accessible();
+			if ( ! $this->check_aws_access( $persist_state ) ) {
+				return false;
+			}
+			if ( $this->is_s3_enabled() && ! $this->s3_handler->is_bucket_accessible() ) {
+				throw new S3BucketNotAccessibleException( 'Configure an accessible S3 bucket.' );
+			}
 		} catch (S3BucketNotAccessibleException $e) {
 			if ( $show_notices ) {
 				$this->show_error_notice( 'notice-info', "The S3 bucket doesn't exist or can't be accessed." );
 			}
 			return false;
 		} catch (CredentialsException $e) {
-			if ( $persist_state ) {
-				$this->deactivate_all();
-			}
 			if ( $show_notices ) {
 				$this->show_error_notice( 'notice-error', "Can't connect to AWS. Check your AWS credentials." );
 			}
 			return false;
-		} catch (S3BucketNotCreatedException $e) {
-			if ( $show_notices ) {
-				$this->show_error_notice( 'notice-error', 'Could not create S3 bucket.' );
-			}
-			return false;
 		} catch (\Exception $e) {
-			if ( $persist_state ) {
-				$this->deactivate_all();
-			}
 			if ( $show_notices ) {
-				$this->show_error_notice( 'notice-error', 'Unknown error.' );
+				$this->show_error_notice( 'notice-error', 'AWS could not be reached. Check the region, credentials, service permissions and server connectivity.' );
 			}
 			return false;
 		}
 
 		return true;
 	}
-
-	public function deactivate_all() {
-		$this->deactivate_polly();
-	}
-
-
-	public function deactivate_polly() {
-		update_option( 'itron_polly_tts_polly_enable', '' );
-	}
-
 
 	public function show_error_notice( $type, $message) {
 		add_action(
@@ -1187,6 +1084,9 @@ class Common {
 	}
 
 	public function get_polly_voices( $force_refresh = false ) {
+		if ( ! $this->is_polly_enabled() || ! $this->has_aws_credentials() ) {
+			return array( 'Voices' => array() );
+		}
 		$transient_key = $this->get_polly_voices_transient_key();
 
 		if ( ! $force_refresh ) {
@@ -1254,19 +1154,7 @@ class Common {
 	 * @since      0.1
 	 */
 	public function is_ssml_enabled() {
-		$ssml_enabled = get_option( 'itron_polly_tts_ssml', 'on' );
-		if (empty( $ssml_enabled )) {
-			$result = false;
-		} else {
-			$result = true;
-		}
-
-		$is_s3_enabled = $this->is_s3_enabled();
-		if ($is_s3_enabled) {
-			return $result;
-		}
-
-		return false;
+		return ! empty( get_option( 'itron_polly_tts_ssml', 'on' ) );
 	}
 
 	/**
@@ -1299,41 +1187,7 @@ class Common {
 	}
 
 	public function get_requested_polly_speaking_style() {
-		$style = get_option( 'itron_polly_tts_speaking_style', null );
-		if ( null !== $style ) {
-			return $this->normalize_polly_speaking_style( $style );
-		}
-
-		if ( ! empty( get_option( 'itron_polly_tts_news', '' ) ) ) {
-			return 'news';
-		}
-
-		if ( ! empty( get_option( 'itron_polly_tts_conversational', '' ) ) ) {
-			return 'conversational';
-		}
-
-		return '';
-	}
-
-	private function sync_legacy_polly_speaking_style_options( $style ) {
-		update_option( 'itron_polly_tts_news', 'news' === $style ? 'on' : '' );
-		update_option( 'itron_polly_tts_conversational', 'conversational' === $style ? 'on' : '' );
-	}
-
-	public function sync_polly_speaking_style( $style = null, $persist_style_option = true ) {
-		if ( null === $style ) {
-			$style = $this->get_requested_polly_speaking_style();
-		}
-
-		$style = $this->normalize_polly_speaking_style( $style );
-
-		if ( $persist_style_option ) {
-			update_option( 'itron_polly_tts_speaking_style', $style );
-		}
-
-		$this->sync_legacy_polly_speaking_style_options( $style );
-
-		return $style;
+		return $this->normalize_polly_speaking_style( get_option( 'itron_polly_tts_speaking_style', '' ) );
 	}
 
 	public function get_active_polly_speaking_style( $voice = null, $neural_requested = null ) {
@@ -1359,17 +1213,6 @@ class Common {
 		}
 
 		return '';
-	}
-
-	public function is_polly_news_enabled() {
-
-		return 'news' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
-	}
-
-
-	public function is_polly_conversational_enabled() {
-
-		return 'conversational' === $this->get_active_polly_speaking_style() ? ' checked ' : false;
 	}
 
 	public function should_conversational_style_be_used( $voice) {
@@ -1408,28 +1251,13 @@ class Common {
 	}
 
 
-	public function is_conversational_supported_in_region() {
-
-		$selected_region                  = GeneralConfiguration::get_aws_region();
-		$conversational_supported_regions = array( 'us-east-1', 'us-west-2', 'eu-west-1' );
-
-		if (in_array( $selected_region, $conversational_supported_regions )) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
 	public function is_neural_supported_in_region() {
-
-		$selected_region          = GeneralConfiguration::get_aws_region();
-		$neural_supported_regions = array( 'us-east-1', 'us-west-2', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'us-gov-west-1' );
-
-		if (in_array( $selected_region, $neural_supported_regions )) {
-			return true;
-		} else {
-			return false;
+		foreach ( $this->get_polly_voices()['Voices'] ?? array() as $voice ) {
+			if ( in_array( 'neural', $this->get_supported_synthesis_engines( $voice ), true ) ) {
+				return true;
+			}
 		}
+		return false;
 	}
 
 	public function is_news_style_for_voice( $voice) {
@@ -1458,61 +1286,17 @@ class Common {
 			return in_array( 'neural', $this->get_supported_synthesis_engines( $voice_data ), true );
 		}
 
-		$neural_supported_voices = array( 'Olivia', 'Amy', 'Emma', 'Brian', 'Ivy', 'Joanna', 'Kendra', 'Kimberly', 'Salli', 'Joey', 'Justin', 'Kevin', 'Matthew', 'Camila', 'Lupe', 'Seoyeon', 'Gabrielle' );
-
-		if (in_array( $voice, $neural_supported_voices )) {
-			return true;
-		} else {
-			return false;
-		}
-
-	}
-
-	public function is_neural_only_voice( $voice = null ) {
-		if ( null === $voice ) {
-			$voice = $this->get_voice_id();
-		}
-
-		$neural_only_voices = array( 'Olivia', 'Kevin', 'Gabrielle' );
-		$logger             = new Logger();
-		$voice_data         = $this->get_polly_voice( $voice );
-
-		$logger->log( 'Checking for neural: ' . $voice );
-
-		if ( is_array( $voice_data ) ) {
-			$supported_engines = $this->get_supported_synthesis_engines( $voice_data );
-			$is_neural_only    = in_array( 'neural', $supported_engines, true ) && ! in_array( 'standard', $supported_engines, true );
-
-			$logger->log( 'Neural only: ' . ( $is_neural_only ? 'TRUE' : 'FALSE' ) );
-
-			return $is_neural_only;
-		}
-
-		if (in_array( $voice, $neural_only_voices )) {
-			$logger->log( 'Neural only: TRUE' );
-			return true;
-		} else {
-			$logger->log( 'Neural only: FALSE' );
-			return false;
-		}
-
+		return false;
 	}
 
 	public function get_polly_engine( $voice) {
-		if ( ! $this->is_neural_supported_in_region()) {
-			return 'standard';
-		}
-
-		if ( ! $this->is_neural_supported_for_voice( $voice )) {
-			return 'standard';
-		}
-
-		if ( $this->is_polly_neural_requested() ) {
+		if ( $this->is_polly_neural_requested() && $this->is_neural_supported_for_voice( $voice ) ) {
 			return 'neural';
 		}
-
-		return 'standard';
-
+		if ( $this->is_standard_supported_for_voice( $voice ) ) {
+			return 'standard';
+		}
+		throw new \RuntimeException( 'The selected voice has no enabled supported engine in this AWS region.' );
 	}
 
 
@@ -1555,7 +1339,10 @@ class Common {
 	 */
 	private function check_aws_access( $persist_state = true ) {
 		try {
-			$voice_list = $this->get_polly_voices( true );
+			$voice_list = $this->get_polly_voices();
+			if ( empty( $voice_list['Voices'] ) ) {
+				throw new CredentialsException( 'No supported Polly voices were returned.' );
+			}
 			if ( $persist_state ) {
 				update_option( 'itron_polly_tts_valid_keys', '1' );
 			}
@@ -2131,7 +1918,6 @@ class Common {
 	public function enqueue_styles() {
 		$admin_asset_url = plugin_dir_url( dirname( __DIR__ ) . '/itron-polly-tts.php' ) . 'admin/';
 		wp_enqueue_style( 'itron-polly-tts-admin', $admin_asset_url . 'css/itron-polly-tts-admin.css', array(), $this->get_asset_version( 'css/itron-polly-tts-admin.css' ), 'all' );
-		wp_enqueue_style( 'itron-polly-tts-font-awesome', $admin_asset_url . 'css/all.min.css', array(), $this->get_asset_version( 'css/all.min.css' ), 'all' );
 	}
 
 	/**

@@ -153,7 +153,7 @@ class Plugin {
 		$this->loader->add_action( 'admin_menu', $polly_configuration, 'itron_polly_tts_add_menu' );
 
 		/** @uses PollyConfiguration::display_options() */
-		$this->loader->add_action( 'admin_menu', $polly_configuration, 'display_options' );
+		$this->loader->add_action( 'admin_init', $polly_configuration, 'display_options' );
 
 		// Audio admin: columns, meta box, filter, bulk actions, settings button.
 		$audio_admin = new AudioAdmin( $this->common );

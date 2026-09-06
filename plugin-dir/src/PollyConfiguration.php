@@ -17,7 +17,7 @@ class PollyConfiguration {
 	 * @var Common
 	 */
 	private $common;
-	private $polly_access_available = null;
+	private ?bool $catalog_available = null;
 	private ?string $source_language_for_sanitization = null;
 
 	/**
@@ -29,20 +29,13 @@ class PollyConfiguration {
 		$this->common = $common;
 	}
 
-	private function can_render_polly_settings(): bool {
-		if ( null === $this->polly_access_available ) {
-			$this->polly_access_available = $this->common->validate_itron_polly_tts_access( false, true );
-		}
-
-		return (bool) $this->polly_access_available;
-	}
-
 	public function itron_polly_tts_add_menu() {
 		$this->plugin_screen_hook_suffix = add_submenu_page( 'itron_polly_tts', 'Text-To-Speech', 'Text-To-Speech', 'manage_options', 'itron_polly_tts_polly', array( $this, 'render_text_to_speech_page' ) );
 
 	}
 
 	public function render_text_to_speech_page() {
+		$this->can_load_voice_catalog();
 		?>
 			 <div class="wrap">
 			 <div id="icon-options-polly" class="icon32"></div>
@@ -68,74 +61,59 @@ class PollyConfiguration {
 		add_settings_field( 'itron_polly_tts_source_language', __( 'Source language:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'source_language_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_source_language' ) );
 		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_source_language', array( $this, 'sanitize_source_language' ) );
 		add_settings_field( 'itron_polly_tts_polly_enable', __( 'Enable text-to-speech support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'polly_enabled_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_polly_enable' ) );
+		add_settings_field( 'itron_polly_tts_disable_post_voice_override', __( 'Lock post voice to global setting:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'disable_post_voice_override_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_disable_post_voice_override' ) );
+		add_settings_field( 'itron_polly_tts_voice_id', __( 'Voice name:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'voices_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_voice_id' ) );
+		add_settings_field( 'itron_polly_tts_neural', __( 'Neural Text-To-Speech:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'neural_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_neural' ) );
+		add_settings_field( 'itron_polly_tts_speaking_style', __( 'Speaking Style:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'speaking_style_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_speaking_style' ) );
+		add_settings_field( 'itron_polly_tts_sample_rate', __( 'Sample rate:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'sample_rate_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_sample_rate' ) );
+		add_settings_field( 'itron_polly_tts_auto_breaths', __( 'Automated breaths:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'auto_breaths_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_auto_breaths_id' ) );
+		add_settings_field( 'itron_polly_tts_ssml', __( 'Enable SSML support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'ssml_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_ssml' ) );
+		add_settings_field( 'itron_polly_tts_lexicons', __( 'Lexicons:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'lexicons_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_lexicons' ) );
+		add_settings_field( 'itron_polly_tts_speed', __( 'Audio speed [%]:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'audio_speed_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_speed' ) );
 
-		if ($this->common->is_polly_enabled() ) {
-			if ($this->can_render_polly_settings()) {
-				if ($this->common->is_language_supported_for_polly()) {
-					add_settings_field( 'itron_polly_tts_disable_post_voice_override', __( 'Lock post voice to global setting:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'disable_post_voice_override_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_disable_post_voice_override' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_disable_post_voice_override', array( $this, 'sanitize_checkbox_option' ) );
-					add_settings_field( 'itron_polly_tts_voice_id', __( 'Voice name:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'voices_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_voice_id' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_voice_id', array( $this, 'sanitize_voice_id' ) );
+		add_settings_section( 'itron_polly_tts_playersettings', __( 'Player settings', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'playersettings_gui' ), 'itron_polly_tts_polly' );
+		add_settings_field( 'itron_polly_tts_position', __( 'Player position:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'playerposition_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_position' ) );
+		add_settings_field( 'itron_polly_tts_player_label', __( 'Player label:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'playerlabel_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_player_label' ) );
+		add_settings_field( 'itron_polly_tts_defconf', __( 'New post default:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'defconf_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( '' => 'itron_polly_tts_defconf' ) );
+		add_settings_field( 'itron_polly_tts_autoplay', __( 'Autoplay:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'autoplay_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_autoplay' ) );
+		add_settings_field( 'itron_polly_tts_coming_soon_text', __( 'Coming Soon Text:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'coming_soon_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_coming_soon' ) );
 
-					add_settings_field( 'itron_polly_tts_neural', __( 'Neural Text-To-Speech:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'neural_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_neural' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_neural', array( $this, 'sanitize_checkbox_option' ) );
-					add_settings_field( 'itron_polly_tts_speaking_style', __( 'Speaking Style:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'speaking_style_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_speaking_style' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_speaking_style', array( $this, 'sanitize_speaking_style' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_news', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_conversational', array( $this, 'sanitize_checkbox_option' ) );
-					add_settings_field( 'itron_polly_tts_sample_rate', __( 'Sample rate:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'sample_rate_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_sample_rate' ) );
-					add_settings_field( 'itron_polly_tts_auto_breaths', __( 'Automated breaths:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'auto_breaths_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_auto_breaths_id' ) );
-					add_settings_field( 'itron_polly_tts_ssml', __( 'Enable SSML support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'ssml_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_ssml' ) );
-					add_settings_field( 'itron_polly_tts_lexicons', __( 'Lexicons:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'lexicons_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_lexicons' ) );
-					add_settings_field( 'itron_polly_tts_speed', __( 'Audio speed [%]:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'audio_speed_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_polly', array( 'label_for' => 'itron_polly_tts_speed' ) );
+		add_settings_section( 'itron_polly_tts_pollyadditional', __( 'Additional configuration', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'pollyadditional_gui' ), 'itron_polly_tts_polly' );
+		add_settings_field( 'itron_polly_tts_add_post_title', __( 'Add post title to audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'add_post_title_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_add_post_title' ) );
+		add_settings_field( 'itron_polly_tts_add_post_excerpt', __( 'Add post excerpt to audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'add_post_excerpt_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_add_post_excerpt' ) );
+		add_settings_field( 'itron_polly_tts_medialibrary_enabled', __( 'Enable Media Library support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'medialibrary_enabled_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_medialibrary_enabled' ) );
+		add_settings_field( 'itron_polly_tts_skip_tags', __( 'Skip tags:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'skiptags_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_skip_tags' ) );
+		add_settings_field( 'itron_polly_tts_download_enabled', __( 'Enable download audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'download_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_download_enabled' ) );
+		add_settings_field( 'itron_polly_tts_s3', __( 'Store audio in Amazon S3:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 's3_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_s3' ) );
+		add_settings_field( 'itron_polly_tts_posttypes', __( 'Post types:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'posttypes_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_posttypes' ) );
+		add_settings_field( 'itron_polly_tts_cloudfront', __( 'Amazon CloudFront (CDN) domain name:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'cloudfront_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_cloudfront' ) );
+		add_settings_field( 'itron_polly_tts_poweredby', __( 'Display public AWS Polly credit:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'poweredby_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_poweredby' ) );
+		add_settings_field( 'itron_polly_tts_logging', __( 'Enable logging:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'logging_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_logging' ) );
 
-					add_settings_section( 'itron_polly_tts_playersettings', __( 'Player settings', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'playersettings_gui' ), 'itron_polly_tts_polly' );
-					add_settings_field( 'itron_polly_tts_position', __( 'Player position:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'playerposition_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_position' ) );
-					add_settings_field( 'itron_polly_tts_player_label', __( 'Player label:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'playerlabel_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_player_label' ) );
-					add_settings_field( 'itron_polly_tts_defconf', __( 'New post default:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'defconf_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( '' => 'itron_polly_tts_defconf' ) );
-					add_settings_field( 'itron_polly_tts_autoplay', __( 'Autoplay:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'autoplay_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_autoplay' ) );
-					add_settings_field( 'itron_polly_tts_coming_soon_text', __( 'Coming Soon Text:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'coming_soon_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_playersettings', array( 'label_for' => 'itron_polly_tts_coming_soon' ) );
-
-					add_settings_section( 'itron_polly_tts_pollyadditional', __( 'Additional configuration', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'pollyadditional_gui' ), 'itron_polly_tts_polly' );
-					add_settings_field( 'itron_polly_tts_add_post_title', __( 'Add post title to audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'add_post_title_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_add_post_title' ) );
-					add_settings_field( 'itron_polly_tts_add_post_excerpt', __( 'Add post excerpt to audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'add_post_excerpt_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_add_post_excerpt' ) );
-					add_settings_field( 'itron_polly_tts_medialibrary_enabled', __( 'Enable Media Library support:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'medialibrary_enabled_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_medialibrary_enabled' ) );
-					add_settings_field( 'itron_polly_tts_skip_tags', __( 'Skip tags:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'skiptags_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_skip_tags' ) );
-					add_settings_field( 'itron_polly_tts_download_enabled', __( 'Enable download audio:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'download_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_download_enabled' ) );
-
-					add_settings_field( 'itron_polly_tts_s3', __( 'Store audio in Amazon S3:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 's3_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_s3' ) );
-					add_settings_field( 'itron_polly_tts_posttypes', __( 'Post types:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'posttypes_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_posttypes' ) );
-					add_settings_field( 'itron_polly_tts_cloudfront', __( 'Amazon CloudFront (CDN) domain name:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'cloudfront_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_cloudfront' ) );
-					add_settings_field( 'itron_polly_tts_poweredby', __( 'Display public AWS Polly credit:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'poweredby_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_poweredby' ) );
-					add_settings_field( 'itron_polly_tts_logging', __( 'Enable logging:', 'ai-text-to-speech-using-aws-polly' ), array( $this, 'logging_gui' ), 'itron_polly_tts_polly', 'itron_polly_tts_pollyadditional', array( 'label_for' => 'itron_polly_tts_logging' ) );
-
-					//Registration
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_s3', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_cloudfront', array( $this, 'sanitize_text_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_poweredby', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_logging', array( $this, 'sanitize_checkbox_option' ) );
-
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_sample_rate', array( $this, 'sanitize_sample_rate' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_auto_breaths', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_ssml', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_lexicons', array( $this, 'sanitize_text_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_speed', array( $this, 'sanitize_audio_speed' ) );
-
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_position', array( $this, 'sanitize_player_position' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_player_label', array( $this, 'sanitize_text_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_defconf', array( $this, 'sanitize_default_configuration' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_autoplay', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_coming_soon_text', array( $this, 'sanitize_textarea_option' ) );
-
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_add_post_title', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_add_post_excerpt', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_medialibrary_enabled', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_skip_tags', array( $this, 'sanitize_text_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_download_enabled', array( $this, 'sanitize_checkbox_option' ) );
-					$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_posttypes', array( $this, 'sanitize_posttypes' ) );
-				}
-			}
-		}
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_disable_post_voice_override', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_voice_id', array( $this, 'sanitize_voice_id' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_neural', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_speaking_style', array( $this, 'sanitize_speaking_style' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_sample_rate', array( $this, 'sanitize_sample_rate' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_auto_breaths', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_ssml', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_lexicons', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_speed', array( $this, 'sanitize_audio_speed' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_position', array( $this, 'sanitize_player_position' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_player_label', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_defconf', array( $this, 'sanitize_default_configuration' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_autoplay', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_coming_soon_text', array( $this, 'sanitize_textarea_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_add_post_title', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_add_post_excerpt', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_medialibrary_enabled', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_skip_tags', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_download_enabled', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_s3', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_posttypes', array( $this, 'sanitize_posttypes' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_cloudfront', array( $this, 'sanitize_text_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_poweredby', array( $this, 'sanitize_checkbox_option' ) );
+		$this->register_sanitized_setting( 'itron_polly_tts_polly', 'itron_polly_tts_logging', array( $this, 'sanitize_checkbox_option' ) );
 
 	}
 
@@ -151,6 +129,24 @@ class PollyConfiguration {
 
 	private function is_option_enabled( string $option_name ): bool {
 		return ! empty( get_option( $option_name, '' ) );
+	}
+
+	private function can_load_voice_catalog(): bool {
+		if ( ! $this->common->is_polly_enabled() || ! $this->common->has_aws_credentials() ) {
+			return false;
+		}
+		if ( null !== $this->catalog_available ) {
+			return $this->catalog_available;
+		}
+		try {
+			$this->catalog_available = ! empty( $this->common->get_polly_voices()['Voices'] );
+		} catch ( \Throwable $e ) {
+			$this->catalog_available = false;
+		}
+		if ( ! $this->catalog_available ) {
+			add_settings_error( 'itron_polly_tts_polly', 'itron_polly_tts_catalog_unavailable', __( 'Unable to load Amazon Polly voices. Check your AWS credentials, region, polly:DescribeVoices permission and server connectivity. Existing settings have been preserved.', 'ai-text-to-speech-using-aws-polly' ) );
+		}
+		return $this->catalog_available;
 	}
 
 	public function sanitize_checkbox_option( $value ): string {
@@ -205,15 +201,7 @@ class PollyConfiguration {
 	   * @since      0.1
 	   */
 	public function polly_enabled_gui() {
-		if ($this->common->is_language_supported_for_polly()) {
-			if ($this->can_render_polly_settings()) {
-				echo '<input type="checkbox" name="itron_polly_tts_polly_enable" id="itron_polly_tts_polly_enable"' . checked( $this->is_option_enabled( 'itron_polly_tts_polly_enable' ), true, false ) . '> ';
-			} else {
-				echo '<p>Verify that your AWS credentials are accurate</p>';
-			}
-		} else {
-			echo '<p>Text-To-Speech functionality is not supported for this language</p>';
-		}
+		echo '<input type="checkbox" name="itron_polly_tts_polly_enable" id="itron_polly_tts_polly_enable"' . checked( $this->is_option_enabled( 'itron_polly_tts_polly_enable' ), true, false ) . '> ';
 	}
 
 	/**
@@ -242,19 +230,6 @@ class PollyConfiguration {
 		echo '</select>';
 	}
 
-	private function is_language_supported() {
-
-		$selected_source_language = $this->common->get_source_language();
-
-		foreach ($this->common->get_all_polly_languages() as $language_code) {
-			if (strcmp( $selected_source_language, $language_code ) === 0) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	/**
 	 * Render the 'use CloudFront' input.
 	 *
@@ -264,9 +239,10 @@ class PollyConfiguration {
 		$is_s3_enabled = $this->common->is_s3_enabled();
 		if ( $is_s3_enabled ) {
 			$cloudfront_domain_name = get_option( 'itron_polly_tts_cloudfront' );
-			echo '<input type="text" name="itron_polly_tts_cloudfront" class="regular-text" "id="itron_polly_tts_cloudfront" value="' . esc_attr( $cloudfront_domain_name ) . '" > ';
+			echo '<input type="text" name="itron_polly_tts_cloudfront" class="regular-text" id="itron_polly_tts_cloudfront" value="' . esc_attr( $cloudfront_domain_name ) . '" > ';
 			echo '<p class="description">If you have a CloudFront distribution for your S3 bucket, enter the domain name. For more information and pricing, see <a target="_blank" href="https://aws.amazon.com/cloudfront">https://aws.amazon.com/cloudfront</a> </p>';
 		} else {
+			echo '<input type="hidden" name="itron_polly_tts_cloudfront" value="' . esc_attr( get_option( 'itron_polly_tts_cloudfront', '' ) ) . '" />';
 			echo '<p class="description">Amazon S3 storage needs to be enabled</p>';
 		}
 	}
@@ -279,11 +255,9 @@ class PollyConfiguration {
 	function s3_gui() {
 		$is_s3_enabled = $this->common->is_s3_enabled();
 		if ( $is_s3_enabled ) {
-			$checked                = ' checked ';
-			$bucket_name_visibility = ' ';
+			$checked = ' checked ';
 		} else {
-			$checked                = ' ';
-			$bucket_name_visibility = 'display:none';
+			$checked = ' ';
 		}
 		echo '<input type="checkbox" name="itron_polly_tts_s3" id="itron_polly_tts_s3" ' . esc_attr( $checked ) . ' > <p class="description"></p>';
 		echo '<p class="description">Audio files are saved to and streamed from Amazon S3. For more information, see <a target="_blank" href="https://aws.amazon.com/s3">https://aws.amazon.com/s3</a></p>';
@@ -344,6 +318,11 @@ class PollyConfiguration {
 	}
 
 	public function sanitize_voice_id( $voice_id ) {
+		$voice_id = sanitize_text_field( wp_unslash( $voice_id ) );
+		if ( ! $this->can_load_voice_catalog() ) {
+			return $voice_id;
+		}
+
 		$language_code = $this->source_language_for_sanitization ?? $this->common->get_source_language();
 
 		return $this->common->get_resolved_polly_voice_option(
@@ -351,7 +330,7 @@ class PollyConfiguration {
 			$language_code,
 			'Matthew',
 			array(
-				'requested_voice_id' => sanitize_text_field( wp_unslash( $voice_id ) ),
+				'requested_voice_id' => $voice_id,
 			)
 		);
 	}
@@ -369,7 +348,7 @@ class PollyConfiguration {
 	}
 
 	public function sanitize_speaking_style( $style ) {
-		return $this->common->sync_polly_speaking_style( sanitize_text_field( wp_unslash( $style ) ), false );
+		return $this->common->normalize_polly_speaking_style( sanitize_text_field( wp_unslash( $style ) ) );
 	}
 
 	private function render_dynamic_checkbox_option( $option_name, $option_id, $is_checked, $show_checkbox, $description, $message, array $data_attributes = array() ) {
@@ -422,6 +401,17 @@ class PollyConfiguration {
 	 *
 	 */
 	public function neural_gui() {
+		if ( ! $this->can_load_voice_catalog() ) {
+			$this->render_dynamic_checkbox_option(
+				'itron_polly_tts_neural',
+				'itron_polly_tts_neural',
+				$this->is_option_enabled( 'itron_polly_tts_neural' ),
+				true,
+				'Controls whether the plugin uses the Neural engine for compatible voices. Voice compatibility is checked when text-to-speech is enabled and credentials are configured.',
+				''
+			);
+			return;
+		}
 
 		$voice_id            = $this->common->get_resolved_polly_voice_option( 'itron_polly_tts_voice_id', $this->common->get_source_language(), 'Matthew' );
 		$is_region_supported = $this->common->is_neural_supported_in_region();
@@ -448,6 +438,34 @@ class PollyConfiguration {
 	}
 
 	public function speaking_style_gui() {
+		if ( ! $this->can_load_voice_catalog() ) {
+			$this->render_dynamic_radio_option(
+				'itron_polly_tts_speaking_style',
+				'itron_polly_tts_speaking_style',
+				$this->common->normalize_polly_speaking_style( get_option( 'itron_polly_tts_speaking_style', '' ) ),
+				true,
+				'Choose one Neural speaking style. Voice compatibility is checked when text-to-speech is enabled and credentials are configured.',
+				'',
+				array(
+					array(
+						'value'   => '',
+						'label'   => 'Default',
+						'visible' => true,
+					),
+					array(
+						'value'   => 'news',
+						'label'   => 'Newscaster Style',
+						'visible' => true,
+					),
+					array(
+						'value'   => 'conversational',
+						'label'   => 'Conversational Style',
+						'visible' => true,
+					),
+				)
+			);
+			return;
+		}
 
 		$voice_id                = $this->common->get_resolved_polly_voice_option( 'itron_polly_tts_voice_id', $this->common->get_source_language(), 'Matthew' );
 		$is_region_supported     = $this->common->is_neural_supported_in_region();
@@ -496,83 +514,6 @@ class PollyConfiguration {
 					'message-voice'    => 'The current voice does not support Newscaster or Conversational styles',
 				)
 			);
-	}
-
-	/**
-	 * Render the Neural GUI
-	 *
-	 */
-	public function news_gui() {
-
-		$voice_id            = $this->common->get_resolved_polly_voice_option( 'itron_polly_tts_voice_id', $this->common->get_source_language(), 'Matthew' );
-		$is_region_supported = $this->common->is_neural_supported_in_region();
-		$is_neural_requested = $this->common->is_polly_neural_requested();
-		$is_voice_supported  = $this->common->is_news_style_for_voice( $voice_id );
-		$show_checkbox       = $is_region_supported && $is_neural_requested && $is_voice_supported;
-
-		if ( ! $is_region_supported ) {
-			$message = 'Option not supported in this region';
-		} elseif ( ! $is_neural_requested ) {
-			$message = 'Neural needs to be enabled';
-		} else {
-			$message = 'Option not supported for this voice';
-		}
-
-		$this->render_dynamic_checkbox_option(
-			'itron_polly_tts_news',
-			'itron_polly_tts_news',
-			(bool) $this->common->is_polly_news_enabled(),
-			$show_checkbox,
-			'Available only for supported Neural voices.',
-			$message,
-			array(
-				'region-supported' => $is_region_supported ? '1' : '0',
-				'message-region'   => 'Option not supported in this region',
-				'message-neural'   => 'Neural needs to be enabled',
-				'message-voice'    => 'Option not supported for this voice',
-			)
-		);
-	}
-
-	/**
-	 * Render the Conversational GUI
-	 *
-	 */
-	public function conversational_gui() {
-
-		$voice_id            = $this->common->get_resolved_polly_voice_option( 'itron_polly_tts_voice_id', $this->common->get_source_language(), 'Matthew' );
-		$is_region_supported = $this->common->is_neural_supported_in_region();
-		$is_neural_requested = $this->common->is_polly_neural_requested();
-		$is_voice_supported  = $this->common->is_conversational_style_for_voice( $voice_id );
-		$is_news_enabled     = (bool) $this->common->is_polly_news_enabled();
-		$show_checkbox       = $is_region_supported && $is_neural_requested && $is_voice_supported && ! $is_news_enabled;
-
-		if ( ! $is_region_supported ) {
-			$message = 'Option not supported in this region';
-		} elseif ( ! $is_neural_requested ) {
-			$message = 'Neural needs to be enabled';
-		} elseif ( ! $is_voice_supported ) {
-			$message = 'Option not supported for this voice';
-		} else {
-			$message = 'Only one style can be used';
-		}
-
-		$this->render_dynamic_checkbox_option(
-			'itron_polly_tts_conversational',
-			'itron_polly_tts_conversational',
-			(bool) $this->common->is_polly_conversational_enabled(),
-			$show_checkbox,
-			'Available only for supported Neural voices.',
-			$message,
-			array(
-				'region-supported'  => $is_region_supported ? '1' : '0',
-				'message-region'    => 'Option not supported in this region',
-				'message-neural'    => 'Neural needs to be enabled',
-				'message-voice'     => 'Option not supported for this voice',
-				'message-exclusive' => 'Only one style can be used',
-			)
-		);
-
 	}
 
 	/**
@@ -739,6 +680,7 @@ class PollyConfiguration {
 
 			echo '<input type="checkbox" name="itron_polly_tts_medialibrary_enabled" id="itron_polly_tts_medialibrary_enabled" ' . esc_attr( $checked ) . '> ';
 		} else {
+			echo '<input type="hidden" name="itron_polly_tts_medialibrary_enabled" value="' . esc_attr( get_option( 'itron_polly_tts_medialibrary_enabled', '' ) ) . '" />';
 			echo '<p class="description">Local storage needs to be enabled</p>';
 		}
 
@@ -750,22 +692,7 @@ class PollyConfiguration {
 	 * @since      0.1
 	 */
 	public function ssml_gui() {
-
-			$is_s3_enabled = $this->common->is_s3_enabled();
-		if ( $is_s3_enabled ) {
-			$is_ssml_enabled = $this->common->is_ssml_enabled();
-
-			if ( $is_ssml_enabled ) {
-				$checked = ' checked ';
-			} else {
-				$checked = ' ';
-			}
-
-			echo '<input type="checkbox" name="itron_polly_tts_ssml" id="itron_polly_tts_ssml" ' . esc_attr( $checked ) . '> ';
-		} else {
-			echo '<p class="description">Amazon S3 storage needs to be enabled</p>';
-		}
-
+		echo '<input type="checkbox" name="itron_polly_tts_ssml" id="itron_polly_tts_ssml"' . checked( $this->common->is_ssml_enabled(), true, false ) . '> ';
 	}
 
 	/**
@@ -818,8 +745,19 @@ class PollyConfiguration {
 	 * @since      0.1
 	 */
 	public function voices_gui() {
+		$current_voice_id = sanitize_text_field( (string) get_option( 'itron_polly_tts_voice_id', '' ) );
+		if ( ! $this->can_load_voice_catalog() ) {
+			echo '<input type="hidden" name="itron_polly_tts_voice_id" value="' . esc_attr( $current_voice_id ) . '">';
+			echo '<p class="description">The saved voice will remain unchanged. Enable text-to-speech and configure AWS credentials to load available voices.</p>';
+			return;
+		}
+
 		$language_code        = $this->common->get_source_language();
-		$voice_id             = $this->common->get_resolved_polly_voice_option( 'itron_polly_tts_voice_id', $language_code, 'Matthew' );
+		$voice_id             = $this->common->get_resolved_polly_voice_option(
+			'itron_polly_tts_voice_id',
+			$language_code,
+			'Matthew'
+		);
 		$available_voice_list = $this->common->get_available_polly_voices( $language_code );
 
 		if ( empty( $available_voice_list ) ) {

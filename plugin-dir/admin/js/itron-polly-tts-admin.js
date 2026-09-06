@@ -230,16 +230,6 @@
 		function(){
 			injectFindPostsWithoutAudioPanel();
 
-			$( '#itron_polly_tts_s3' ).change(
-				function() {
-					if ($( "#itron_polly_tts_s3" ).is( ':checked' )) {
-						$( "#itron_polly_tts_s3_bucket_name_box" ).show();
-					} else {
-						$( "#itron_polly_tts_s3_bucket_name_box" ).hide();
-					}
-				}
-			);
-
 			$( '#itron_polly_tts_plugin_cost_info' ).hide();
 
 			$( '#itron_polly_tts_enable' ).change(
