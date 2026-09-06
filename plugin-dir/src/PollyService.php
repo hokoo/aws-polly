@@ -226,6 +226,7 @@ class PollyService {
 				update_post_meta( $post_id, 'itron_polly_tts_audio_hash', $current_hash );
 				update_post_meta( $post_id, 'itron_polly_tts_audio_voice', $audio_voice );
 				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_READY );
+				$this->assert_saved_audio_current( (int) $post_id, $current_hash, $audio_voice );
 
 				// update_post_meta() invalidates post meta caches, but it does not flush post query caches.
 				// Hosted environments with persistent object cache can otherwise keep stale admin list results
@@ -388,7 +389,12 @@ class PollyService {
 					$first_part = false;
 				} else {
 					$common->remove_id3( $file_temp_full_name . '_part_' . $key, $wp_filesystem );
-					$merged_file = $wp_filesystem->get_contents( $file_temp_full_name ) . $wp_filesystem->get_contents( $file_temp_full_name . '_part_' . $key );
+					$previous_audio = $wp_filesystem->get_contents( $file_temp_full_name );
+					$next_audio     = $wp_filesystem->get_contents( $file_temp_full_name . '_part_' . $key );
+					if ( ! is_string( $previous_audio ) || ! is_string( $next_audio ) ) {
+						throw new \RuntimeException( 'Could not read the temporary audio parts.' );
+					}
+					$merged_file = $previous_audio . $next_audio;
 					if ( ! $wp_filesystem->put_contents( $file_temp_full_name, $merged_file ) ) {
 						throw new \RuntimeException( 'Could not merge temporary audio.' );
 					}
@@ -420,12 +426,7 @@ class PollyService {
 
 			// This will bust the browser cache when a content revision is made.
 			$audio_location_link = add_query_arg( 'version', time(), $audio_location_link );
-			try {
-				$this->assert_generation_current( (int) $post_id, $expected_hash, $voice_snapshot );
-			} catch ( \Throwable $e ) {
-				$common->delete_post_audio( $post_id );
-				throw $e;
-			}
+			$this->assert_saved_audio_current( (int) $post_id, $expected_hash, $voice_snapshot );
 			if ( ! $common->get_audio_storage()->set_delivery_url( (int) $post_id, $audio_location_link ) ) {
 				$common->delete_post_audio( $post_id );
 				throw new \RuntimeException( 'Could not record the final audio URL.' );
@@ -434,6 +435,7 @@ class PollyService {
 			update_post_meta( $post_id, 'itron_polly_tts_audio_link_location', $audio_location_link );
 			update_post_meta( $post_id, 'itron_polly_tts_audio_location', $file_handler->get_type() );
 			update_post_meta( $post_id, 'itron_polly_tts_generated_voice_id', $voice_id );
+			$this->assert_saved_audio_current( (int) $post_id, $expected_hash, $voice_snapshot );
 
 			$logger->log( sprintf( '%s Final audio created!', __METHOD__ ) );
 		} finally {
@@ -444,6 +446,15 @@ class PollyService {
 			}
 		}
 
+	}
+
+	private function assert_saved_audio_current( int $post_id, string $expected_hash, array $voice_snapshot ): void {
+		try {
+			$this->assert_generation_current( $post_id, $expected_hash, $voice_snapshot );
+		} catch ( \Throwable $e ) {
+			$this->common->delete_post_audio( $post_id );
+			throw $e;
+		}
 	}
 
 	private function assert_generation_current( int $post_id, string $expected_hash, array $voice_snapshot ): void {

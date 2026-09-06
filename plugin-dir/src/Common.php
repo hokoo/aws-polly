@@ -852,13 +852,10 @@ class Common {
 			return;
 		}
 
-		$temp_filename = $filename . 'temp';
 		$trimmed_audio = substr( $contents, $offset );
-		if ( false === $wp_filesystem->put_contents( $temp_filename, $trimmed_audio ) ) {
-			return;
+		if ( ! $wp_filesystem->put_contents( $filename, $trimmed_audio ) ) {
+			throw new \RuntimeException( 'Could not rewrite the temporary audio part without its ID3 header.' );
 		}
-
-		$wp_filesystem->move( $temp_filename, $filename, true );
 
 	}
 
@@ -1588,6 +1585,7 @@ class Common {
 		if ($with_title) {
 			if ($this->is_title_adder_enabled()) {
 				// Omit request-dependent Protected/Private prefixes, but retain title filters.
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress title filter.
 				$clean_text = apply_filters( 'the_title', get_post_field( 'post_title', $post_id ), $post_id ) . '. **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
 			}
 		}
@@ -1604,6 +1602,7 @@ class Common {
 		$clean_text = apply_filters( 'itron_polly_tts_content', $clean_text );
 
 		if ($only_title) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress title filter.
 			$clean_text = apply_filters( 'the_title', get_post_field( 'post_title', $post_id ), $post_id );
 		}
 
