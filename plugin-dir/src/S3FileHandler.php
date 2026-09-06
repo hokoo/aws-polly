@@ -10,6 +10,7 @@ namespace iTRON\PollyTTS;
 
 class S3FileHandler extends FileHandler {
 	private $s3_client;
+	private $audio_storage;
 
 	/**
 	 * @var Common
@@ -19,10 +20,12 @@ class S3FileHandler extends FileHandler {
 	/**
 	 * S3FileHandler constructor.
 	 *
-	 * @param Common $common
+	 * @param Common       $common        Shared plugin operations.
+	 * @param AudioStorage $audio_storage Immutable locator storage.
 	 */
-	public function __construct( Common $common) {
-		$this->common = $common;
+	public function __construct( Common $common, ?AudioStorage $audio_storage = null ) {
+		$this->common        = $common;
+		$this->audio_storage = $audio_storage ?? new AudioStorage();
 	}
 
 	/**
@@ -42,19 +45,19 @@ class S3FileHandler extends FileHandler {
 	 * Function responsible for saving file on local storage file system.
 	 *
 	 * @param           $wp_filesystem         Not used here.
-	 * @param           $file                  File name.
+	 * @param           $descriptor            Validated immutable locator.
 	 * @param           $post_id               ID of the post.
 	 * @since      0.1
 	 */
-	public function delete( $wp_filesystem, $file, $post_id) {
+	public function delete( $wp_filesystem, array $descriptor, $post_id) {
+		$descriptor = $this->audio_storage->validate_descriptor( (int) $post_id, $descriptor );
+		if ( 's3' !== $descriptor['type'] ) {
+			throw new \InvalidArgumentException( 'An S3 handler requires an S3 storage descriptor.' );
+		}
 
-		// Retrieve the name of the bucket where audio files are stored.
-		$s3_bucket = GeneralConfiguration::get_bucket_name();
-		$prefix    = $this->get_prefix( $post_id );
-		$key       = $prefix . $file;
+		$this->delete_s3_object( $descriptor['bucket'], $descriptor['key'] );
 
-		$this->delete_s3_object( $s3_bucket, $key );
-
+		return true;
 	}
 
 
@@ -70,42 +73,52 @@ class S3FileHandler extends FileHandler {
 	 * @since      0.1
 	 */
 	public function save( $wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name) {
-		$media_library_att_id = get_post_meta( $post_id, 'itron_polly_tts_media_library_attachment_id', true );
-		if ( ! empty( $media_library_att_id ) ) {
-			wp_delete_attachment( $media_library_att_id, true );
+		$post_id = (int) $post_id;
+		if ( $this->audio_storage->expected_filename( $post_id ) !== $file_name ) {
+			throw new \InvalidArgumentException( 'Unexpected generated audio filename.' );
 		}
 
-		$key = $this->get_prefix( $post_id ) . $file_name;
+		$this->audio_storage->validate_temporary_path( $file_temp_full_name, $post_id );
 
-			// We are storing audio file on Amazon S3.
-			$s3BucketName   = GeneralConfiguration::get_bucket_name();
-			$audio_location = 's3';
-			$result         = $this->s3_client->putObject(
-				array(
-					'ACL'        => 'public-read',
-					'Bucket'     => $s3BucketName,
-					'Key'        => $key,
-					'SourceFile' => $file_temp_full_name,
-				)
-			);
-			$wp_filesystem->delete( $file_temp_full_name );
+		$key                  = $this->get_prefix( $post_id ) . $file_name;
+		$s3_bucket_name       = (string) GeneralConfiguration::get_bucket_name();
+		$selected_region      = (string) $this->s3_client->getRegion();
+		$audio_location_link  = $this->get_s3_object_link( $post_id, $file_name, $s3_bucket_name, $selected_region, $key );
+		$descriptor           = $this->audio_storage->create_s3_descriptor( $post_id, $s3_bucket_name, $selected_region, $key, $audio_location_link );
 
-		return $this->get_s3_object_link( $post_id, $file_name );
+		// We are storing audio file on Amazon S3.
+		$this->s3_client->putObject(
+			array(
+				'Bucket'      => $s3_bucket_name,
+				'ContentType' => 'audio/mpeg',
+				'Key'         => $key,
+				'SourceFile'  => $file_temp_full_name,
+			)
+		);
+
+		if ( ! $this->audio_storage->record_saved_asset( $post_id, $descriptor ) ) {
+			throw new \RuntimeException( 'Could not record the S3 audio locator.' );
+		}
+
+		$wp_filesystem->delete( $file_temp_full_name );
+
+		return $audio_location_link;
 	}
 
-	public function get_s3_object_link( $post_id, $file_name) {
+	public function get_s3_object_link( $post_id, $file_name, $bucket = null, $region = null, $key = null ) {
 
-		$s3BucketName           = GeneralConfiguration::get_bucket_name();
+		$s3_bucket_name         = null === $bucket ? GeneralConfiguration::get_bucket_name() : $bucket;
 		$cloudfront_domain_name = apply_filters( 'itron_polly_tts_cloudfront_domain', get_option( 'itron_polly_tts_cloudfront' ) );
-		$key                    = $this->get_prefix( $post_id ) . $file_name;
+		$key                    = null === $key ? $this->get_prefix( $post_id ) . $file_name : $key;
+		$encoded_key            = implode( '/', array_map( 'rawurlencode', explode( '/', $key ) ) );
 
 		if ( empty( $cloudfront_domain_name ) ) {
-			$selected_region = GeneralConfiguration::get_aws_region();
+			$selected_region = null === $region ? GeneralConfiguration::get_aws_region() : $region;
 
 			// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Generated audio is intentionally served from the user-configured Amazon S3 service documented in readme.txt.
-			$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3BucketName . '/' . $key;
+			$audio_location_link = 'https://s3.' . $selected_region . '.amazonaws.com/' . $s3_bucket_name . '/' . $encoded_key;
 		} else {
-			$audio_location_link = 'https://' . $cloudfront_domain_name . '/' . $key;
+			$audio_location_link = 'https://' . untrailingslashit( $cloudfront_domain_name ) . '/' . $encoded_key;
 		}
 
 		return $audio_location_link;

@@ -11,7 +11,7 @@ namespace iTRON\PollyTTS;
 abstract class FileHandler {
 
 	abstract public function save( $wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name);
-	abstract public function delete( $wp_filesystem, $file, $post_id);
+	abstract public function delete( $wp_filesystem, array $descriptor, $post_id);
 	abstract public function get_type();
 
 	protected function get_prefix( $post_id) {

@@ -252,6 +252,7 @@ class Common {
 	private $polly_client;
 	private $s3_handler;
 	private $local_file_handler;
+	private $audio_storage;
 	private $logger;
 
 	/**
@@ -760,12 +761,13 @@ class Common {
 	}
 
 	public function init() {
+		$audio_storage     = $this->get_audio_storage();
 		$aws_sdk_config     = $this->get_aws_sdk_config();
 		$this->sdk          = new \Aws\Sdk( $aws_sdk_config );
 		$this->polly_client = $this->sdk->createPolly();
 
-		$this->s3_handler         = new S3FileHandler( $this );
-		$this->local_file_handler = new LocalFileHandler( $this );
+		$this->s3_handler         = new S3FileHandler( $this, $audio_storage );
+		$this->local_file_handler = new LocalFileHandler( $this, $audio_storage );
 
 		$this->s3_handler->set_s3_client( $this->sdk->createS3() );
 	}
@@ -789,6 +791,27 @@ class Common {
 
 	public function get_polly_client() {
 		return $this->polly_client;
+	}
+
+	public function get_audio_storage(): AudioStorage {
+		if ( ! $this->audio_storage instanceof AudioStorage ) {
+			$this->audio_storage = new AudioStorage();
+			$this->audio_storage->register_hooks();
+		}
+
+		return $this->audio_storage;
+	}
+
+	/**
+	 * Create an S3 client with current credentials for an asset's original region.
+	 */
+	public function get_s3_client_for_region( string $region ) {
+		if ( ! $this->has_aws_credentials() ) {
+			throw new CredentialsException( 'AWS credentials are required to remove the original audio object.' );
+		}
+		$sdk = new \Aws\Sdk( $this->get_aws_sdk_config( $region ) );
+
+		return $sdk->createS3();
 	}
 
 	/**
@@ -1686,6 +1709,7 @@ class Common {
 
 	private function get_audio_state_meta_keys() {
 		return array(
+			AudioStorage::POST_META_KEY,
 			'itron_polly_tts_audio_link_location',
 			'itron_polly_tts_audio_location',
 			'itron_polly_tts_generated_voice_id',
@@ -1697,16 +1721,20 @@ class Common {
 		);
 	}
 
-	private function get_file_handler_for_audio_location( $audio_location ) {
-		if ( 's3' === $audio_location ) {
-			return $this->s3_handler;
+	private function get_file_handler_for_audio_descriptor( array $descriptor ) {
+		$audio_storage = $this->get_audio_storage();
+		if ( 's3' === $descriptor['type'] ) {
+			$handler = new S3FileHandler( $this, $audio_storage );
+			$handler->set_s3_client( $this->get_s3_client_for_region( $descriptor['region'] ) );
+
+			return $handler;
 		}
 
-		if ( 'local' === $audio_location ) {
-			return $this->local_file_handler;
+		if ( 'local' === $descriptor['type'] ) {
+			return new LocalFileHandler( $this, $audio_storage );
 		}
 
-		return $this->get_file_handler();
+		throw new \InvalidArgumentException( 'Unsupported saved audio storage type.' );
 	}
 
 	public function clear_post_audio_state_meta( int $post_id ): void {
@@ -1720,11 +1748,6 @@ class Common {
 	}
 
 	public function clear_post_audio_state( int $post_id ): void {
-		$media_library_att_id = (int) get_post_meta( $post_id, 'itron_polly_tts_media_library_attachment_id', true );
-		if ( $media_library_att_id > 0 ) {
-			wp_delete_attachment( $media_library_att_id, true );
-		}
-
 		$this->clear_post_audio_state_meta( $post_id );
 		$this->set_post_audio_state( $post_id, self::AUDIO_STATE_NONE );
 		$this->clear_post_audio_runtime_cache( $post_id );
@@ -1737,29 +1760,25 @@ class Common {
 	 * @since      0.1
 	 */
 	public function delete_post_audio( $post_id ) {
-		$deletion_error = null;
+		$post_id       = (int) $post_id;
+		$audio_storage = $this->get_audio_storage();
+		$deleted       = $audio_storage->cleanup_post_audio(
+			$post_id,
+			function ( array $descriptor ) use ( $post_id ) {
+				$file_handler  = $this->get_file_handler_for_audio_descriptor( $descriptor );
+				$wp_filesystem = 'local' === $descriptor['type'] ? $this->prepare_wp_filesystem() : null;
 
-		try {
-			// Deleting audio file.
-			$this->init();
+				return $file_handler->delete( $wp_filesystem, $descriptor, $post_id );
+			}
+		);
 
-			$audio_location = get_post_meta( $post_id, 'itron_polly_tts_audio_location', true );
-			$file           = 'itron_polly_tts_' . $post_id . '.mp3';
-			$wp_filesystem  = $this->prepare_wp_filesystem();
-			$file_handler   = $this->get_file_handler_for_audio_location( $audio_location );
-			$file_handler->delete( $wp_filesystem, $file, $post_id );
-		} catch (\Exception $e) {
-			$deletion_error = $e;
+		$this->clear_post_audio_state( $post_id );
+
+		if ( ! $deleted ) {
+			$this->logger->log( sprintf( '%s Audio cleanup failed for post id=%d; persistent recovery details were recorded.', __METHOD__, $post_id ) );
 		}
 
-		$this->clear_post_audio_state( (int) $post_id );
-
-		if ( $deletion_error ) {
-			$this->show_error_notice( 'notice-error', 'Encountered an error while deleting the file.' );
-			$logger = new Logger();
-			$logger->log( sprintf( '%s Delete post audio failed: %s', __METHOD__, get_class( $deletion_error ) ) );
-		}
-
+		return $deleted;
 	}
 
 	private function skip_tags( $text) {

@@ -29,6 +29,12 @@ check( ! $common->validate_itron_polly_tts_access( false, false ), 'OFF cannot v
 $options['itron_polly_tts_polly_enable'] = 'on';
 check( array( 'Voices' => array() ) === $common->get_polly_voices(), 'Missing credentials must not invoke AWS or its implicit credential chain.' );
 check( ! $common->validate_itron_polly_tts_access( false, false ), 'Unconfigured access validation fails without network.' );
+try {
+	$common->get_s3_client_for_region( 'us-east-1' );
+	throw new LogicException( 'Unconfigured cleanup invoked the AWS credential chain.' );
+} catch ( \iTRON\PollyTTS\CredentialsException $e ) {
+	++$checks;
+}
 $options['itron_polly_tts_s3'] = '';
 check( $common->is_ssml_enabled(), 'SSML is available with local storage.' );
 $options['itron_polly_tts_ssml'] = '';
