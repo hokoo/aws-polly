@@ -47,6 +47,15 @@ class Plugin {
 
 	private function define_global_hooks() {
 		add_filter( 'itron_polly_tts_logging_enabled', array( $this->common, 'is_logging_enabled' ) );
+		add_filter( 'is_protected_meta', array( $this, 'protect_internal_post_meta' ), 10, 3 );
+	}
+
+	public function protect_internal_post_meta( bool $protected, string $meta_key, string $meta_type ): bool {
+		if ( 'post' === $meta_type && 0 === stripos( $meta_key, 'itron_polly_tts_' ) ) {
+			return true;
+		}
+
+		return $protected;
 	}
 
 	private function define_admin_hooks() {

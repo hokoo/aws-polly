@@ -550,6 +550,19 @@ class AudioAdmin {
 
 		$queued = 0;
 		foreach ( $post_ids as $post_id ) {
+			$is_positive_integer = is_int( $post_id ) && 0 < $post_id;
+			$is_positive_string  = is_string( $post_id ) && 1 === preg_match( '/^[1-9][0-9]*$/', $post_id );
+
+			if ( ! $is_positive_integer && ! $is_positive_string ) {
+				continue;
+			}
+
+			$post_id = absint( $post_id );
+			$post    = get_post( $post_id );
+			if ( ! $post || ! in_array( $post->post_type, $this->get_post_types(), true ) || ! current_user_can( 'edit_post', $post_id ) ) {
+				continue;
+			}
+
 			$is_enabled = get_post_meta( $post_id, 'itron_polly_tts_enable', true );
 			if ( '1' !== $is_enabled ) {
 				update_post_meta( $post_id, 'itron_polly_tts_enable', 1 );
