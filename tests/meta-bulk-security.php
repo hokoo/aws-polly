@@ -19,6 +19,7 @@ namespace {
 		public int $ID;
 		public string $post_type;
 		public string $post_password;
+		public string $post_status = 'publish';
 
 		public function __construct( int $id, string $post_type, string $post_password = '' ) {
 			$this->ID        = $id;
@@ -335,6 +336,29 @@ namespace {
 		),
 		'Refused protected posts must not receive generation metadata mutations.'
 	);
+	foreach ( array(
+		7  => 'private',
+		8  => 'draft',
+		9  => 'pending',
+		10 => 'future',
+	) as $id => $status ) {
+		$GLOBALS['test_posts'][ $id ] = new WP_Post( $id, 'post' );
+		$GLOBALS['test_posts'][ $id ]->post_status = $status;
+		$GLOBALS['test_editable_posts'][ $id ] = true;
+	}
+	foreach ( array( null, '1', '0' ) as $choice ) {
+		$GLOBALS['test_queued_posts'] = array();
+		$_REQUEST = null === $choice ? array() : array(
+			AudioConsent::BULK_CHOICE     => $choice,
+			AudioConsent::BULK_NONCE_NAME => 'nonce:' . AudioConsent::BULK_NONCE_ACTION,
+		);
+		$redirect = $audio_admin->handle_bulk_action( '/wp-admin/edit.php', 'polly_generate_audio', array( 5, 6, 7, 8, 9, 10 ) );
+		$expected = '1' === $choice ? array( 5, 6, 7, 8, 9, 10 ) : array( 6 );
+		assert_same( $expected, $GLOBALS['test_queued_posts'], 'A single choice applies to all non-public posts while the public job remains eligible.' );
+		if ( '1' !== $choice ) {
+			assert_true( str_contains( $redirect, 'polly_consent_skipped=5' ), 'Bulk refusal or missing input reports all non-public posts skipped.' );
+		}
+	}
 	$_REQUEST = array();
 
 	echo "meta-bulk-security: PASS\n";

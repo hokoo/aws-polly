@@ -49,7 +49,7 @@ When these constants are present, the plugin uses them instead of saved options 
 
 = Audio access and removal =
 
-Generated audio uses public delivery URLs, including audio stored locally. A post password does not protect its audio file. Before generating audio for a password-protected post, the editor asks for explicit confirmation that the audio will be public. Bulk generation asks once for the selected password-protected posts; declining skips their audio without cancelling ordinary post saves or generation for other selected posts.
+Generated audio uses public delivery URLs, including audio stored locally. Post passwords, private visibility, and unpublished status do not protect the audio file. Before generating audio for a password-protected, private, or unpublished post (including drafts, pending review, and scheduled posts), the editor asks for explicit confirmation that the audio will be public. Bulk generation asks once for all selected posts that need this confirmation; declining skips their audio without cancelling ordinary post saves or generation for other selected posts.
 
 For direct S3 delivery, configure a bucket policy that allows public reads of the audio objects. Alternatively, use a publicly accessible CloudFront distribution with access to a private S3 origin. The plugin does not set object ACLs or change your bucket policies.
 
@@ -122,7 +122,7 @@ Yes. You can enable audio generation for individual posts and the plugin will ke
 
 * Removed the obsolete disabled bulk-update interface and unused legacy capability gates and assets.
 * Updated supported Polly regions and languages, and removed obsolete Conversational SSML and inherited AWS project request identifiers.
-* Added public-audio confirmation for password-protected posts and strengthened metadata, bulk-action, and player security.
+* Added public-audio confirmation for password-protected, private, and unpublished posts and strengthened metadata, bulk-action, and player security.
 * Fixed speech-change detection, normal-speed generation, and stale-audio cleanup while generation is disabled.
 * Preserved original audio storage locations for safe cleanup, added failure notices, and removed forced S3 object ACLs.
 * Fixed logging opt-out and settings availability; updated bundled runtime dependencies and AWS service disclosures.

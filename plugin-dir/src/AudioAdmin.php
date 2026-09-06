@@ -662,8 +662,8 @@ class AudioAdmin {
 
 		if ( 0 < $skipped ) {
 			$message = sprintf(
-				/* translators: %d: password-protected posts count. */
-				__( 'Audio generation skipped for %d password-protected post(s) without current public-audio consent.', 'ai-text-to-speech-using-aws-polly' ),
+				/* translators: %d: posts requiring public-audio consent. */
+				__( 'Audio generation skipped for %d password-protected, private, or unpublished post(s) without current public-audio consent.', 'ai-text-to-speech-using-aws-polly' ),
 				$skipped
 			);
 			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
@@ -737,6 +737,7 @@ class AudioAdmin {
 
 		global $post;
 		$post_id      = $post instanceof \WP_Post ? (int) $post->ID : 0;
+		$post_type    = get_post_type_object( $screen->post_type );
 		$post_enabled = 0 < $post_id ? get_post_meta( $post_id, 'itron_polly_tts_enable', true ) : '';
 		if ( '1' !== $post_enabled && '0' !== $post_enabled ) {
 			$post_enabled = $this->common->is_polly_enabled_for_new_posts() ? '1' : '0';
@@ -748,7 +749,10 @@ class AudioAdmin {
 			array(
 				'globalEnabled'          => $this->common->is_polly_enabled(),
 				'postEnabled'            => '1' === $post_enabled,
-				'postPasswordProtected'  => 0 < $post_id && $this->audio_consent->needs_confirmation( $post_id ),
+				'postPasswordProtected'  => 0 < $post_id && '' !== (string) $post->post_password,
+				'postStatus'             => 0 < $post_id ? $post->post_status : 'auto-draft',
+				'canPublish'             => $post_type && current_user_can( $post_type->cap->publish_posts ),
+				'currentDate'            => current_time( 'mysql' ),
 				'isBlockEditor'          => is_callable( array( $screen, 'is_block_editor' ) ) && $screen->is_block_editor(),
 				'classicChoiceField'      => AudioConsent::CLASSIC_CHOICE,
 				'bulkNonceField'          => AudioConsent::BULK_NONCE_NAME,
@@ -756,8 +760,8 @@ class AudioAdmin {
 				'bulkChoiceField'         => AudioConsent::BULK_CHOICE,
 				'restField'               => AudioConsent::REST_FIELD,
 				'restRoutes'              => $this->audio_consent->get_supported_rest_routes(),
-				'confirmMessage'          => __( 'Generated audio is publicly accessible even when this post is password protected. Allow public audio for this protected content?', 'ai-text-to-speech-using-aws-polly' ),
-				'bulkConfirmMessage'      => __( 'Some selected posts are password protected. Allow public audio for all selected password-protected posts?', 'ai-text-to-speech-using-aws-polly' ),
+				'confirmMessage'          => __( 'Generated audio is publicly accessible even when this post is password protected, private, or unpublished. Allow public audio for this content?', 'ai-text-to-speech-using-aws-polly' ),
+				'bulkConfirmMessage'      => __( 'Some selected posts are password protected, private, or unpublished. Allow public audio for all of these selected posts?', 'ai-text-to-speech-using-aws-polly' ),
 			)
 		);
 	}

@@ -17,6 +17,7 @@ namespace {
 		public int $ID;
 		public string $post_type;
 		public string $post_password;
+		public string $post_status = 'publish';
 		public string $speech;
 
 		public function __construct( int $id, string $post_type, string $password, string $speech ) {
@@ -295,6 +296,37 @@ namespace {
 	$GLOBALS['test_posts'][2]->speech = 'Protected speech';
 	assert_false( $consent->is_allowed( 2 ), 'A core programmatic save revokes a stale grant even without a logged-in editor.' );
 	$GLOBALS['test_editable_posts'][2] = true;
+
+	$_POST = array();
+	foreach ( array( 'private', 'draft', 'pending', 'future' ) as $status ) {
+		$GLOBALS['test_posts'][6] = new WP_Post( 6, 'post', '', 'Unpublished speech' );
+		$GLOBALS['test_posts'][6]->post_status = $status;
+		$GLOBALS['test_editable_posts'][6] = true;
+		reset_consent( 6 );
+		assert_true( $consent->needs_confirmation( 6 ), $status . ' without a password still requires confirmation.' );
+		assert_false( $consent->is_allowed( 6 ), $status . ' without explicit consent is denied.' );
+		$consent->record_rest_choice( true, $GLOBALS['test_posts'][6], AudioConsent::REST_FIELD, $request_invalid );
+		assert_false( $consent->is_allowed( 6 ), 'An invalid REST nonce must not grant unpublished audio consent.' );
+		$consent->record_rest_choice( true, $GLOBALS['test_posts'][6], AudioConsent::REST_FIELD, $request_valid );
+		assert_true( $consent->is_allowed( 6 ), 'An authorized REST grant permits ' . $status . ' audio.' );
+		$consent->capture_classic_choice( 6, $GLOBALS['test_posts'][6], true );
+		assert_true( $consent->is_allowed( 6 ), 'Unchanged saves preserve an unpublished grant.' );
+		$consent->record_rest_choice( false, $GLOBALS['test_posts'][6], AudioConsent::REST_FIELD, $request_valid );
+		assert_false( $consent->is_allowed( 6 ), 'REST refusal revokes unpublished consent without cancelling the save.' );
+		assert_true( $consent->record_classic_choice( 6, '1', 'nonce:itron_polly_tts_audio_consent_6' ), 'Classic grants also cover unpublished posts.' );
+		$GLOBALS['test_posts'][6]->post_status = 'publish';
+		$consent->capture_classic_choice( 6, $GLOBALS['test_posts'][6], true );
+		assert_same( '', get_post_meta( 6, AudioConsent::META_KEY, true ), 'Publication clears the obsolete non-public grant.' );
+		$GLOBALS['test_posts'][6]->post_status = $status;
+		$consent->capture_classic_choice( 6, $GLOBALS['test_posts'][6], true );
+		assert_false( $consent->is_allowed( 6 ), 'Returning to ' . $status . ' must not restore its previous grant.' );
+	}
+	$consent->record_classic_choice( 6, '1', 'nonce:itron_polly_tts_audio_consent_6' );
+	$GLOBALS['test_posts'][6]->post_status = 'private';
+	assert_false( $consent->is_allowed( 6 ), 'Switching between non-public statuses invalidates the grant.' );
+	$consent->capture_classic_choice( 6, $GLOBALS['test_posts'][6], true );
+	$GLOBALS['test_posts'][6]->post_status = 'future';
+	assert_false( $consent->is_allowed( 6 ), 'A saved non-public status change cannot restore stale consent.' );
 
 	ob_start();
 	$consent->render_classic_fields( $GLOBALS['test_posts'][2] );

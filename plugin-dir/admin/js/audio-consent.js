@@ -2,6 +2,7 @@
 	'use strict';
 
 	var config = window.itronPollyAudioConsent || {};
+	var loadedAt = Date.now();
 
 	function setHiddenField( form, name, value ) {
 		var field = form.querySelector( 'input[name="' + name + '"]' );
@@ -26,6 +27,52 @@
 		return checkbox ? checkbox.checked : Boolean( config.postEnabled );
 	}
 
+	function getClassicStatus( form, submitter ) {
+		var statusField = form.querySelector( '[name="post_status"]' );
+		var visibility = form.querySelector( 'input[name="visibility"]:checked' );
+		var status = statusField ? statusField.value : config.postStatus;
+		var action = submitter ? ( submitter.name || submitter.id ) : '';
+		var dateFields;
+		var scheduledDate;
+		var currentDate;
+
+		if ( visibility && 'private' === visibility.value ) {
+			return 'private';
+		}
+		if ( [ 'saveasdraft', 'advanced', 'save-post' ].indexOf( action ) !== -1 ) {
+			return 'draft';
+		}
+		if ( 'pending' === action ) {
+			return 'pending';
+		}
+		if ( 'saveasprivate' === action ) {
+			return 'private';
+		}
+		if ( 'publish' === action && 'private' !== status ) {
+			if ( false === config.canPublish ) {
+				return 'pending';
+			}
+			status = 'publish';
+		}
+
+		// Core resolves publish/future dates for both Publish and existing-post Update.
+		if ( 'publish' === status || 'future' === status ) {
+			dateFields = [ 'aa', 'mm', 'jj', 'hh', 'mn' ].map( function( name ) {
+				return form.querySelector( '[name="' + name + '"]' );
+			} );
+			if ( config.currentDate && dateFields.every( Boolean ) ) {
+				scheduledDate = new Date( Number( dateFields[0].value ), Number( dateFields[1].value ) - 1, Number( dateFields[2].value ), Number( dateFields[3].value ), Number( dateFields[4].value ) );
+				currentDate = new Date( config.currentDate.replace( ' ', 'T' ) ).getTime() + Date.now() - loadedAt;
+				if ( scheduledDate.getTime() - currentDate >= 60000 ) {
+					return 'future';
+				}
+				return 'publish';
+			}
+		}
+
+		return status;
+	}
+
 	function captureClassicChoice() {
 		var form = document.getElementById( 'post' );
 
@@ -33,11 +80,18 @@
 			return;
 		}
 
-		form.addEventListener( 'submit', function() {
+		form.addEventListener( 'submit', function( event ) {
 			var password = form.querySelector( '#post_password, input[name="post_password"]' );
+			var visibility = form.querySelector( 'input[name="visibility"]:checked' );
+			var hasPassword = password ? '' !== String( password.value ) : Boolean( config.postPasswordProtected );
+			var status = getClassicStatus( form, event.submitter );
+
+			if ( visibility && 'password' !== visibility.value ) {
+				hasPassword = false;
+			}
 
 			setHiddenField( form, config.classicChoiceField, '' );
-			if ( ! isPostAudioEnabled() || ! password || '' === String( password.value ) ) {
+			if ( ! isPostAudioEnabled() || ( ! hasPassword && 'publish' === status ) ) {
 				return;
 			}
 
@@ -135,19 +189,22 @@
 		} );
 	}
 
-	function getEditedPassword( options ) {
-		if ( options.data && Object.prototype.hasOwnProperty.call( options.data, 'password' ) ) {
-			return String( options.data.password || '' );
+	function getEditedAttribute( options, attribute, fallback ) {
+		if ( options.data && Object.prototype.hasOwnProperty.call( options.data, attribute ) ) {
+			return String( options.data[ attribute ] || '' );
 		}
 
 		if ( window.wp && window.wp.data && window.wp.data.select ) {
 			var editor = window.wp.data.select( 'core/editor' );
 			if ( editor && editor.getEditedPostAttribute ) {
-				return String( editor.getEditedPostAttribute( 'password' ) || '' );
+				var value = editor.getEditedPostAttribute( attribute );
+				if ( undefined !== value && null !== value ) {
+					return String( value );
+				}
 			}
 		}
 
-		return config.postPasswordProtected ? '__protected__' : '';
+		return fallback;
 	}
 
 	function registerBlockEditorMiddleware() {
@@ -159,7 +216,11 @@
 			var choice;
 			var nextOptions;
 
-			if ( ! isCorePostWrite( options ) || ! isPostAudioEnabled() || '' === getEditedPassword( options ) ) {
+			if ( ! isCorePostWrite( options ) || ! isPostAudioEnabled() ) {
+				return next( options );
+			}
+			if ( '' === getEditedAttribute( options, 'password', config.postPasswordProtected ? '__protected__' : '' )
+				&& 'publish' === getEditedAttribute( options, 'status', config.postStatus ) ) {
 				return next( options );
 			}
 

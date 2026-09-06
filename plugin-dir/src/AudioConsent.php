@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Records explicit approval for publicly accessible audio of password-protected posts.
+ * Records explicit approval for publicly accessible audio of non-public content.
  */
 class AudioConsent {
 	public const META_KEY           = 'itron_polly_tts_public_audio_consent';
@@ -43,7 +43,8 @@ class AudioConsent {
 	public function needs_confirmation( int $post_id ): bool {
 		$post = get_post( $post_id );
 
-		return $post instanceof \WP_Post && '' !== (string) $post->post_password;
+		return $post instanceof \WP_Post
+			&& ( '' !== (string) $post->post_password || 'publish' !== $post->post_status );
 	}
 
 	/**
@@ -250,7 +251,7 @@ class AudioConsent {
 			'post_id'    => $post_id,
 			'speech'     => $this->common->clean_text( $post_id, true, false ),
 			'protection' => array(
-				'type'     => 'password',
+				'status'   => (string) $post->post_status,
 				'password' => (string) $post->post_password,
 			),
 		);
