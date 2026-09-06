@@ -20,15 +20,21 @@ $post = array(
 );
 $meta = array();
 
-function get_option( $name, $default = false ) { return $GLOBALS['options'][ $name ] ?? $default; }
-function get_post_meta( $id, $key, $single = false ) { return $GLOBALS['meta'][ $key ] ?? ''; }
-function get_post_field( $key, $id ) { return $GLOBALS['post'][ $key ] ?? ''; }
-function wp_json_encode( $value ) { return json_encode( $value ); }
+function get_option( $name, $default = false ) {
+	return $GLOBALS['options'][ $name ] ?? $default; }
+function get_post_meta( $id, $key, $single = false ) {
+	return $GLOBALS['meta'][ $key ] ?? ''; }
+function get_post_field( $key, $id ) {
+	return $GLOBALS['post'][ $key ] ?? ''; }
+function wp_json_encode( $value ) {
+	return json_encode( $value ); }
 function apply_filters( $tag, $value, ...$args ) {
 	return 'the_title' === $tag ? $value . ( $GLOBALS['title_suffix'] ?? '' ) : $value;
 }
-function do_shortcode( $text ) { return str_replace( '[fixture]', 'Shortcode text', $text ); }
-function esc_html( $text ) { return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' ); }
+function do_shortcode( $text ) {
+	return str_replace( '[fixture]', 'Shortcode text', $text ); }
+function esc_html( $text ) {
+	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' ); }
 
 class FingerprintCommon extends \iTRON\PollyTTS\Common {
 	public function get_polly_voices( $force_refresh = false ) {
@@ -39,7 +45,8 @@ class FingerprintCommon extends \iTRON\PollyTTS\Common {
 $common = new FingerprintCommon();
 $checks = 0;
 function check( $condition, $message ) {
-	if ( ! $condition ) { throw new RuntimeException( $message ); }
+	if ( ! $condition ) {
+		throw new RuntimeException( $message ); }
 	$GLOBALS['checks']++;
 }
 
@@ -77,9 +84,15 @@ $post['post_excerpt'] = 'Ignored excerpt';
 check( $without_heading === $common->get_audio_hash( 1 ), 'Excluded title/excerpt must not invalidate audio.' );
 
 foreach ( array(
-	'voice_id' => 'Joanna', 'sample_rate' => '16000', 'speed' => '110',
-	'lexicons' => 'test-lexicon', 'neural' => 'on', 'auto_breaths' => '',
-	'ssml' => '', 'source_language' => 'de', 's3_region' => 'eu-west-1',
+	'voice_id' => 'Joanna',
+	'sample_rate' => '16000',
+	'speed' => '110',
+	'lexicons' => 'test-lexicon',
+	'neural' => 'on',
+	'auto_breaths' => '',
+	'ssml' => '',
+	'source_language' => 'de',
+	's3_region' => 'eu-west-1',
 ) as $setting => $value ) {
 	$key = 'itron_polly_tts_' . $setting;
 	$before = $options;
@@ -113,7 +126,10 @@ $prepared = $common->clean_text( 1, true, false );
 check( $common->get_audio_hash( 1 ) === $common->get_audio_hash( 1, $prepared ), 'Prepared text is reused consistently.' );
 
 $resolved = $common->get_audio_hash( 1, $prepared, 'Matthew' );
-$meta['itron_polly_tts_audio_voice'] = array( 'request' => $common->get_audio_voice_request( 1 ), 'resolved' => 'Matthew' );
+$meta['itron_polly_tts_audio_voice'] = array(
+	'request' => $common->get_audio_voice_request( 1 ),
+	'resolved' => 'Matthew',
+);
 check( $resolved === $common->get_audio_hash( 1 ), 'Offline comparison reuses the actual resolved voice.' );
 check( $resolved !== $common->get_audio_hash( 1, $prepared, 'Joanna' ), 'A changed resolved voice invalidates audio even with locked global voice.' );
 $options['itron_polly_tts_voice_id'] = 'Joanna';
@@ -125,7 +141,10 @@ unset( $options['itron_polly_tts_source_language'] );
 $options['itron_polly_tts_voice_id'] = 'RequestB';
 $meta['itron_polly_tts_audio_hash'] = $resolved;
 check( $common->is_post_audio_current( 1, $common->get_audio_hash( 1, $prepared, 'Matthew' ) ), 'Different requests resolving to the same voice reuse existing audio.' );
-$meta['itron_polly_tts_audio_voice'] = array( 'request' => $common->get_audio_voice_request( 1 ), 'resolved' => 'Matthew' );
+$meta['itron_polly_tts_audio_voice'] = array(
+	'request' => $common->get_audio_voice_request( 1 ),
+	'resolved' => 'Matthew',
+);
 check( $common->is_post_audio_current( 1 ), 'Refreshing an identical-audio resolution preserves subsequent offline comparison.' );
 
 $post['post_content'] = 'Spoken -AMAZONPOLLY-ONLYWORDS-START-Excluded text-AMAZONPOLLY-ONLYWORDS-END-';

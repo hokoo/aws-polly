@@ -11,7 +11,8 @@ use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Utils;
 use Psr\Http\Message\StreamInterface;
 
-$autoload_path = getenv( 'AWS_POLLY_VENDOR_AUTOLOAD' ) ?: __DIR__ . '/../plugin-dir/vendor/autoload.php';
+$autoload_path = getenv( 'AWS_POLLY_VENDOR_AUTOLOAD' );
+$autoload_path = $autoload_path ? $autoload_path : __DIR__ . '/../plugin-dir/vendor/autoload.php';
 require $autoload_path;
 
 function assert_same( $expected, $actual, string $message ): void {
