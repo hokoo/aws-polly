@@ -10,7 +10,9 @@ use GuzzleHttp\Psr7\Utils;
 use iTRON\PollyTTS\AudioConsent;
 use iTRON\PollyTTS\AudioStorage;
 use iTRON\PollyTTS\Common;
+use iTRON\PollyTTS\ObjectCache;
 use iTRON\PollyTTS\PollyService;
+use iTRON\PollyTTS\PublicRenderer;
 use Psr\Http\Message\RequestInterface;
 
 if ( ! defined( 'AWS_POLLY_WP_INTEGRATION_QA' ) ) {
@@ -56,6 +58,7 @@ if ( is_plugin_active( 'ai-text-to-speech-using-aws-polly/itron-polly-tts.php' )
 $aws_polly_qa_autoload = getenv( 'AWS_POLLY_VENDOR_AUTOLOAD' );
 require_once $aws_polly_qa_autoload ? $aws_polly_qa_autoload : __DIR__ . '/../plugin-dir/vendor/autoload.php';
 
+global $aws_polly_qa_checks;
 $aws_polly_qa_checks = 0;
 
 function aws_polly_qa_check( bool $condition, string $message ): void {
@@ -94,6 +97,23 @@ function aws_polly_qa_attachment( array $descriptor ): ?WP_Post {
 	return $attachment instanceof WP_Post ? $attachment : null;
 }
 
+function aws_polly_qa_render_audio( int $post_id, Common $common ): string {
+	global $post, $wp_query;
+	$previous_post  = $post;
+	$previous_query = $wp_query;
+	try {
+		$post                  = get_post( $post_id );
+		$wp_query              = new WP_Query();
+		$wp_query->is_single   = true;
+		$wp_query->is_singular = true;
+		$renderer = new PublicRenderer( 'itron-polly-tts', '1.0.8', $common, new ObjectCache( $common ) );
+		return $renderer->content_filter( 'QA page content.' );
+	} finally {
+		$post     = $previous_post;
+		$wp_query = $previous_query;
+	}
+}
+
 $aws_polly_qa_option_names = array(
 	'itron_polly_tts_polly_enable',
 	'itron_polly_tts_s3',
@@ -113,6 +133,7 @@ $aws_polly_qa_option_names = array(
 	'itron_polly_tts_skip_tags',
 	'itron_polly_tts_disable_post_voice_override',
 	'itron_polly_tts_valid_keys',
+	'itron_polly_tts_position',
 	'uploads_use_yearmonth_folders',
 );
 $aws_polly_qa_missing          = new stdClass();
@@ -149,6 +170,7 @@ try {
 
 	$aws_polly_qa_options = array(
 		'itron_polly_tts_polly_enable'               => 'on',
+		'itron_polly_tts_position'                   => 'Before post',
 		'itron_polly_tts_s3'                         => '',
 		'itron_polly_tts_medialibrary_enabled'        => 'on',
 		'itron_polly_tts_posttypes'                   => 'post',
@@ -321,6 +343,7 @@ try {
 	$aws_polly_qa_file_hash_v1 = hash_file( 'sha256', $aws_polly_qa_path_v1 );
 	$aws_polly_qa_link_v1      = (string) get_post_meta( $aws_polly_qa_main_id, 'itron_polly_tts_audio_link_location', true );
 	aws_polly_qa_check( '' !== $aws_polly_qa_hash_v1 && str_contains( $aws_polly_qa_link_v1, 'itron_polly_tts_' . $aws_polly_qa_main_id . '.mp3' ), 'Initial generation must publish a link and semantic hash.' );
+	aws_polly_qa_check( str_contains( aws_polly_qa_render_audio( $aws_polly_qa_main_id, $aws_polly_qa_common ), 'id="itron-polly-tts-player"' ), 'Freshly generated public local audio must render the actual frontend player.' );
 
 	$aws_polly_qa_attachment_v1 = aws_polly_qa_attachment( $aws_polly_qa_descriptor_v1 );
 	aws_polly_qa_check( $aws_polly_qa_attachment_v1 instanceof WP_Post, 'Media Library mode must create a real WordPress attachment.' );
@@ -408,6 +431,42 @@ try {
 	$aws_polly_qa_known_paths[] = (string) $aws_polly_qa_protected_descriptor['path'];
 	aws_polly_qa_check( aws_polly_qa_attachment( $aws_polly_qa_protected_descriptor ) instanceof WP_Post, 'Consented protected audio must complete the real attachment lifecycle.' );
 	aws_polly_qa_check( array() === aws_polly_qa_temp_files( $aws_polly_qa_protected_id ), 'Successful generation must also remove temporary audio parts.' );
+
+	$aws_polly_qa_consent->register();
+	foreach ( array( 'private', 'draft', 'pending', 'future' ) as $aws_polly_qa_status ) {
+		$aws_polly_qa_nonpublic_id = aws_polly_qa_insert_post(
+			array(
+				'post_author'  => (int) $aws_polly_qa_admins[0],
+				'post_title'   => $aws_polly_qa_marker . '-' . $aws_polly_qa_status,
+				'post_content' => 'Unpublished speech input.',
+				'post_status'  => $aws_polly_qa_status,
+				'post_type'    => 'post',
+				'post_date'    => 'future' === $aws_polly_qa_status ? gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) : '2026-01-01 00:00:00',
+			)
+		);
+		$aws_polly_qa_post_ids[] = $aws_polly_qa_nonpublic_id;
+		update_post_meta( $aws_polly_qa_nonpublic_id, 'itron_polly_tts_enable', 1 );
+		aws_polly_qa_check( $aws_polly_qa_status === get_post_status( $aws_polly_qa_nonpublic_id ), 'WordPress must persist the expected unpublished status.' );
+		$aws_polly_qa_command_count = count( $aws_polly_qa_commands );
+		$aws_polly_qa_service->generate_audio( $aws_polly_qa_nonpublic_id );
+		aws_polly_qa_check( $aws_polly_qa_command_count === count( $aws_polly_qa_commands ), 'Passwordless ' . $aws_polly_qa_status . ' must not synthesize without consent.' );
+		$aws_polly_qa_request = new WP_REST_Request( 'PUT', '/wp/v2/posts/' . $aws_polly_qa_nonpublic_id );
+		$aws_polly_qa_request->set_header( 'X-WP-Nonce', wp_create_nonce( 'wp_rest' ) );
+		$aws_polly_qa_consent->record_rest_choice( true, get_post( $aws_polly_qa_nonpublic_id ), AudioConsent::REST_FIELD, $aws_polly_qa_request );
+		aws_polly_qa_check( $aws_polly_qa_consent->is_allowed( $aws_polly_qa_nonpublic_id ), 'An authorized REST choice grants consent for ' . $aws_polly_qa_status . '.' );
+		$aws_polly_qa_mock->append( $aws_polly_qa_response( 'qa-audio-' . $aws_polly_qa_status ) );
+		$aws_polly_qa_service->generate_audio( $aws_polly_qa_nonpublic_id );
+		$aws_polly_qa_nonpublic_descriptor = get_post_meta( $aws_polly_qa_nonpublic_id, AudioStorage::POST_META_KEY, true );
+		aws_polly_qa_check( $aws_polly_qa_command_count + 1 === count( $aws_polly_qa_commands ) && is_array( $aws_polly_qa_nonpublic_descriptor ), 'Explicit consent permits exactly one synthesis and saves its locator.' );
+		$aws_polly_qa_nonpublic_path = (string) $aws_polly_qa_nonpublic_descriptor['path'];
+		$aws_polly_qa_known_paths[] = $aws_polly_qa_nonpublic_path;
+		aws_polly_qa_check( str_contains( aws_polly_qa_render_audio( $aws_polly_qa_nonpublic_id, $aws_polly_qa_common ), 'id="itron-polly-tts-player"' ), 'An authorized editor can preview consented non-public audio.' );
+		$aws_polly_qa_consent->record_rest_choice( false, get_post( $aws_polly_qa_nonpublic_id ), AudioConsent::REST_FIELD, $aws_polly_qa_request );
+		$aws_polly_qa_service->save_post( $aws_polly_qa_nonpublic_id, get_post( $aws_polly_qa_nonpublic_id ), true );
+		aws_polly_qa_check( get_post( $aws_polly_qa_nonpublic_id ) instanceof WP_Post && ! is_file( $aws_polly_qa_nonpublic_path ), 'Refusal preserves the ordinary post and removes previously consented audio.' );
+		aws_polly_qa_check( ! str_contains( aws_polly_qa_render_audio( $aws_polly_qa_nonpublic_id, $aws_polly_qa_common ), 'id="itron-polly-tts-player"' ), 'Refused non-public audio does not render a frontend player.' );
+		aws_polly_qa_check( $aws_polly_qa_command_count + 1 === count( $aws_polly_qa_commands ), 'Refusal and cleanup must not trigger another synthesis.' );
+	}
 } catch ( Throwable $aws_polly_qa_caught ) {
 	$aws_polly_qa_failure = $aws_polly_qa_caught;
 } finally {
