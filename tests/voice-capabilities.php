@@ -47,6 +47,11 @@ class CatalogCommon extends \iTRON\PollyTTS\Common {
 		return array(
 			'Voices' => array(
 				array(
+					'Id' => 'Arlet',
+					'LanguageCode' => 'ca-ES',
+					'SupportedEngines' => array( 'neural' ),
+				),
+				array(
 					'Id' => 'Gabrielle',
 					'LanguageCode' => 'fr-CA',
 					'SupportedEngines' => array( 'neural' ),
@@ -82,12 +87,20 @@ foreach ( array(
 	'fr-CA' => 'Gabrielle',
 	'hi' => 'Aditi',
 	'cs' => 'Jitka',
+	'ca' => 'Arlet',
+	'ca-ES' => 'Arlet',
 ) as $language => $voice ) {
 	$options['itron_polly_tts_source_language'] = $language;
 	check( $common->is_polly_enabled(), 'Language does not impose a stale local enable gate.' );
 	check( $voice === $common->resolve_polly_voice_id( $language ), 'Catalog resolves ' . $language . '.' );
 }
 check( array( 'Gabrielle' ) === array_column( $common->get_available_polly_voices( 'fr-CA' ), 'Id' ), 'A selected locale does not fall back to a different French locale.' );
+check( in_array( 'ca', $common->get_all_languages(), true ) && 'Catalan' === $common->get_language_name( 'ca' ), 'Catalan is selectable as a source language.' );
+$options['itron_polly_tts_speaking_style'] = 'conversational';
+check( '' === $common->get_requested_polly_speaking_style(), 'Obsolete Conversational input normalizes to the default style.' );
+check( '' === $common->get_active_polly_speaking_style( 'Joanna' ), 'The old style cannot activate obsolete SSML.' );
+check( 'news' === $common->normalize_polly_speaking_style( 'news' ), 'Documented Newscaster style remains configurable.' );
+$options['itron_polly_tts_speaking_style'] = '';
 foreach ( array( 'eu-west-3', 'ap-south-1' ) as $region ) {
 	$options['itron_polly_tts_s3_region'] = $region;
 	check( $common->is_neural_supported_in_region(), 'Region support comes from the current catalog.' );

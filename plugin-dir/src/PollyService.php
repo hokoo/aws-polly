@@ -322,9 +322,6 @@ class PollyService {
 				// Adding newscaster style tag
 				$text_content = $this->add_newscaster_tag( $common, $text_content, $voice_id );
 
-				// Adding conversational style tag
-				$text_content = $this->add_conversational_tag( $common, $text_content, $voice_id );
-
 				// Adding speak polly mark.
 				$text_content = $this->add_speak_tags( $common, $text_content );
 
@@ -338,9 +335,8 @@ class PollyService {
 				//Detect Polly Engine (Standard / Neural).
 				$engine               = $common->get_polly_engine( $voice_id );
 				$news_style           = $common->should_news_style_be_used( $voice_id );
-				$conversational_style = $common->should_conversational_style_be_used( $voice_id );
 
-				$logger->log( sprintf( '%s Synthesis post=%d part=%d engine=%s voice=%s sample_rate=%s news=%d conversational=%d', __METHOD__, $post_id, $key, $engine, $voice_id, $sample_rate, $news_style, $conversational_style ) );
+				$logger->log( sprintf( '%s Synthesis post=%d part=%d engine=%s voice=%s sample_rate=%s news=%d', __METHOD__, $post_id, $key, $engine, $voice_id, $sample_rate, $news_style ) );
 
 				//Call Amazon Polly service.
 				if ( ! empty( $lexicons ) and ( count( $lexicons_array ) > 0 ) ) {
@@ -543,7 +539,7 @@ class PollyService {
 	 */
 	private function add_mark_tag( $common, $text_content) {
 
-		$itron_polly_tts_mark_value = 'wp-plugin-awslabs';
+		$itron_polly_tts_mark_value = 'itron-polly-tts';
 		$itron_polly_tts_mark_value = apply_filters( 'itron_polly_tts_mark_value', $itron_polly_tts_mark_value );
 
 		$text_content = '<mark name="' . esc_attr( $itron_polly_tts_mark_value ) . '"/>' . $text_content . '';
@@ -554,13 +550,6 @@ class PollyService {
 	private function add_newscaster_tag( $common, $text_content, $voice) {
 		if ($common->should_news_style_be_used( $voice )) {
 			$text_content = '<amazon:domain name="news">' . $text_content . '</amazon:domain>';
-		}
-		return $text_content;
-	}
-
-	private function add_conversational_tag( $common, $text_content, $voice) {
-		if ($common->should_conversational_style_be_used( $voice )) {
-			$text_content = '<amazon:domain name="conversational">' . $text_content . '</amazon:domain>';
 		}
 		return $text_content;
 	}

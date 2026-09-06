@@ -2,7 +2,7 @@
 
 namespace iTRON\PollyTTS;
 /**
- * Common operations used by the AWS for WordPress plugin.
+ * Common operations used by the AI Text-to-Speech using AWS Polly plugin.
  *
  * @since      0.1
  *
@@ -61,6 +61,10 @@ class Common {
 		array(
 			'code'  => 'fr-CA',
 			'name'  => 'Canadian French',
+		),
+		array(
+			'code'  => 'ca',
+			'name'  => 'Catalan',
 		),
 		array(
 			'code'  => 'da',
@@ -859,19 +863,6 @@ class Common {
 
 	}
 
-	public function startsWith ( $string, $beginning) {
-		$len = strlen( $beginning );
-		return ( substr( $string, 0, $len ) === $beginning );
-	}
-
-	public function endsWith( $string, $ending) {
-		$len = strlen( $ending );
-		if ($len == 0) {
-			return true;
-		}
-		return ( substr( $string, -$len ) === $ending );
-	}
-
 
 	/**
 	 * Checks if auto breaths are enabled.
@@ -1199,7 +1190,7 @@ class Common {
 	public function normalize_polly_speaking_style( $style ) {
 		$style = (string) $style;
 
-		if ( in_array( $style, array( 'news', 'conversational' ), true ) ) {
+		if ( 'news' === $style ) {
 			return $style;
 		}
 
@@ -1228,30 +1219,8 @@ class Common {
 			return 'news';
 		}
 
-		if ( 'conversational' === $style && $this->is_conversational_style_for_voice( $voice ) ) {
-			return 'conversational';
-		}
-
 		return '';
 	}
-
-	public function should_conversational_style_be_used( $voice) {
-
-		if ( ! $this->is_conversational_style_for_voice( $voice )) {
-			return false;
-		}
-
-		if ( 'conversational' === $this->get_requested_polly_speaking_style() ) {
-			$engine = $this->get_polly_engine( $voice );
-			if ('neural' == $engine) {
-				return true;
-			}
-			return false;
-		}
-
-		return false;
-	}
-
 
 	public function should_news_style_be_used( $voice) {
 
@@ -1282,16 +1251,6 @@ class Common {
 
 	public function is_news_style_for_voice( $voice) {
 		$supported_voices = array( 'Joanna', 'Matthew', 'Lupe', 'Amy' );
-
-		if (in_array( $voice, $supported_voices )) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	public function is_conversational_style_for_voice( $voice) {
-		$supported_voices = array( 'Joanna', 'Matthew' );
 
 		if (in_array( $voice, $supported_voices )) {
 			return true;
@@ -1384,7 +1343,7 @@ class Common {
 		$aws_sdk_config = array(
 			'region'    => GeneralConfiguration::get_aws_region(),
 			'version'   => 'latest',
-			'ua_append' => array( 'request-source/aws-for-wordpress' ),
+			'ua_append' => array( 'request-source/itron-polly-tts' ),
 		);
 		$credentials    = false;
 		$aws_access_key = GeneralConfiguration::get_aws_access_key();

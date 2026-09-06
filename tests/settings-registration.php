@@ -106,7 +106,7 @@ namespace iTRON\PollyTTS {
 		}
 
 		public function normalize_polly_speaking_style( $style ): string {
-			return in_array( $style, array( 'news', 'conversational' ), true ) ? $style : '';
+			return 'news' === $style ? $style : '';
 		}
 
 		public function is_ssml_enabled(): bool {

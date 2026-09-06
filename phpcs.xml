@@ -11,6 +11,7 @@
 	<arg value="sp"/>
 
 	<file>./plugin-dir/itron-polly-tts.php</file>
+	<file>./plugin-dir/uninstall.php</file>
 	<file>./plugin-dir/admin</file>
 	<file>./plugin-dir/includes</file>
 	<file>./plugin-dir/public</file>

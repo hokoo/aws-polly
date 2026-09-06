@@ -457,11 +457,6 @@ class PollyConfiguration {
 						'label'   => 'Newscaster Style',
 						'visible' => true,
 					),
-					array(
-						'value'   => 'conversational',
-						'label'   => 'Conversational Style',
-						'visible' => true,
-					),
 				)
 			);
 			return;
@@ -471,8 +466,7 @@ class PollyConfiguration {
 		$is_region_supported     = $this->common->is_neural_supported_in_region();
 		$is_neural_requested     = $this->common->is_polly_neural_requested();
 		$supports_news           = $this->common->is_news_style_for_voice( $voice_id );
-		$supports_conversational = $this->common->is_conversational_style_for_voice( $voice_id );
-		$show_group              = $is_region_supported && $is_neural_requested && ( $supports_news || $supports_conversational );
+		$show_group              = $is_region_supported && $is_neural_requested && $supports_news;
 		$selected_style          = $this->common->get_active_polly_speaking_style( $voice_id );
 
 		if ( ! $is_region_supported ) {
@@ -480,7 +474,7 @@ class PollyConfiguration {
 		} elseif ( ! $is_neural_requested ) {
 			$message = 'Neural needs to be enabled';
 		} else {
-			$message = 'The current voice does not support Newscaster or Conversational styles';
+			$message = 'The current voice does not support Newscaster style';
 		}
 
 			$this->render_dynamic_radio_option(
@@ -488,7 +482,7 @@ class PollyConfiguration {
 				'itron_polly_tts_speaking_style',
 				$selected_style,
 				$show_group,
-				'Choose one Neural speaking style. Newscaster and Conversational are mutually exclusive.',
+				'Use the default voice or apply Newscaster style to a supported Neural voice.',
 				$message,
 				array(
 					array(
@@ -501,17 +495,12 @@ class PollyConfiguration {
 						'label'   => 'Newscaster Style',
 						'visible' => $supports_news,
 					),
-					array(
-						'value'   => 'conversational',
-						'label'   => 'Conversational Style',
-						'visible' => $supports_conversational,
-					),
 				),
 				array(
 					'region-supported' => $is_region_supported ? '1' : '0',
 					'message-region'   => 'Option not supported in this region',
 					'message-neural'   => 'Neural needs to be enabled',
-					'message-voice'    => 'The current voice does not support Newscaster or Conversational styles',
+					'message-voice'    => 'The current voice does not support Newscaster style',
 				)
 			);
 	}
@@ -727,7 +716,6 @@ class PollyConfiguration {
 					echo ' data-standard-supported="' . esc_attr( $this->common->is_standard_supported_for_voice( $voice ) ? '1' : '0' ) . '"';
 					echo ' data-supports-neural="' . esc_attr( $this->common->is_neural_supported_for_voice( $voice['Id'] ) ? '1' : '0' ) . '"';
 					echo ' data-supports-news="' . esc_attr( $this->common->is_news_style_for_voice( $voice['Id'] ) ? '1' : '0' ) . '"';
-					echo ' data-supports-conversational="' . esc_attr( $this->common->is_conversational_style_for_voice( $voice['Id'] ) ? '1' : '0' ) . '"';
 				if ( strcmp( $selected_voice_id, $voice['Id'] ) === 0 ) {
 					echo ' selected="selected"';
 				}

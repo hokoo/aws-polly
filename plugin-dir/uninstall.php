@@ -7,9 +7,9 @@
  */
 
  // If uninstall not called from WordPress, then exit.
- if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-	 exit;
- }
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit;
+}
 
 // General Options
 delete_option( 'itron_polly_tts_s3_access_key' );
@@ -43,8 +43,6 @@ delete_option( 'itron_polly_tts_download_enabled' );
 delete_option( 'itron_polly_tts_disable_post_voice_override' );
 delete_option( 'itron_polly_tts_neural' );
 delete_option( 'itron_polly_tts_speaking_style' );
-delete_option( 'itron_polly_tts_news' );
-delete_option( 'itron_polly_tts_conversational' );
 delete_option( 'itron_polly_tts_cloudfront' );
 delete_option( 'itron_polly_tts_coming_soon_text' );
 delete_option( 'itron_polly_tts_valid_keys' );

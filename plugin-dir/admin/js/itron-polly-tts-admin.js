@@ -133,7 +133,6 @@
 			}
 
 			var supportsNews = '1' === String( selectedOption.data( 'supports-news' ) );
-			var supportsConversational = '1' === String( selectedOption.data( 'supports-conversational' ) );
 			var neuralCheckbox = $( '#itron_polly_tts_neural' );
 			var neuralRequested = neuralCheckbox.length && ! neuralCheckbox.prop( 'disabled' ) && neuralCheckbox.is( ':checked' );
 			var neuralContainer = $( '#itron_polly_tts_neural_ui' );
@@ -143,12 +142,11 @@
 			var styleDescription = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-description' );
 			var styleMessage = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-message' );
 			var newsChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-news' );
-			var conversationalChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-conversational' );
 			var defaultChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-default input' );
 			var selectedStyle = getSelectedPollySpeakingStyleInput().val() || '';
-			var hasSupportedStyle = supportsNews || supportsConversational;
+			var hasSupportedStyle = supportsNews;
 			var canShowStyles = isNeuralRegionSupported && neuralRequested && hasSupportedStyle;
-			var unavailableStyleSelected = ( 'news' === selectedStyle && ! supportsNews ) || ( 'conversational' === selectedStyle && ! supportsConversational );
+			var unavailableStyleSelected = 'news' === selectedStyle && ! supportsNews;
 			var styleUnavailableMessage = '';
 
 			if ( neuralContainer.length ) {
@@ -166,8 +164,6 @@
 
 			newsChoice.toggle( supportsNews );
 			newsChoice.find( 'input' ).prop( 'disabled', ! supportsNews );
-			conversationalChoice.toggle( supportsConversational );
-			conversationalChoice.find( 'input' ).prop( 'disabled', ! supportsConversational );
 
 			if ( unavailableStyleSelected || ! canShowStyles ) {
 				defaultChoice.prop( 'checked', true );
@@ -187,7 +183,6 @@
 				styleMessage.hide();
 				defaultChoice.prop( 'disabled', false );
 				newsChoice.find( 'input' ).prop( 'disabled', ! supportsNews );
-				conversationalChoice.find( 'input' ).prop( 'disabled', ! supportsConversational );
 				return;
 			}
 
