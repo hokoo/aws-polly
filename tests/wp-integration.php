@@ -53,7 +53,8 @@ if ( is_plugin_active( 'ai-text-to-speech-using-aws-polly/itron-polly-tts.php' )
 	exit( 1 );
 }
 
-require_once __DIR__ . '/../plugin-dir/vendor/autoload.php';
+$aws_polly_qa_autoload = getenv( 'AWS_POLLY_VENDOR_AUTOLOAD' );
+require_once $aws_polly_qa_autoload ? $aws_polly_qa_autoload : __DIR__ . '/../plugin-dir/vendor/autoload.php';
 
 $aws_polly_qa_checks = 0;
 
