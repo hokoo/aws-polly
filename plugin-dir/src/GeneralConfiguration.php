@@ -21,6 +21,34 @@ class GeneralConfiguration {
 
 	private const OPTION_PREFIX = 'itron_polly_tts_';
 	private const CONST_PREFIX  = 'ITRON_POLLY_TTS_';
+	private const DEFAULT_REGION = 'us-east-1';
+	private const REGIONS        = array(
+		'us-east-1'      => 'US East (N. Virginia)',
+		'us-east-2'      => 'US East (Ohio)',
+		'us-west-1'      => 'US West (N. California)',
+		'us-west-2'      => 'US West (Oregon)',
+		'af-south-1'     => 'Africa (Cape Town)',
+		'ap-east-1'      => 'Asia Pacific (Hong Kong)',
+		'ap-southeast-5' => 'Asia Pacific (Malaysia)',
+		'ap-south-1'     => 'Asia Pacific (Mumbai)',
+		'ap-northeast-3' => 'Asia Pacific (Osaka)',
+		'ap-northeast-2' => 'Asia Pacific (Seoul)',
+		'ap-southeast-1' => 'Asia Pacific (Singapore)',
+		'ap-southeast-2' => 'Asia Pacific (Sydney)',
+		'ap-southeast-7' => 'Asia Pacific (Thailand)',
+		'ap-northeast-1' => 'Asia Pacific (Tokyo)',
+		'ca-central-1'   => 'Canada (Central)',
+		'eu-central-1'   => 'Europe (Frankfurt)',
+		'eu-west-1'      => 'Europe (Ireland)',
+		'eu-west-2'      => 'Europe (London)',
+		'eu-west-3'      => 'Europe (Paris)',
+		'eu-south-2'     => 'Europe (Spain)',
+		'eu-north-1'     => 'Europe (Stockholm)',
+		'eu-central-2'   => 'Europe (Zurich)',
+		'me-south-1'     => 'Middle East (Bahrain)',
+		'sa-east-1'      => 'South America (Sao Paulo)',
+		'us-gov-west-1'  => 'AWS GovCloud (US-West)',
+	);
 
 	/**
 	 * GeneralConfiguration constructor.
@@ -154,23 +182,7 @@ class GeneralConfiguration {
 	}
 
 	private function get_regions(): array {
-		return array(
-			'us-east-1'      => 'US East (N. Virginia)',
-			'us-east-2'      => 'US East (Ohio)',
-			'us-west-1'      => 'US West (N. California)',
-			'us-west-2'      => 'US West (Oregon)',
-			'eu-west-1'      => 'EU (Ireland)',
-			'eu-west-2'      => 'EU (London)',
-			'eu-west-3'      => 'EU (Paris)',
-			'eu-central-1'   => 'EU (Frankfurt)',
-			'ca-central-1'   => 'Canada (Central)',
-			'sa-east-1'      => 'South America (Sao Paulo)',
-			'ap-southeast-1' => 'Asia Pacific (Singapore)',
-			'ap-northeast-1' => 'Asia Pacific (Tokyo)',
-			'ap-southeast-2' => 'Asia Pacific (Sydney)',
-			'ap-northeast-2' => 'Asia Pacific (Seoul)',
-			'ap-south-1'     => 'Asia Pacific (Mumbai)',
-		);
+		return self::REGIONS;
 	}
 
 	public function sanitize_text_option( $value ): string {
@@ -192,14 +204,27 @@ class GeneralConfiguration {
 	}
 
 	public function sanitize_region( $value ): string {
-		$value   = sanitize_text_field( wp_unslash( (string) $value ) );
-		$regions = $this->get_regions();
+		$value = is_string( $value ) ? sanitize_text_field( wp_unslash( $value ) ) : '';
 
-		if ( isset( $regions[ $value ] ) ) {
+		if ( isset( self::REGIONS[ $value ] ) ) {
 			return $value;
 		}
 
-		return array_key_first( $regions );
+		$saved_region = get_option( self::OPTION_PREFIX . 's3_region', '' );
+		$saved_region = is_string( $saved_region ) && isset( self::REGIONS[ $saved_region ] )
+			? $saved_region
+			: self::DEFAULT_REGION;
+
+		if ( function_exists( 'add_settings_error' ) ) {
+			add_settings_error(
+				self::OPTION_PREFIX . 's3_region',
+				'itron_polly_tts_invalid_s3_region',
+				__( 'The submitted AWS Region is not supported by Amazon Polly. The current valid region remains in use; select a supported region and try again.', 'ai-text-to-speech-using-aws-polly' ),
+				'error'
+			);
+		}
+
+		return $saved_region;
 	}
 
 
@@ -321,6 +346,6 @@ class GeneralConfiguration {
 	public static function get_aws_region() {
 		$region = self::get_option( 's3_region' );
 
-		return '' === $region ? 'us-east-1' : $region;
+		return '' === $region ? self::DEFAULT_REGION : $region;
 	}
 }
