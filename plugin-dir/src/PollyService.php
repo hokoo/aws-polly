@@ -208,10 +208,16 @@ class PollyService {
 				}
 
 				$audio_hash   = get_post_meta( $post_id, 'itron_polly_tts_audio_hash', true );
-				$current_hash = $common->get_audio_hash( $post_id );
+				$clean_text   = $common->clean_text( $post_id, true, false );
+				$current_hash = $common->get_audio_hash( $post_id, $clean_text, $voice_id );
+				$audio_voice  = array(
+					'request'  => $common->get_audio_voice_request( (int) $post_id ),
+					'resolved' => $voice_id,
+				);
 
 				// If the hash is the same, we don't need to regenerate the audio.
-				if ( $audio_hash === $current_hash && $common->has_post_audio( $post_id ) ) {
+				if ( $common->is_post_audio_current( (int) $post_id, $current_hash ) ) {
+					update_post_meta( $post_id, 'itron_polly_tts_audio_voice', $audio_voice );
 					do_action( 'itron_polly_tts_post_identical_audio', $post_id, $audio_hash );
 					$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_READY );
 					throw new IdenticalAudioException();
@@ -223,9 +229,6 @@ class PollyService {
 
 				// Sammple Rate
 				$sample_rate = $common->get_sample_rate();
-
-				// Cleaning text. Includes for example removing not supported characters etc.
-				$clean_text = $common->clean_text( $post_id, true, false );
 
 				$logger->log( sprintf( '%s <<< Clean Text >>> ', __METHOD__ ) );
 				$logger->log( sprintf( '%s', $clean_text ) );
@@ -241,6 +244,7 @@ class PollyService {
 				$this->convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem );
 
 				update_post_meta( $post_id, 'itron_polly_tts_audio_hash', $current_hash );
+				update_post_meta( $post_id, 'itron_polly_tts_audio_voice', $audio_voice );
 				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_READY );
 
 				// update_post_meta() invalidates post meta caches, but it does not flush post query caches.
@@ -285,33 +289,8 @@ class PollyService {
 		// Creating new standard common object for interacting with other methods of the plugin.
 		$common = $this->common;
 
-		$voice_language    = $common->get_post_source_language( $post_id );
-		$resolved_voice_id = $common->resolve_polly_voice_id( $voice_language, $voice_id );
-
-		if ( $resolved_voice_id !== $voice_id ) {
-			$logger->log(
-				sprintf(
-					'%s Voice adjusted before synthesis: requested=%s resolved=%s language=%s post_id=%s',
-					__METHOD__,
-					'' !== $voice_id ? $voice_id : '[empty]',
-					'' !== $resolved_voice_id ? $resolved_voice_id : '[empty]',
-					$voice_language,
-					$post_id
-				)
-			);
-
-			if ( $common->is_post_voice_override_disabled() ) {
-				delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
-			} else {
-				update_post_meta( $post_id, 'itron_polly_tts_voice_id', $resolved_voice_id );
-			}
-		}
-
-		$voice_id = $resolved_voice_id;
-
 		if ( empty( $voice_id ) ) {
-			$logger->log( sprintf( '%s No supported voice available for language %s. Skipping audio generation.', __METHOD__, $voice_language ) );
-			return;
+			throw new \InvalidArgumentException( 'A resolved Polly voice is required for synthesis.' );
 		}
 
 		// Just in case we check if sample rate is valid, if not we will set default value.

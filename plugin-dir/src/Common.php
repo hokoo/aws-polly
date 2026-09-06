@@ -1751,8 +1751,56 @@ class Common {
 		return $text;
 	}
 
-	public function get_audio_hash( $post_id ): string {
-		return md5( get_post_field( 'post_modified', $post_id ) );
+	public function get_audio_voice_request( int $post_id ): array {
+		$voice_id = $this->is_post_voice_override_disabled()
+			? ''
+			: (string) get_post_meta( $post_id, 'itron_polly_tts_voice_id', true );
+		if ( '' === $voice_id ) {
+			$voice_id = $this->get_voice_id();
+		}
+
+		return array(
+			'voice'    => $voice_id,
+			'language' => $this->get_post_source_language( $post_id ),
+			'region'   => $this->get_aws_region(),
+		);
+	}
+
+	public function get_audio_hash( $post_id, ?string $clean_text = null, ?string $resolved_voice_id = null ): string {
+		$request = $this->get_audio_voice_request( (int) $post_id );
+		$stored  = get_post_meta( $post_id, 'itron_polly_tts_audio_voice', true );
+		// Reuse the last resolution offline only while its requested inputs still match.
+		$voice_id = $resolved_voice_id ?? (
+			is_array( $stored ) && ( $stored['request'] ?? null ) === $request
+				? (string) ( $stored['resolved'] ?? $request['voice'] )
+				: $request['voice']
+		);
+
+		// Fingerprint speech inputs without fetching the AWS voice catalog.
+		$inputs = array(
+			'text'           => $clean_text ?? $this->clean_text( $post_id, true, false ),
+			'language'       => $this->get_post_source_language( $post_id ),
+			'voice'          => $voice_id,
+			'region'         => $this->get_aws_region(),
+			'sample_rate'    => $this->normalize_sample_rate( get_option( 'itron_polly_tts_sample_rate' ) ),
+			'speed'          => $this->get_audio_speed(),
+			'lexicons'       => $this->get_lexicons(),
+			'neural'         => $this->is_polly_neural_requested(),
+			'speaking_style' => $this->get_active_polly_speaking_style( $voice_id ),
+			'auto_breaths'   => $this->is_auto_breaths_enabled(),
+			'ssml'           => $this->is_ssml_enabled(),
+		);
+		$encoded = wp_json_encode( $inputs );
+		if ( ! is_string( $encoded ) ) {
+			throw new \RuntimeException( 'Unable to fingerprint speech inputs.' );
+		}
+
+		return hash( 'sha256', $encoded );
+	}
+
+	public function is_post_audio_current( int $post_id, ?string $current_hash = null ): bool {
+		return $this->has_post_audio( $post_id )
+			&& get_post_meta( $post_id, 'itron_polly_tts_audio_hash', true ) === ( $current_hash ?? $this->get_audio_hash( $post_id ) );
 	}
 
 	/**
@@ -1770,7 +1818,8 @@ class Common {
 		// Depending on the plugin configurations, post's title will be added to the audio.
 		if ($with_title) {
 			if ($this->is_title_adder_enabled()) {
-				$clean_text = get_the_title( $post_id ) . '. **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
+				// Omit request-dependent Protected/Private prefixes, but retain title filters.
+				$clean_text = apply_filters( 'the_title', get_post_field( 'post_title', $post_id ), $post_id ) . '. **AMAZONPOLLY*SSML*BREAK*time=***1s***SSML** ';
 			}
 		}
 
@@ -1786,7 +1835,7 @@ class Common {
 		$clean_text = apply_filters( 'itron_polly_tts_content', $clean_text );
 
 		if ($only_title) {
-			$clean_text = get_the_title( $post_id );
+			$clean_text = apply_filters( 'the_title', get_post_field( 'post_title', $post_id ), $post_id );
 		}
 
 		$clean_text = str_replace( '&nbsp;', ' ', $clean_text );
@@ -1867,6 +1916,7 @@ class Common {
 			'itron_polly_tts_generated_voice_id',
 			'itron_polly_tts_audio_playtime',
 			'itron_polly_tts_audio_hash',
+			'itron_polly_tts_audio_voice',
 			'itron_polly_tts_media_library_attachment_id',
 			'itron_polly_tts_settings_hash',
 		);
