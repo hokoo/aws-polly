@@ -1442,9 +1442,6 @@ class Common {
 	 * @param       string $text     Text which should be broken.
 	 */
 	public function break_text( $text) {
-		$text  = str_replace( '-AMAZONPOLLY-ONLYAUDIO-START-', '', $text );
-		$text  = str_replace( '-AMAZONPOLLY-ONLYAUDIO-END-', '', $text );
-		$text  = preg_replace( '/-AMAZONPOLLY-ONLYWORDS-START-[\S\s]*?-AMAZONPOLLY-ONLYWORDS-END-/', '', $text );
 		$parts = array();
 		if ( ! empty( $text )) {
 			$part_id    = 0;
@@ -1481,33 +1478,7 @@ class Common {
 			} //end foreach
 		} //end if
 
-		// Modify speed
-
-		$parts = $this->modify_speed( $parts );
-
 		return $parts;
-	}
-
-	/**
-	 * Method update sentences (input of the method), and modify their speed,
-	 * by adding SSML prosody tag for each sentence.
-	 *
-	 * @param           string $sentences                 Sentences which should be updated.
-	 * @since      0.1
-	 */
-	public function modify_speed( $sentences) {
-		$new_sentences   = array();
-		$new_sentence_id = 0;
-		$speed           = $this->get_audio_speed();
-		if (100 !== $speed) {
-			foreach ($sentences as $sentence) {
-				$new_sentence                      = '<prosody rate="' . $speed . '%">' . $sentence . '</prosody>';
-				$new_sentences[ $new_sentence_id ] = $new_sentence;
-				$new_sentence_id++;
-			}
-		}
-
-		return $new_sentences;
 	}
 
 	public function modify_sentence_speed( $sentence) {
@@ -1640,6 +1611,8 @@ class Common {
 		$clean_text = do_shortcode( $clean_text );
 
 		$clean_text = $this->skip_tags( $clean_text );
+		$clean_text = str_replace( array( '-AMAZONPOLLY-ONLYAUDIO-START-', '-AMAZONPOLLY-ONLYAUDIO-END-' ), '', $clean_text );
+		$clean_text = preg_replace( '/-AMAZONPOLLY-ONLYWORDS-START-[\S\s]*?-AMAZONPOLLY-ONLYWORDS-END-/', '', $clean_text );
 		$clean_text = $this->add_pauses( $clean_text );
 
 		$is_ssml_enabled = $this->is_ssml_enabled();

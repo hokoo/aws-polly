@@ -128,4 +128,14 @@ check( $common->is_post_audio_current( 1, $common->get_audio_hash( 1, $prepared,
 $meta['itron_polly_tts_audio_voice'] = array( 'request' => $common->get_audio_voice_request( 1 ), 'resolved' => 'Matthew' );
 check( $common->is_post_audio_current( 1 ), 'Refreshing an identical-audio resolution preserves subsequent offline comparison.' );
 
+$post['post_content'] = 'Spoken -AMAZONPOLLY-ONLYWORDS-START-Excluded text-AMAZONPOLLY-ONLYWORDS-END-';
+$spoken_hash = $common->get_audio_hash( 1 );
+$post['post_content'] = 'Spoken -AMAZONPOLLY-ONLYWORDS-START-Changed excluded text-AMAZONPOLLY-ONLYWORDS-END-';
+check( $spoken_hash === $common->get_audio_hash( 1 ), 'Text excluded from speech does not invalidate audio.' );
+foreach ( array( 100, 95, 120 ) as $speed ) {
+	$options['itron_polly_tts_speed'] = $speed;
+	$parts = $common->break_text( $common->clean_text( 1, true, false ) );
+	check( count( $parts ) > 0 && str_contains( implode( ' ', $parts ), 'Spoken' ), 'Speech is not discarded at speed ' . $speed . '.' );
+	check( ! str_contains( implode( ' ', $parts ), '<prosody' ), 'Splitting does not apply the synthesis speed twice.' );
+}
 echo "Audio fingerprint: {$checks} checks passed.\n";
