@@ -302,7 +302,11 @@ class GeneralConfiguration {
 
 
 	function general_gui() {
-		//Empty
+		printf(
+			'<p class="description"><a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a></p>',
+			esc_url( 'https://github.com/hokoo/aws-polly/blob/master/plugin-dir/readme.txt' ),
+			esc_html__( 'View the plugin setup and AWS credentials guide.', 'ai-text-to-speech-using-aws-polly' )
+		);
 	}
 
 	function storage_gui() {

@@ -35,6 +35,14 @@ namespace {
 		return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' );
 	}
 
+	function esc_html__( string $text, string $domain = '' ): string {
+		return esc_html( $text );
+	}
+
+	function esc_url( $url ): string {
+		return (string) $url;
+	}
+
 	function disabled( $disabled, $current = true, bool $display = true ): string {
 		$result = $disabled == $current ? ' disabled="disabled"' : '';
 		if ( $display ) {
@@ -101,6 +109,13 @@ namespace {
 	);
 
 	$configuration = new GeneralConfiguration( new Common() );
+	ob_start();
+	$configuration->general_gui();
+	$general_description = (string) ob_get_clean();
+	check( str_contains( $general_description, 'class="description"' ), 'General settings must include a description.' );
+	check( str_contains( $general_description, 'href="https://github.com/hokoo/aws-polly/blob/master/plugin-dir/readme.txt"' ), 'General settings must link to the plugin setup guide.' );
+	check( str_contains( $general_description, 'target="_blank" rel="noopener noreferrer"' ), 'The plugin-page link must open safely in a new tab.' );
+	check( str_contains( $general_description, 'AWS credentials guide.' ), 'The plugin-page link must explain its purpose.' );
 	foreach ( $regions as $region ) {
 		check( $region === $configuration->sanitize_region( $region ), $region . ' must pass region validation.' );
 	}
