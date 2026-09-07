@@ -4,6 +4,9 @@
 /wp-content/
 /index.php
 /wp-config.php
+/dist/
+/source/
+/release-work/
 
 /.env
 /.phpcs.cache

@@ -1,61 +1,198 @@
-name: Build zip
+name: Verify and release zip
+
 on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master, 'release/**']
   release:
-    types:
-      - published
+    types: [published, released]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing GitHub release tag (optional for verify)'
+        type: string
+      mode:
+        description: 'Verify only, preview SVN changes, or publish a stable release'
+        type: choice
+        default: verify
+        options: [verify, dry-run, publish]
 
-permissions: write-all
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || inputs.release_tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PLUGIN_SLUG: ai-text-to-speech-using-aws-polly
+  ENTRYPOINT: itron-polly-tts.php
+  ZIP_PATH: dist/ai-text-to-speech-using-aws-polly-wp-plugin.zip
+  WP_VERSION: '7.1'
+
 jobs:
-  build:
+  verify:
+    name: Verify source and release zip
+    # Stable publication emits both events; use released for stable releases.
+    if: ${{ github.event_name != 'release' || github.event.action == 'released' || github.event.release.prerelease == true }}
     runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release.outputs.tag }}
+      release_version: ${{ steps.release.outputs.version }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      zip_sha256: ${{ steps.archive.outputs.sha256 }}
     steps:
-      - name: Check out the source code
-        uses: actions/checkout@v3
-
-      - uses: shivammathur/setup-php@v2
-        name: Set up PHP
+      - name: Check out release tooling
+        uses: actions/checkout@v4
         with:
-          php-version: 8.2
+          persist-credentials: false
+
+      - name: Resolve release source
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+          RELEASE_MODE: ${{ inputs.mode || 'verify' }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/resolve-release.sh
+
+      - name: Check out candidate source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.ref || github.sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: curl, dom, mbstring, xml, xmlreader, xmlwriter
           coverage: none
+          tools: composer:2.10.3, wp-cli
 
-      - name: Install PHP Dependencies
-        uses: ramsey/composer-install@v2
+      - name: Install test dependencies
+        uses: ramsey/composer-install@v3
         with:
-          working-directory: plugin-dir
-          composer-options: "--no-dev"
+          working-directory: source/plugin-dir
 
-      - name: Build minimal release package
+      - name: Download WordPress functions used by regression tests
+        run: wp core download --version="$WP_VERSION" --path=source/wordpress --skip-content
+
+      - name: Run PHP lint, PHPCS, and regression tests
+        env:
+          SOURCE_DIR: ${{ github.workspace }}/source
+        run: bash scripts/run-tests.sh
+
+      - name: Test release tooling
         run: |
-          mkdir -p dist/ai-text-to-speech-using-aws-polly
-          rsync -a plugin-dir/ dist/ai-text-to-speech-using-aws-polly/ \
-            --exclude-from 'plugin-dir/.distignore' \
-            --exclude 'assets/' \
-            --exclude 'README.md' \
-            --exclude 'composer.lock'
-          rm -rf dist/ai-text-to-speech-using-aws-polly/vendor/aws/Aws
-          find dist/ai-text-to-speech-using-aws-polly/vendor -type d \( \
-            -name .github -o \
-            -name tests -o \
-            -name test -o \
-            -name docs -o \
-            -name bin \
-          \) -prune -exec rm -rf {} +
-          find dist/ai-text-to-speech-using-aws-polly/vendor -type f \( \
-            -name composer.json -o \
-            -name composer.lock -o \
-            -name phpunit.xml -o \
-            -name phpunit.xml.dist -o \
-            -name README.md -o \
-            -name CHANGELOG.md -o \
-            -name .gitignore -o \
-            -name .gitattributes \
-          \) -delete
-          cd dist
-          zip -r -q -9 -X ../ai-text-to-speech-using-aws-polly-wp-plugin-${{ github.ref_name }}.zip ai-text-to-speech-using-aws-polly
-          echo "Zipped to ai-text-to-speech-using-aws-polly-wp-plugin-${{ github.ref_name }}.zip"
+          sudo apt-get update
+          sudo apt-get install -y subversion rsync zip unzip
+          python3 -m unittest discover -s tests/ci -p 'test_*.py'
+          bash tests/ci/svn-deploy.sh
 
-      - name: Upload Release Artifact
-        uses: AButler/upload-release-assets@v3.0
+      - name: Build and validate production zip
+        env:
+          PLUGIN_DIR: ${{ github.workspace }}/source/plugin-dir
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ github.token }}"}}'
+        run: |
+          bash scripts/build-release-zip.sh
+          cp "$ZIP_PATH" "$RUNNER_TEMP/reference.zip"
+          bash scripts/build-release-zip.sh
+          cmp "$RUNNER_TEMP/reference.zip" "$ZIP_PATH"
+
+      - name: Test AWS requests using the packaged dependencies
+        run: |
+          unzip -q "$ZIP_PATH" -d "$RUNNER_TEMP/packaged-plugin"
+          AWS_POLLY_VENDOR_AUTOLOAD="$RUNNER_TEMP/packaged-plugin/$PLUGIN_SLUG/vendor/autoload.php" php source/tests/sdk-requests.php
+
+      - name: Record verified archive checksum
+        id: archive
+        run: |
+          checksum="$(sha256sum "$ZIP_PATH")"
+          printf 'sha256=%s\n' "${checksum%% *}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload verified zip artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ./ai-text-to-speech-using-aws-polly-wp-plugin-${{ github.ref_name }}.zip
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          name: aws-polly-wp-plugin
+          path: ${{ env.ZIP_PATH }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish verified release
+    needs: verify
+    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.mode != 'verify') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: wordpress-org-ai-text-to-speech-using-aws-polly
+      cancel-in-progress: false
+    steps:
+      - name: Check out release tooling
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download verified zip artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: aws-polly-wp-plugin
+          path: dist
+
+      - name: Validate downloaded release zip
+        env:
+          EXPECTED_VERSION: ${{ needs.verify.outputs.release_version }}
+          EXPECTED_SHA256: ${{ needs.verify.outputs.zip_sha256 }}
+        run: |
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$ZIP_PATH" | sha256sum --check --strict
+          python3 scripts/validate-release-zip.py "$ZIP_PATH"
+          unzip -q "$ZIP_PATH" -d release-work
+
+      - name: Recheck GitHub release state
+        env:
+          RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
+          RELEASE_MODE: ${{ inputs.mode || 'verify' }}
+          EXPECTED_PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/resolve-release.sh
+
+      - name: Check existing GitHub release artifact
+        if: ${{ inputs.mode != 'dry-run' }}
+        env:
+          RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-release-asset.sh check
+
+      - name: Install SVN deploy tools
+        if: ${{ needs.verify.outputs.prerelease == 'false' || inputs.mode == 'dry-run' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y subversion rsync
+
+      - name: Preview WordPress.org SVN changes
+        if: ${{ inputs.mode == 'dry-run' }}
+        env:
+          BUILD_DIR: ${{ github.workspace }}/release-work/${{ env.PLUGIN_SLUG }}
+          SLUG: ${{ env.PLUGIN_SLUG }}
+          VERSION: ${{ needs.verify.outputs.release_version }}
+        run: bash scripts/deploy-wordpress-svn.sh --dry-run
+
+      - name: Deploy stable release to WordPress.org SVN
+        if: ${{ needs.verify.outputs.prerelease == 'false' && inputs.mode != 'dry-run' }}
+        env:
+          SVN_USERNAME: ${{ secrets.WPORG_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD }}
+          BUILD_DIR: ${{ github.workspace }}/release-work/${{ env.PLUGIN_SLUG }}
+          SLUG: ${{ env.PLUGIN_SLUG }}
+          VERSION: ${{ needs.verify.outputs.release_version }}
+        run: bash scripts/deploy-wordpress-svn.sh
+
+      - name: Upload release artifact without overwriting
+        if: ${{ inputs.mode != 'dry-run' }}
+        env:
+          RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-release-asset.sh upload
