@@ -15,9 +15,13 @@ SVN_DIR="${SVN_DIR:-}"
 DRY_RUN="${INPUT_DRY_RUN:-${DRY_RUN:-false}}"
 KEEP_WORKING_COPY="${KEEP_WORKING_COPY:-false}"
 CREATED_WORKING_COPY=false
+TAGS_CREATED=false
 STATUS_XML=""
 MISSING_LIST=""
 FINAL_STATUS_XML=""
+SVN_HTTP_TIMEOUT="${SVN_HTTP_TIMEOUT:-3600}"
+SVN_TAG_RECONCILE_ATTEMPTS="${SVN_TAG_RECONCILE_ATTEMPTS:-3}"
+SVN_TAG_RECONCILE_DELAY="${SVN_TAG_RECONCILE_DELAY:-2}"
 
 usage() {
 	cat <<'USAGE'
@@ -125,12 +129,19 @@ done
 
 [[ "${SLUG}" =~ ^[a-z0-9][a-z0-9-]*$ ]] || fail 'SLUG must contain lowercase letters, digits, or hyphens'
 [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || fail 'VERSION must be a semantic plugin version'
+[[ "${SVN_HTTP_TIMEOUT}" =~ ^[1-9][0-9]*$ ]] || fail 'SVN_HTTP_TIMEOUT must be a positive number of seconds'
+[[ "${SVN_TAG_RECONCILE_ATTEMPTS}" =~ ^[1-9][0-9]*$ ]] || fail 'SVN_TAG_RECONCILE_ATTEMPTS must be a positive number'
+[[ "${SVN_TAG_RECONCILE_DELAY}" =~ ^[0-9]+$ ]] || fail 'SVN_TAG_RECONCILE_DELAY must be a non-negative number of seconds'
 [ -d "${BUILD_DIR}" ] || fail "BUILD_DIR does not exist: ${BUILD_DIR}"
 [ -f "${STATUS_PARSER}" ] || fail "status parser is missing: ${STATUS_PARSER}"
 
-for tool in find python3 rsync svn; do
+for tool in find python3 rsync svn svnmucc; do
 	command -v "${tool}" >/dev/null 2>&1 || fail "required tool is missing: ${tool}"
 done
+
+SVN_NETWORK_ARGS=(
+	--config-option "servers:global:http-timeout=${SVN_HTTP_TIMEOUT}"
+)
 
 SVN_URL="${SVN_URL:-https://plugins.svn.wordpress.org/${SLUG}/}"
 SVN_URL="${SVN_URL%/}/"
@@ -165,26 +176,27 @@ if [ -e "${SVN_DIR}/.svn" ]; then
 	svn revert -R "${SVN_DIR}" >/dev/null
 else
 	[ -z "$(find "${SVN_DIR}" -mindepth 1 -maxdepth 1 -print -quit)" ] || fail 'working-copy path is not empty'
-	svn checkout --depth immediates "${SVN_URL}" "${SVN_DIR}"
+	svn checkout --depth immediates "${SVN_URL}" "${SVN_DIR}" "${SVN_NETWORK_ARGS[@]}"
 fi
 
 cd "${SVN_DIR}"
 if svn info trunk >/dev/null 2>&1; then
-	svn update --set-depth infinity trunk
+	svn update --set-depth infinity trunk "${SVN_NETWORK_ARGS[@]}"
 else
 	[ ! -e trunk ] || fail 'unversioned trunk obstructs the deployment working copy'
 	mkdir trunk
 	svn add trunk >/dev/null
 fi
 if svn info tags >/dev/null 2>&1; then
-	svn update --set-depth immediates tags
+	svn update --set-depth immediates tags "${SVN_NETWORK_ARGS[@]}"
 else
 	[ ! -e tags ] || fail 'unversioned tags obstructs the deployment working copy'
 	mkdir tags
 	svn add tags >/dev/null
+	TAGS_CREATED=true
 fi
 if svn info assets >/dev/null 2>&1; then
-	svn update --set-depth infinity assets
+	svn update --set-depth infinity assets "${SVN_NETWORK_ARGS[@]}"
 elif [ -n "${ASSETS_DIR}" ]; then
 	[ ! -e assets ] || fail 'unversioned assets obstructs the deployment working copy'
 	mkdir assets
@@ -196,16 +208,30 @@ stable_tag="$(sed -nE 's/^Stable tag:[[:space:]]*([^[:space:]]+).*/\1/p' "${BUIL
 [ "${plugin_version}" = "${VERSION}" ] || fail "plugin header version ${plugin_version:-missing} does not match ${VERSION}"
 [ "${stable_tag}" = "${VERSION}" ] || fail "readme stable tag ${stable_tag:-missing} does not match ${VERSION}"
 
-if svn info "tags/${VERSION}" >/dev/null 2>&1; then
-	svn update --set-depth infinity "tags/${VERSION}"
-	trunk_diff="$(rsync -rcn --delete --exclude '.svn' --itemize-changes "${BUILD_DIR}/" trunk/)"
-	tag_diff="$(rsync -rcn --delete --exclude '.svn' --itemize-changes "${BUILD_DIR}/" "tags/${VERSION}/")"
-	if [ -n "${trunk_diff}" ] || [ -n "${tag_diff}" ]; then
-		fail "version ${VERSION} exists in SVN but trunk/tag do not match the exact candidate"
-	fi
+remote_tag_state() {
+	local tag_diff
 
+	if ! svn info "${SVN_URL}tags/${VERSION}" "${SVN_NETWORK_ARGS[@]}" >/dev/null 2>&1; then
+		return 1
+	fi
+	if ! svn update --set-depth infinity "tags/${VERSION}" "${SVN_NETWORK_ARGS[@]}" >/dev/null; then
+		return 3
+	fi
+	tag_diff="$(rsync -rcn --delete --exclude '.svn' --itemize-changes "${BUILD_DIR}/" "tags/${VERSION}/")"
+	[ -z "${tag_diff}" ] || return 2
+	return 0
+}
+
+if remote_tag_state; then
 	printf 'Plugin %s version %s is already deployed exactly; no SVN commit is needed.\n' "${SLUG}" "${VERSION}"
 	exit 0
+else
+	tag_state="$?"
+	case "${tag_state}" in
+		1) ;;
+		2) fail "version ${VERSION} exists in SVN but its immutable tag does not match the exact candidate" ;;
+		*) fail "version ${VERSION} exists in SVN but its tag could not be verified" ;;
+	esac
 fi
 [ ! -e "tags/${VERSION}" ] || fail "unversioned tags/${VERSION} obstructs the deployment working copy"
 
@@ -256,7 +282,6 @@ if [ -n "${ASSETS_DIR}" ]; then
 		esac
 	done < <(find assets -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.gif' \) -print0)
 fi
-svn cp trunk "tags/${VERSION}"
 
 FINAL_STATUS_XML="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/${SLUG}-svn-final-status.XXXXXX.xml")"
 svn status --xml > "${FINAL_STATUS_XML}"
@@ -267,6 +292,7 @@ FINAL_STATUS_XML=""
 svn status
 
 if [ "${DRY_RUN}" = true ]; then
+	printf 'Would copy the committed trunk revision to %stags/%s.\n' "${SVN_URL}" "${VERSION}"
 	printf 'Dry run complete; no SVN commit was made.\n'
 	exit 0
 fi
@@ -274,11 +300,64 @@ fi
 [ -n "${SVN_USERNAME:-}" ] || fail 'SVN_USERNAME is required'
 [ -n "${SVN_PASSWORD:-}" ] || fail 'SVN_PASSWORD is required'
 
-svn commit \
-	-m "Update to version ${VERSION} from GitHub" \
-	--no-auth-cache \
-	--non-interactive \
-	--username "${SVN_USERNAME}" \
+SVN_AUTH_ARGS=(
+	--no-auth-cache
+	--non-interactive
+	--username "${SVN_USERNAME}"
 	--password "${SVN_PASSWORD}"
+	"${SVN_NETWORK_ARGS[@]}"
+)
+COMMIT_PATHS=(trunk)
+if [ "${TAGS_CREATED}" = true ]; then
+	COMMIT_PATHS+=(tags)
+fi
+if [ -n "${ASSETS_DIR}" ]; then
+	COMMIT_PATHS+=(assets)
+fi
 
-printf 'Plugin %s version %s deployed to WordPress.org SVN.\n' "${SLUG}" "${VERSION}"
+LC_ALL=C svn commit "${COMMIT_PATHS[@]}" \
+	-m "Prepare trunk for version ${VERSION} from GitHub" \
+	"${SVN_AUTH_ARGS[@]}"
+
+TRUNK_REVISION="$(svn info --show-item revision "${SVN_URL}trunk" "${SVN_AUTH_ARGS[@]}")"
+[[ "${TRUNK_REVISION}" =~ ^[0-9]+$ ]] || fail 'could not determine the committed trunk revision'
+
+svn update --set-depth infinity -r "${TRUNK_REVISION}" trunk "${SVN_AUTH_ARGS[@]}" >/dev/null
+trunk_diff="$(rsync -rcn --delete --exclude '.svn' --itemize-changes "${BUILD_DIR}/" trunk/)"
+[ -z "${trunk_diff}" ] || fail "committed trunk revision ${TRUNK_REVISION} does not match the exact candidate"
+if [ -n "${ASSETS_DIR}" ]; then
+	svn update --set-depth infinity -r "${TRUNK_REVISION}" assets "${SVN_AUTH_ARGS[@]}" >/dev/null
+	assets_diff="$(rsync -rcn --delete --exclude '.svn' --itemize-changes "${ASSETS_DIR}/" assets/)"
+	[ -z "${assets_diff}" ] || fail "committed assets at revision ${TRUNK_REVISION} do not match the exact candidate"
+fi
+
+if svnmucc \
+	-U "${SVN_URL}" \
+	-m "Tag version ${VERSION} from GitHub" \
+	"${SVN_AUTH_ARGS[@]}" \
+	cp "${TRUNK_REVISION}" trunk "tags/${VERSION}"; then
+	printf 'Plugin %s version %s deployed to WordPress.org SVN.\n' "${SLUG}" "${VERSION}"
+	exit 0
+else
+	copy_status="$?"
+fi
+
+for ((attempt = 1; attempt <= SVN_TAG_RECONCILE_ATTEMPTS; attempt++)); do
+	if remote_tag_state; then
+		printf 'Tag %s exists and matches the candidate after the SVN copy response failed.\n' "${VERSION}"
+		printf 'Plugin %s version %s deployed to WordPress.org SVN.\n' "${SLUG}" "${VERSION}"
+		exit 0
+	else
+		tag_state="$?"
+		if [ "${tag_state}" -eq 2 ]; then
+			fail "version ${VERSION} was created concurrently with different immutable contents"
+		fi
+	fi
+
+	if [ "${attempt}" -lt "${SVN_TAG_RECONCILE_ATTEMPTS}" ]; then
+		sleep "${SVN_TAG_RECONCILE_DELAY}"
+	fi
+done
+
+printf 'WordPress.org tag %s could not be confirmed after the failed SVN copy.\n' "${VERSION}" >&2
+exit "${copy_status}"
