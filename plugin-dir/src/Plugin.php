@@ -46,7 +46,17 @@ class Plugin {
 	}
 
 	private function define_global_hooks() {
+		( new AudioConsent( $this->common ) )->register();
 		add_filter( 'itron_polly_tts_logging_enabled', array( $this->common, 'is_logging_enabled' ) );
+		add_filter( 'is_protected_meta', array( $this, 'protect_internal_post_meta' ), 10, 3 );
+	}
+
+	public function protect_internal_post_meta( bool $protected, string $meta_key, string $meta_type ): bool {
+		if ( 'post' === $meta_type && 0 === stripos( $meta_key, 'itron_polly_tts_' ) ) {
+			return true;
+		}
+
+		return $protected;
 	}
 
 	private function define_admin_hooks() {
@@ -97,7 +107,7 @@ class Plugin {
 		$this->loader->add_action( 'add_meta_boxes', $this->common, 'field_checkbox' );
 
 		/** @uses PollyService::save_post() */
-		$this->loader->add_action( 'save_post', $polly_service, 'save_post', 10, 3 );
+		$this->loader->add_action( 'wp_after_insert_post', $polly_service, 'save_post', 10, 3 );
 
 		/** @uses CronHandler::generate_audio() */
 		$this->loader->add_action( BackgroundTask::CRON_HANDLERS_HOOK . PollyService::GENERATE_POST_AUDIO_TASK, $cron_handler, 'generate_audio', 10, 1 );
@@ -134,9 +144,6 @@ class Plugin {
 			$this->loader->add_action( 'update_option_' . $option_name, $object_cache, 'handle_audio_generation_setting_change', 10, 3 );
 		}
 
-		/** @uses PollyService::ajax_bulk_synthesize() */
-		$this->loader->add_action( 'wp_ajax_itron_polly_tts_transcribe', $polly_service, 'ajax_bulk_synthesize' );
-
 		/** @uses GeneralConfiguration::itron_polly_tts_add_menu() */
 		$this->loader->add_action( 'admin_menu', $general_configuration, 'itron_polly_tts_add_menu' );
 
@@ -147,7 +154,7 @@ class Plugin {
 		$this->loader->add_action( 'admin_menu', $polly_configuration, 'itron_polly_tts_add_menu' );
 
 		/** @uses PollyConfiguration::display_options() */
-		$this->loader->add_action( 'admin_menu', $polly_configuration, 'display_options' );
+		$this->loader->add_action( 'admin_init', $polly_configuration, 'display_options' );
 
 		// Audio admin: columns, meta box, filter, bulk actions, settings button.
 		$audio_admin = new AudioAdmin( $this->common );

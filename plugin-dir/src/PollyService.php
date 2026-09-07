@@ -37,11 +37,6 @@ class PollyService {
 	 * @since      0.1
 	 */
 	public function save_post( $post_id, $post, $updated ) {
-		static $single_run = 0;
-
-		if ( $single_run++ ) {
-			return;
-		}
 
 		$common = $this->common;
 		$logger = new Logger();
@@ -52,8 +47,7 @@ class PollyService {
 			return;
 		}
 
-		// Check to make sure this is not a new post creation.
-		if ( ! $updated ) {
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 			return;
 		}
 
@@ -64,10 +58,11 @@ class PollyService {
 			return;
 		}
 
-		// If nonce is valid then update post meta
-		// If it's not valid then this is probably a quick or bulk edit request in which case we won't update the polly post meta
-		if ( isset( $_POST[ self::NONCE_NAME ] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_NAME ] ) ), 'itron-polly-tts' ) ) {
-			update_post_meta( $post_id, 'itron_polly_tts_enable', (int) isset( $_POST['itron_polly_tts_enable'] ) );
+		// Core fires wp_after_insert_post after REST fields and post metadata are saved.
+		if ( current_user_can( 'edit_post', $post_id ) && isset( $_POST[ self::NONCE_NAME ] ) && is_string( $_POST[ self::NONCE_NAME ] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_NAME ] ) ), 'itron-polly-tts' ) ) {
+			if ( $common->is_polly_enabled() && isset( $_POST['itron_polly_tts_settings_present'] ) ) {
+				update_post_meta( $post_id, 'itron_polly_tts_enable', (int) isset( $_POST['itron_polly_tts_enable'] ) );
+			}
 
 			if ( $common->is_post_voice_override_disabled() ) {
 				delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
@@ -75,19 +70,27 @@ class PollyService {
 				// Update post voice ID
 				$voice_id = sanitize_text_field( wp_unslash( $_POST['itron_polly_tts_voice_id'] ) );
 				try {
-					$voice_id = $common->resolve_polly_voice_id(
-						$common->get_post_source_language( $post_id ),
-						$voice_id,
-						$common->get_voice_id()
-					);
+					if ( $common->is_polly_enabled() ) {
+						$voice_id = $common->resolve_polly_voice_id(
+							$common->get_post_source_language( $post_id ),
+							$voice_id,
+							$common->get_voice_id()
+						);
+					}
 				} catch ( \Exception $e ) {
-					$logger->log( sprintf( '%s Unable to validate selected voice while saving post ( id=%s ): %s', __METHOD__, $post_id, $e->getMessage() ) );
+					$logger->log( sprintf( '%s Unable to validate selected voice while saving post ( id=%s ): %s', __METHOD__, $post_id, get_class( $e ) ) );
 				}
 				update_post_meta( $post_id, 'itron_polly_tts_voice_id', $voice_id );
 			}
 		}
 
-		if ( ! ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) ) {
+		if ( ! $common->is_polly_enabled() || ! ( new AudioConsent( $common ) )->is_allowed( (int) $post_id ) ) {
+			try {
+				$this->generate_audio( $post_id );
+			} catch ( ConcurrentAudioGenerationException $e ) {
+				( new BackgroundTask() )->queue_audio( $post_id );
+			}
+		} else {
 			$logger->log( sprintf( '%s Starting background task process ( id=%s )', __METHOD__, $post_id ) );
 			$background_task = new BackgroundTask();
 			$background_task->queue_audio( $post_id );
@@ -133,57 +136,53 @@ class PollyService {
 			throw new ConcurrentAudioGenerationException();
 		}
 
-		$is_key_valid = (bool) get_option( 'itron_polly_tts_valid_keys' );
-		if ( ! $is_key_valid ) {
-			$is_key_valid = $common->validate_itron_polly_tts_access( true, false );
-		}
-		if ( ! $is_key_valid ) {
-			if ( ! $common->has_post_audio( $post_id ) ) {
-				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_ERROR );
-			}
-			$lock->release();
-			$logger->log( sprintf( '%s AWS keys are not valid. Skipping audio generation for post ( id=%s )', __METHOD__, $post_id ) );
-			return;
-		}
-
 		$is_polly_enabled = (bool) get_post_meta( $post_id, 'itron_polly_tts_enable', true );
-		$voice_id         = get_post_meta( $post_id, 'itron_polly_tts_voice_id', true );
-		$source_language  = $common->get_post_source_language( $post_id );
 
 		try {
+			$post = get_post( $post_id );
+			if ( ! $post || ! in_array( $post->post_type, $common->get_posttypes_array(), true ) || in_array( $post->post_status, array( 'trash', 'auto-draft', 'inherit' ), true ) ) {
+				return;
+			}
+			if ( ! ( new AudioConsent( $common ) )->is_allowed( (int) $post_id ) ) {
+				if ( $common->has_post_audio( $post_id ) ) {
+					$common->delete_post_audio( $post_id );
+				}
+				return;
+			}
+
+			if ( ! $common->is_polly_enabled() ) {
+				if ( $common->has_post_audio( $post_id ) && ! $common->is_post_audio_current( (int) $post_id ) ) {
+					$common->delete_post_audio( $post_id );
+				}
+				return;
+			}
+
 			if ( $is_polly_enabled ) {
+				if ( ! $common->validate_itron_polly_tts_access( true, false ) ) {
+					throw new CredentialsException( 'AWS configuration is unavailable.' );
+				}
 				if ( ! $common->has_post_audio( $post_id ) ) {
 					$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_RUNNING );
 				}
 
-				if ( $common->is_post_voice_override_disabled() && ! empty( $voice_id ) ) {
-					$logger->log( sprintf( '%s Removing per-post voice override because post voice overrides are disabled ( id=%s voice=%s )', __METHOD__, $post_id, $voice_id ) );
-					delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
-					$voice_id = '';
-				}
-
+				$voice_request = $common->get_audio_voice_request( (int) $post_id );
 				$resolved_voice_id = $common->resolve_polly_voice_id(
-					$source_language,
-					$voice_id,
+					$voice_request['language'],
+					$voice_request['voice'],
 					$common->get_voice_id()
 				);
 
-				if ( $resolved_voice_id !== $voice_id ) {
+				if ( $resolved_voice_id !== $voice_request['voice'] ) {
 					$logger->log(
 						sprintf(
 							'%s Voice adjusted for post ( id=%s ): requested=%s resolved=%s language=%s',
 							__METHOD__,
 							$post_id,
-							'' !== $voice_id ? $voice_id : '[empty]',
+							$voice_request['voice'],
 							'' !== $resolved_voice_id ? $resolved_voice_id : '[empty]',
-							$source_language
+							$voice_request['language']
 						)
 					);
-					if ( $common->is_post_voice_override_disabled() ) {
-						delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
-					} else {
-						update_post_meta( $post_id, 'itron_polly_tts_voice_id', $resolved_voice_id );
-					}
 				}
 
 				$voice_id = $resolved_voice_id;
@@ -191,27 +190,18 @@ class PollyService {
 					throw new \Exception( 'No supported Amazon Polly voices are available for this post language in the selected AWS region.' );
 				}
 
-				$stored_audio_location  = (string) get_post_meta( $post_id, 'itron_polly_tts_audio_location', true );
-				$current_audio_location = $common->get_file_handler()->get_type();
-				if ( '' !== $stored_audio_location && $stored_audio_location !== $current_audio_location ) {
-					$logger->log(
-						sprintf(
-							'%s Storage changed for post ( id=%s ): stored=%s current=%s. Removing stale audio before regeneration.',
-							__METHOD__,
-							$post_id,
-							$stored_audio_location,
-							$current_audio_location
-						)
-					);
-					$common->delete_post_audio( $post_id );
-					$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_RUNNING );
-				}
-
 				$audio_hash   = get_post_meta( $post_id, 'itron_polly_tts_audio_hash', true );
-				$current_hash = $common->get_audio_hash( $post_id );
+				$clean_text   = $common->clean_text( $post_id, true, false );
+				$current_hash = $common->get_audio_hash( $post_id, $clean_text, $voice_id );
+				$audio_voice  = array(
+					'request'  => $voice_request,
+					'resolved' => $voice_id,
+				);
+				$this->assert_generation_current( (int) $post_id, $current_hash, $audio_voice );
 
 				// If the hash is the same, we don't need to regenerate the audio.
-				if ( $audio_hash === $current_hash && $common->has_post_audio( $post_id ) ) {
+				if ( $common->is_post_audio_current( (int) $post_id, $current_hash ) ) {
+					update_post_meta( $post_id, 'itron_polly_tts_audio_voice', $audio_voice );
 					do_action( 'itron_polly_tts_post_identical_audio', $post_id, $audio_hash );
 					$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_READY );
 					throw new IdenticalAudioException();
@@ -224,13 +214,6 @@ class PollyService {
 				// Sammple Rate
 				$sample_rate = $common->get_sample_rate();
 
-				// Cleaning text. Includes for example removing not supported characters etc.
-				$clean_text = $common->clean_text( $post_id, true, false );
-
-				$logger->log( sprintf( '%s <<< Clean Text >>> ', __METHOD__ ) );
-				$logger->log( sprintf( '%s', $clean_text ) );
-				$logger->log( sprintf( '%s __________', __METHOD__ ) );
-
 				// Breaking text into smaller parts, which will be then send to Amazon Polly for conversion.
 				$sentences = $common->break_text( $clean_text );
 
@@ -238,17 +221,18 @@ class PollyService {
 				$wp_filesystem = $common->prepare_wp_filesystem();
 
 				// Actual invocation of method which will call Amazon Polly API and create audio file.
-				$this->convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem );
+				$this->convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem, $current_hash, $audio_voice );
 
 				update_post_meta( $post_id, 'itron_polly_tts_audio_hash', $current_hash );
+				update_post_meta( $post_id, 'itron_polly_tts_audio_voice', $audio_voice );
 				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_READY );
+				$this->assert_saved_audio_current( (int) $post_id, $current_hash, $audio_voice );
 
 				// update_post_meta() invalidates post meta caches, but it does not flush post query caches.
 				// Hosted environments with persistent object cache can otherwise keep stale admin list results
 				// for filters like "Without audio" even after the final audio link has been saved.
 				clean_post_cache( $post_id );
 			} else { // Remove audio files and post meta (if existing) if Polly is not enabled
-				// @todo: Don't delete audio files when Polly is disabled for the post.
 				$common->delete_post_audio( $post_id );
 			}
 
@@ -262,7 +246,7 @@ class PollyService {
 			if ( ! $common->has_post_audio( $post_id ) ) {
 				$common->set_post_audio_state( $post_id, Common::AUDIO_STATE_ERROR );
 			}
-			$logger->log( sprintf( '%s Error: %s', __METHOD__, $e->getMessage() ) );
+			$logger->log( sprintf( '%s Error: %s', __METHOD__, get_class( $e ) ) );
 		} finally {
 			$lock->release();
 		}
@@ -277,7 +261,7 @@ class PollyService {
 	 * @param           string $wp_filesystem       Reference to WP File system variable.
 	 * @since      0.1
 	 */
-	public function convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem ) {
+	public function convert_to_audio( $post_id, $sample_rate, $voice_id, $sentences, $wp_filesystem, string $expected_hash, array $voice_snapshot ) {
 
 		$logger = new Logger();
 		$logger->log( sprintf( '%s Converting to Audio', __METHOD__ ) );
@@ -285,33 +269,8 @@ class PollyService {
 		// Creating new standard common object for interacting with other methods of the plugin.
 		$common = $this->common;
 
-		$voice_language    = $common->get_post_source_language( $post_id );
-		$resolved_voice_id = $common->resolve_polly_voice_id( $voice_language, $voice_id );
-
-		if ( $resolved_voice_id !== $voice_id ) {
-			$logger->log(
-				sprintf(
-					'%s Voice adjusted before synthesis: requested=%s resolved=%s language=%s post_id=%s',
-					__METHOD__,
-					'' !== $voice_id ? $voice_id : '[empty]',
-					'' !== $resolved_voice_id ? $resolved_voice_id : '[empty]',
-					$voice_language,
-					$post_id
-				)
-			);
-
-			if ( $common->is_post_voice_override_disabled() ) {
-				delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
-			} else {
-				update_post_meta( $post_id, 'itron_polly_tts_voice_id', $resolved_voice_id );
-			}
-		}
-
-		$voice_id = $resolved_voice_id;
-
 		if ( empty( $voice_id ) ) {
-			$logger->log( sprintf( '%s No supported voice available for language %s. Skipping audio generation.', __METHOD__, $voice_language ) );
-			return;
+			throw new \InvalidArgumentException( 'A resolved Polly voice is required for synthesis.' );
 		}
 
 		// Just in case we check if sample rate is valid, if not we will set default value.
@@ -321,7 +280,7 @@ class PollyService {
 		}
 
 		// Preparing locations and names of temporary files which will be used.
-		$random              = wp_rand( 5, 10 );
+		$random              = wp_rand( 100000, PHP_INT_MAX );
 		$upload_dir          = wp_upload_dir()['basedir'];
 		$file_prefix         = 'itron_polly_tts_';
 		$file_name           = $file_prefix . $post_id . '.mp3';
@@ -336,150 +295,183 @@ class PollyService {
 		if ( $wp_filesystem->exists( $file_temp_full_name ) ) {
 			$wp_filesystem->delete( $file_temp_full_name );
 		}
-		// Delete final file if already exists.
-		if ( $wp_filesystem->exists( $file_final_full_name ) ) {
-			$wp_filesystem->delete( $file_final_full_name );
-		}
+		try {
+			// We might be stiching multiple smaller audio files. This variable will
+			// be used to detact the first part.
+			$first_part = true;
 
-		// We might be stiching multiple smaller audio files. This variable will
-		// be used to detact the first part.
-		$first_part = true;
+			// Iterating through each of text parts.
+			foreach ( $sentences as $key => $text_content ) {
+				$this->assert_generation_current( (int) $post_id, $expected_hash, $voice_snapshot );
 
-		// Iterating through each of text parts.
-		foreach ( $sentences as $key => $text_content ) {
+				// Remove all tags
+				$text_content = wp_strip_all_tags( $text_content, false );
 
-			$logger->log( sprintf( '%s Part:', __METHOD__ ) );
-			$logger->log( sprintf( '%s', $text_content ) );
+				// Modify Speed
+				$text_content = $common->modify_sentence_speed( $text_content );
 
-			// Remove all tags
-			$text_content = wp_strip_all_tags( $text_content, false );
+				// Adding breaths sounds (if enabled).
+				$text_content = $this->add_breaths( $common, $text_content );
 
-			// Modify Speed
-			$text_content = $common->modify_sentence_speed( $text_content );
+				// If plugin SSML support option is enabled, plugin will try to decode all SSML tags.
+				$text_content = $this->ssml_support( $common, $text_content );
 
-			// Adding breaths sounds (if enabled).
-			$text_content = $this->add_breaths( $common, $text_content );
+				// Adding special polly mark.
+				$text_content = $this->add_mark_tag( $common, $text_content );
 
-			// If plugin SSML support option is enabled, plugin will try to decode all SSML tags.
-			$text_content = $this->ssml_support( $common, $text_content );
+				// Adding newscaster style tag
+				$text_content = $this->add_newscaster_tag( $common, $text_content, $voice_id );
 
-			// Adding special polly mark.
-			$text_content = $this->add_mark_tag( $common, $text_content );
+				// Adding speak polly mark.
+				$text_content = $this->add_speak_tags( $common, $text_content );
 
-			// Adding newscaster style tag
-			$text_content = $this->add_newscaster_tag( $common, $text_content, $voice_id );
+				//Preparing lexicons which will be used create audio.
+				$lexicons       = $common->get_lexicons();
+				$lexicons_array = explode( ' ', $lexicons );
 
-			// Adding conversational style tag
-			$text_content = $this->add_conversational_tag( $common, $text_content, $voice_id );
+				//Preparing Amazon Polly client object.
+				$polly_client = $common->get_polly_client();
 
-			// Adding speak polly mark.
-			$text_content = $this->add_speak_tags( $common, $text_content );
+				//Detect Polly Engine (Standard / Neural).
+				$engine               = $common->get_polly_engine( $voice_id );
+				$news_style           = $common->should_news_style_be_used( $voice_id );
 
-			//Preparing lexicons which will be used create audio.
-			$lexicons       = $common->get_lexicons();
-			$lexicons_array = explode( ' ', $lexicons );
+				$logger->log( sprintf( '%s Synthesis post=%d part=%d engine=%s voice=%s sample_rate=%s news=%d', __METHOD__, $post_id, $key, $engine, $voice_id, $sample_rate, $news_style ) );
 
-			//Preparing Amazon Polly client object.
-			$polly_client = $common->get_polly_client();
+				//Call Amazon Polly service.
+				if ( ! empty( $lexicons ) and ( count( $lexicons_array ) > 0 ) ) {
+					$result = $polly_client->synthesizeSpeech(
+						array(
+							'Engine'       => $engine,
+							'OutputFormat' => 'mp3',
+							'SampleRate'   => $sample_rate,
+							'Text'         => $text_content,
+							'TextType'     => 'ssml',
+							'VoiceId'      => $voice_id,
+							'LexiconNames' => $lexicons_array,
+						)
+					);
+				} else {
 
-			//Detect Polly Engine (Standard / Neural).
-			$engine               = $common->get_polly_engine( $voice_id );
-			$news_style           = $common->should_news_style_be_used( $voice_id );
-			$conversational_style = $common->should_conversational_style_be_used( $voice_id );
+					$result = $polly_client->synthesizeSpeech(
+						array(
+							'Engine'       => $engine,
+							'OutputFormat' => 'mp3',
+							'SampleRate'   => $sample_rate,
+							'Text'         => $text_content,
+							'TextType'     => 'ssml',
+							'VoiceId'      => $voice_id,
+						)
+					);
+				}
 
-			$log  = sprintf( '%s Final Polly text:', __METHOD__ );
-			$log .= sprintf( '%s', $text_content );
-			$log .= sprintf( '%s Engine: %s ', __METHOD__, $engine );
-			$log .= sprintf( '%s Voice: %s ', __METHOD__, $voice_id );
-			$log .= sprintf( '%s SampleRate: %s ', __METHOD__, $sample_rate );
-			$log .= sprintf( '%s News Style Enabled: %s ', __METHOD__, $news_style );
-			$log .= sprintf( '%s Conversational Style Enabled: %s ', __METHOD__, $conversational_style );
-			$logger->log( $log );
+				$logger->log( sprintf( '%s Audio returned from Polly', __METHOD__ ) );
 
-			//Call Amazon Polly service.
-			if ( ! empty( $lexicons ) and ( count( $lexicons_array ) > 0 ) ) {
-				$result = $polly_client->synthesizeSpeech(
-					array(
-						'Engine'       => $engine,
-						'OutputFormat' => 'mp3',
-						'SampleRate'   => $sample_rate,
-						'Text'         => $text_content,
-						'TextType'     => 'ssml',
-						'VoiceId'      => $voice_id,
-						'LexiconNames' => $lexicons_array,
-					)
-				);
-			} else {
+				// Grab the stream and output to a file.
+				$contents = $result['AudioStream']->getContents();
 
-				$result = $polly_client->synthesizeSpeech(
-					array(
-						'Engine'       => $engine,
-						'OutputFormat' => 'mp3',
-						'SampleRate'   => $sample_rate,
-						'Text'         => $text_content,
-						'TextType'     => 'ssml',
-						'VoiceId'      => $voice_id,
-					)
-				);
+				// Save first part of the audio stream in the parial temporary file.
+				if ( ! $wp_filesystem->put_contents( $file_temp_full_name . '_part_' . $key, $contents ) ) {
+					throw new \RuntimeException( 'Could not write the temporary audio part.' );
+				}
+
+				$logger->log( sprintf( '%s Part created post=%d part=%d', __METHOD__, $post_id, $key ) );
+
+				// Merge new temporary file with previous ones.
+				if ( $first_part ) {
+					if ( ! $wp_filesystem->put_contents( $file_temp_full_name, $contents ) ) {
+						throw new \RuntimeException( 'Could not write temporary audio.' );
+					}
+					$first_part = false;
+				} else {
+					$common->remove_id3( $file_temp_full_name . '_part_' . $key, $wp_filesystem );
+					$previous_audio = $wp_filesystem->get_contents( $file_temp_full_name );
+					$next_audio     = $wp_filesystem->get_contents( $file_temp_full_name . '_part_' . $key );
+					if ( ! is_string( $previous_audio ) || ! is_string( $next_audio ) ) {
+						throw new \RuntimeException( 'Could not read the temporary audio parts.' );
+					}
+					$merged_file = $previous_audio . $next_audio;
+					if ( ! $wp_filesystem->put_contents( $file_temp_full_name, $merged_file ) ) {
+						throw new \RuntimeException( 'Could not merge temporary audio.' );
+					}
+				}
+
+				// Deleting partial audio file.
+				$wp_filesystem->delete( $file_temp_full_name . '_part_' . $key );
+
 			}
 
-			$logger->log( sprintf( '%s Audio returned from Polly', __METHOD__ ) );
+			$this->assert_generation_current( (int) $post_id, $expected_hash, $voice_snapshot );
+			// The old locator must remain available until guarded cleanup has run.
+			$common->delete_post_audio( $post_id );
 
-			// Grab the stream and output to a file.
-			$contents = $result['AudioStream']->getContents();
-
-			// Save first part of the audio stream in the parial temporary file.
-			$wp_filesystem->put_contents( $file_temp_full_name . '_part_' . $key, $contents );
-
-			$logger->log( sprintf( '%s Part created ( %s )', __METHOD__, $file_temp_full_name . '_part_' . $key ) );
-
-			// Merge new temporary file with previous ones.
-			if ( $first_part ) {
-				$wp_filesystem->put_contents( $file_temp_full_name, $contents );
-				$first_part = false;
-			} else {
-				$common->remove_id3( $file_temp_full_name . '_part_' . $key, $wp_filesystem );
-				$merged_file = $wp_filesystem->get_contents( $file_temp_full_name ) . $wp_filesystem->get_contents( $file_temp_full_name . '_part_' . $key );
-				$wp_filesystem->put_contents( $file_temp_full_name, $merged_file );
+			// Saving the duration of an audio file as the string 00:00.
+			$playtime_string = $this->get_audio_playtime_string( $file_temp_full_name );
+			if ( $playtime_string ) {
+				update_post_meta( $post_id, 'itron_polly_tts_audio_playtime', $playtime_string );
 			}
 
-			// Deleting partial audio file.
-			$wp_filesystem->delete( $file_temp_full_name . '_part_' . $key );
+			// Saving audio file in final destination.
+			$file_handler        = $common->get_file_handler();
+			if ( $file_handler instanceof LocalFileHandler ) {
+				$destination          = $file_handler->get_destination( (int) $post_id, $file_name );
+				$dir_final_full_name  = trailingslashit( dirname( $destination['path'] ) );
+				$file_final_full_name = $destination['path'];
+			}
+			$audio_location_link = $file_handler->save( $wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name );
 
+			// This will bust the browser cache when a content revision is made.
+			$audio_location_link = add_query_arg( 'version', time(), $audio_location_link );
+			$this->assert_saved_audio_current( (int) $post_id, $expected_hash, $voice_snapshot );
+			if ( ! $common->get_audio_storage()->set_delivery_url( (int) $post_id, $audio_location_link ) ) {
+				$common->delete_post_audio( $post_id );
+				throw new \RuntimeException( 'Could not record the final audio URL.' );
+			}
+
+			update_post_meta( $post_id, 'itron_polly_tts_audio_link_location', $audio_location_link );
+			update_post_meta( $post_id, 'itron_polly_tts_audio_location', $file_handler->get_type() );
+			update_post_meta( $post_id, 'itron_polly_tts_generated_voice_id', $voice_id );
+			$this->assert_saved_audio_current( (int) $post_id, $expected_hash, $voice_snapshot );
+
+			$logger->log( sprintf( '%s Final audio created!', __METHOD__ ) );
+		} finally {
+			foreach ( array_merge( array( $file_temp_full_name ), array_map( static fn( $key ) => $file_temp_full_name . '_part_' . $key, array_keys( $sentences ) ) ) as $temporary_path ) {
+				if ( $wp_filesystem->exists( $temporary_path ) ) {
+					$wp_filesystem->delete( $temporary_path );
+				}
+			}
 		}
 
-		// Saving the duration of an audio file as the string 00:00.
-		$playtime_string = $this->get_audio_playtime_string( $file_temp_full_name );
-		if ( $playtime_string ) {
-			update_post_meta( $post_id, 'itron_polly_tts_audio_playtime', $playtime_string );
+	}
+
+	private function assert_saved_audio_current( int $post_id, string $expected_hash, array $voice_snapshot ): void {
+		try {
+			$this->assert_generation_current( $post_id, $expected_hash, $voice_snapshot );
+		} catch ( \Throwable $e ) {
+			$this->common->delete_post_audio( $post_id );
+			throw $e;
 		}
+	}
 
-		// Saving audio file in final destination.
-		$file_handler        = $common->get_file_handler();
-		$audio_location_link = $file_handler->save( $wp_filesystem, $file_temp_full_name, $dir_final_full_name, $file_final_full_name, $post_id, $file_name );
-
-		// This will bust the browser cache when a content revision is made.
-		$audio_location_link = add_query_arg( 'version', time(), $audio_location_link );
-
-		// We are using a hash of these values to improve the speed of queries.
-		$itron_polly_tts_settings_hash = md5( $voice_id . $sample_rate . 's3' );
-
-		update_post_meta( $post_id, 'itron_polly_tts_audio_link_location', $audio_location_link );
-		update_post_meta( $post_id, 'itron_polly_tts_audio_location', $file_handler->get_type() );
-		update_post_meta( $post_id, 'itron_polly_tts_generated_voice_id', $voice_id );
-
-			// Update post meta data.
-			update_post_meta( $post_id, 'itron_polly_tts_enable', 1 );
-		if ( $common->is_post_voice_override_disabled() ) {
-			delete_post_meta( $post_id, 'itron_polly_tts_voice_id' );
-		} else {
-			update_post_meta( $post_id, 'itron_polly_tts_voice_id', $voice_id );
+	private function assert_generation_current( int $post_id, string $expected_hash, array $voice_snapshot ): void {
+		// Re-read inputs after network work; another request may have saved this post or disabled TTS.
+		clean_post_cache( $post_id );
+		wp_cache_delete( 'alloptions', 'options' );
+		foreach ( array( 'polly_enable', 'voice_id', 'source_language', 's3_region', 'sample_rate', 'speed', 'lexicons', 'neural', 'speaking_style', 'auto_breaths', 'ssml', 'add_post_title', 'add_post_excerpt', 'skip_tags', 'disable_post_voice_override' ) as $option ) {
+			wp_cache_delete( 'itron_polly_tts_' . $option, 'options' );
 		}
-			update_post_meta( $post_id, 'itron_polly_tts_sample_rate', $sample_rate );
-			update_post_meta( $post_id, 'itron_polly_tts_settings_hash', $itron_polly_tts_settings_hash );
-
-		$logger->log( sprintf( '%s Final audio created!', __METHOD__ ) );
-
+		$common = $this->common;
+		$post   = get_post( $post_id );
+		if (
+			! $post || in_array( $post->post_status, array( 'trash', 'auto-draft', 'inherit' ), true )
+			|| ! $common->is_polly_enabled()
+			|| '1' !== (string) get_post_meta( $post_id, 'itron_polly_tts_enable', true )
+			|| ! ( new AudioConsent( $common ) )->is_allowed( $post_id )
+			|| $voice_snapshot['request'] !== $common->get_audio_voice_request( $post_id )
+			|| ! hash_equals( $expected_hash, $common->get_audio_hash( $post_id, null, $voice_snapshot['resolved'] ) )
+		) {
+			throw new \RuntimeException( 'Audio generation was cancelled because its inputs or permissions changed.' );
+		}
 	}
 
 	private function get_audio_playtime_string( string $file_path ): string {
@@ -547,7 +539,7 @@ class PollyService {
 	 */
 	private function add_mark_tag( $common, $text_content) {
 
-		$itron_polly_tts_mark_value = 'wp-plugin-awslabs';
+		$itron_polly_tts_mark_value = 'itron-polly-tts';
 		$itron_polly_tts_mark_value = apply_filters( 'itron_polly_tts_mark_value', $itron_polly_tts_mark_value );
 
 		$text_content = '<mark name="' . esc_attr( $itron_polly_tts_mark_value ) . '"/>' . $text_content . '';
@@ -558,13 +550,6 @@ class PollyService {
 	private function add_newscaster_tag( $common, $text_content, $voice) {
 		if ($common->should_news_style_be_used( $voice )) {
 			$text_content = '<amazon:domain name="news">' . $text_content . '</amazon:domain>';
-		}
-		return $text_content;
-	}
-
-	private function add_conversational_tag( $common, $text_content, $voice) {
-		if ($common->should_conversational_style_be_used( $voice )) {
-			$text_content = '<amazon:domain name="conversational">' . $text_content . '</amazon:domain>';
 		}
 		return $text_content;
 	}
@@ -582,167 +567,5 @@ class PollyService {
 
 		return $text_content;
 	}
-
-
-	/**
-	 * Batch process the post transcriptions.
-	 *
-	 * @since      0.1
-	 */
-	public function ajax_bulk_synthesize() {
-		check_ajax_referer( 'itron_polly_tts_ajax', 'nonce' );
-
-		$batch_size                  = 1;
-		$common                      = $this->common;
-		$logger                      = new Logger();
-		$post_types_supported        = $common->get_posttypes_array();
-		$itron_polly_tts_voice_id       = $common->get_voice_id();
-		$itron_polly_tts_sample_rate    = $common->get_sample_rate();
-		$itron_polly_tts_audio_location = ( 'on' === get_option( 'itron_polly_tts_s3' ) ) ? 's3' : 'local';
-
-		// We are using a hash of these values to improve the speed of queries.
-		$itron_polly_tts_settings_hash = md5( $itron_polly_tts_voice_id . $itron_polly_tts_sample_rate . $itron_polly_tts_audio_location );
-
-			$args     = array(
-				'posts_per_page' => $batch_size,
-				'post_type'      => $post_types_supported,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- This admin-only bulk regeneration flow intentionally finds posts with stale audio settings.
-				'meta_query'     => array(
-					'relation' => 'OR',
-					array(
-						'key'     => 'itron_polly_tts_audio_link_location',
-						'compare' => 'NOT EXISTS',
-					),
-					array(
-						'key'     => 'itron_polly_tts_voice_id',
-						'value'   => $itron_polly_tts_voice_id,
-						'compare' => '!=',
-					),
-					array(
-						'key'     => 'itron_polly_tts_sample_rate',
-						'value'   => $itron_polly_tts_sample_rate,
-						'compare' => '!=',
-					),
-					array(
-						'key'     => 'itron_polly_tts_audio_location',
-						'value'   => $itron_polly_tts_audio_location,
-						'compare' => '!=',
-					),
-				),
-			);
-			$query    = new \WP_Query( $args );
-			$post_ids = wp_list_pluck( $query->posts, 'ID' );
-
-			if ( is_array( $post_ids ) && ! empty( $post_ids ) ) {
-				foreach ( $post_ids as $post_id ) {
-					try {
-						if ( ! $common->has_post_audio( (int) $post_id ) ) {
-							$common->set_post_audio_state( (int) $post_id, Common::AUDIO_STATE_RUNNING );
-						}
-
-						$clean_text    = $common->clean_text( $post_id, true, false );
-						$sentences     = $common->break_text( $clean_text );
-						$wp_filesystem = $common->prepare_wp_filesystem();
-						$this->convert_to_audio( $post_id, $itron_polly_tts_sample_rate, $itron_polly_tts_voice_id, $sentences, $wp_filesystem );
-						$common->set_post_audio_state( (int) $post_id, Common::AUDIO_STATE_READY );
-					} catch ( \Throwable $e ) {
-						if ( ! $common->has_post_audio( (int) $post_id ) ) {
-							$common->set_post_audio_state( (int) $post_id, Common::AUDIO_STATE_ERROR );
-						}
-
-						$logger->log(
-							sprintf(
-								'%s Error while bulk synthesizing post ( id=%s ): %s',
-								__METHOD__,
-								$post_id,
-								$e->getMessage()
-							)
-						);
-					}
-				}
-			} else {
-				$step = 'done';
-			}
-
-			$percentage = $this->get_percentage_complete();
-			echo wp_json_encode(
-				array(
-					'step'       => $step,
-					'percentage' => $percentage,
-				)
-			);
-		wp_die();
-	}
-
-	/**
-	 * Calculate the percentage complete.
-	 *
-	 * @since      0.1
-	 */
-	private function get_percentage_complete() {
-		$total_posts               = 0;
-		$common                    = $this->common;
-		$post_types_supported      = $common->get_posttypes_array();
-		$posts_needing_transcription = $this->get_num_posts_needing_transcription();
-
-		foreach ( $post_types_supported as $post_type ) {
-			$post_type_count = wp_count_posts( $post_type )->publish;
-			$total_posts    += $post_type_count;
-		}
-
-		if ( 0 >= $total_posts || 0 >= $posts_needing_transcription ) {
-			$percentage = 100;
-		} else {
-			$percentage = round( $posts_needing_transcription / $total_posts * 100, 2 );
-		}
-
-		return $percentage;
-	}
-
-
-	/**
-	 * Checks how many posts should be converted.
-	 *
-	 * @since      0.1
-	 */
-	public function get_num_posts_needing_transcription() {
-
-		$common                      = $this->common;
-		$post_types_supported        = $common->get_posttypes_array();
-		$itron_polly_tts_voice_id       = $common->get_voice_id();
-		$itron_polly_tts_sample_rate    = $common->get_sample_rate();
-		$itron_polly_tts_audio_location = ( 'on' === get_option( 'itron_polly_tts_s3' ) ) ? 's3' : 'local';
-
-			$args  = array(
-				'posts_per_page' => '-1',
-				'post_type'      => $post_types_supported,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- This admin-only progress counter intentionally counts posts matching the synthesis criteria.
-				'meta_query'     => array(
-					'relation' => 'AND',
-					array(
-						'key'     => 'itron_polly_tts_audio_link_location',
-						'compare' => 'EXISTS',
-					),
-					array(
-						'key'     => 'itron_polly_tts_voice_id',
-						'value'   => $itron_polly_tts_voice_id,
-						'compare' => '=',
-					),
-					array(
-						'key'     => 'itron_polly_tts_sample_rate',
-						'value'   => $itron_polly_tts_sample_rate,
-						'compare' => '=',
-					),
-					array(
-						'key'     => 'itron_polly_tts_audio_location',
-						'value'   => $itron_polly_tts_audio_location,
-						'compare' => '=',
-					),
-				),
-			);
-			$query = new \WP_Query( $args );
-			return count( $query->posts );
-	}
-
 
 }

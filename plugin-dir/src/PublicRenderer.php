@@ -47,11 +47,21 @@ class PublicRenderer {
 
 		$common = $this->common;
 
-		if ( ! $common->is_polly_enabled() ) {
+		if ( ! $common->is_polly_enabled() || post_password_required( $post_id ) ) {
+			return $content;
+		}
+		if ( 'publish' !== get_post_status( $post_id ) && ! current_user_can( 'read_post', $post_id ) ) {
+			return $content;
+		}
+		if ( get_post_meta( $post_id, 'itron_polly_tts_enable', true ) !== '1' ) {
 			return $content;
 		}
 
-		if ( get_post_meta( $post_id, 'itron_polly_tts_enable', true ) !== '1' ) {
+		// Text markers apply even when no player is displayed or audio is still pending.
+		$content = preg_replace( '/-AMAZONPOLLY-ONLYAUDIO-START-[\S\s]*?-AMAZONPOLLY-ONLYAUDIO-END-/', '', $content );
+		$content = str_replace( array( '-AMAZONPOLLY-ONLYWORDS-START-', '-AMAZONPOLLY-ONLYWORDS-END-' ), '', $content );
+
+		if ( ! is_singular() || 'Do not show' === get_option( 'itron_polly_tts_position' ) || ! ( new AudioConsent( $common ) )->is_allowed( (int) $post_id ) ) {
 			return $content;
 		}
 
@@ -89,11 +99,6 @@ class PublicRenderer {
 			}
 		}
 
-		// Removing Amazon Polly special tags.
-		$content = preg_replace( '/-AMAZONPOLLY-ONLYAUDIO-START-[\S\s]*?-AMAZONPOLLY-ONLYAUDIO-END-/', '', $content );
-		$content = str_replace( '-AMAZONPOLLY-ONLYWORDS-START-', '', $content );
-		$content = str_replace( '-AMAZONPOLLY-ONLYWORDS-END-', '', $content );
-
 		// Create player area.
 		$polly_content = '';
 		if ( is_singular() ) {
@@ -126,8 +131,16 @@ class PublicRenderer {
 	}
 
 	private function has_available_audio( int $post_id, string $audio_location ): bool {
-		if ( '' === $audio_location ) {
+		$storage = new AudioStorage();
+		if ( '' === $audio_location || ! $storage->delivery_url_matches( $post_id, $audio_location ) ) {
 			$this->object_cache->delete_audio_head_status( $post_id );
+			return false;
+		}
+		$descriptor = $storage->get_descriptor( $post_id );
+		if ( 'local' === $descriptor['type'] ) {
+			return $storage->local_file_exists( $post_id );
+		}
+		if ( 'https' !== wp_parse_url( $audio_location, PHP_URL_SCHEME ) ) {
 			return false;
 		}
 
@@ -136,7 +149,14 @@ class PublicRenderer {
 			return (bool) $cached_status['exists'];
 		}
 
-		$result = wp_remote_head( $audio_location, array( 'sslverify' => false ) );
+		$result = wp_safe_remote_head(
+			$audio_location,
+			array(
+				'sslverify'   => true,
+				'redirection' => 0,
+				'timeout'     => 5,
+			)
+		);
 		$exists = 200 === wp_remote_retrieve_response_code( $result );
 
 		$this->object_cache->set_audio_head_status( $post_id, $audio_location, $exists );

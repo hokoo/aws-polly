@@ -36,6 +36,8 @@ vendor/**/CHANGELOG*
 vendor/**/CONTRIBUTING*
 vendor/**/UPGRADING*
 vendor/**/CODE_OF_CONDUCT*
+vendor/**/AGENTS.md
+vendor/**/CLAUDE.md
 vendor/**/*.bat
 vendor/**/*.dist
 vendor/**/*.py

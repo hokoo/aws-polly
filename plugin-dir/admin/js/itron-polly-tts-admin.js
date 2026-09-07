@@ -133,7 +133,6 @@
 			}
 
 			var supportsNews = '1' === String( selectedOption.data( 'supports-news' ) );
-			var supportsConversational = '1' === String( selectedOption.data( 'supports-conversational' ) );
 			var neuralCheckbox = $( '#itron_polly_tts_neural' );
 			var neuralRequested = neuralCheckbox.length && ! neuralCheckbox.prop( 'disabled' ) && neuralCheckbox.is( ':checked' );
 			var neuralContainer = $( '#itron_polly_tts_neural_ui' );
@@ -143,12 +142,11 @@
 			var styleDescription = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-description' );
 			var styleMessage = speakingStyleContainer.find( '.itron-polly-tts-dynamic-option-message' );
 			var newsChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-news' );
-			var conversationalChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-conversational' );
 			var defaultChoice = speakingStyleContainer.find( '.itron-polly-tts-style-choice-default input' );
 			var selectedStyle = getSelectedPollySpeakingStyleInput().val() || '';
-			var hasSupportedStyle = supportsNews || supportsConversational;
+			var hasSupportedStyle = supportsNews;
 			var canShowStyles = isNeuralRegionSupported && neuralRequested && hasSupportedStyle;
-			var unavailableStyleSelected = ( 'news' === selectedStyle && ! supportsNews ) || ( 'conversational' === selectedStyle && ! supportsConversational );
+			var unavailableStyleSelected = 'news' === selectedStyle && ! supportsNews;
 			var styleUnavailableMessage = '';
 
 			if ( neuralContainer.length ) {
@@ -166,8 +164,6 @@
 
 			newsChoice.toggle( supportsNews );
 			newsChoice.find( 'input' ).prop( 'disabled', ! supportsNews );
-			conversationalChoice.toggle( supportsConversational );
-			conversationalChoice.find( 'input' ).prop( 'disabled', ! supportsConversational );
 
 			if ( unavailableStyleSelected || ! canShowStyles ) {
 				defaultChoice.prop( 'checked', true );
@@ -187,7 +183,6 @@
 				styleMessage.hide();
 				defaultChoice.prop( 'disabled', false );
 				newsChoice.find( 'input' ).prop( 'disabled', ! supportsNews );
-				conversationalChoice.find( 'input' ).prop( 'disabled', ! supportsConversational );
 				return;
 			}
 
@@ -201,38 +196,6 @@
 		function refreshPollySettingsUi( triggerSource ) {
 			syncPollyVoiceSelectWithNeural( triggerSource );
 			syncPollySpeakingStyleState();
-		}
-
-		function itronPollyTTSProcessStep() {
-			var itronPollyTTSProgressbar = $( "#itron-polly-tts-progressbar" );
-
-			$.ajax({
-				type: 'POST',
-				url: ajaxurl,
-				data: {
-					action: adminConfig.ajaxAction || 'itron_polly_tts_transcribe',
-					nonce: adminConfig.ajaxNonce || '',
-				},
-				dataType: "json",
-				beforeSend: function() {
-					$('.itron-polly-tts-progress-label').show();
-				},
-				success: function( response ) {
-					if( 'done' != response.step ) {
-						itronPollyTTSProcessStep();
-					}
-
-					$( "#itron-polly-tts-progressbar" ).progressbar({
-						value: response.percentage
-					});
-
-					itronPollyTTSProgressbar.progressbar( "value", response.percentage);
-				}
-			}).fail(function (response) {
-				if ( window.console && window.console.log ) {
-					console.log( response );
-				}
-			});
 		}
 
 		function injectFindPostsWithoutAudioPanel() {
@@ -262,76 +225,12 @@
 		function(){
 			injectFindPostsWithoutAudioPanel();
 
-			var itronPollyTTSProgressbar = $( "#itron-polly-tts-progressbar" );
-			var itronPollyTTSProgressLabel = $( ".itron-polly-tts-progress-label" );
-
-			$( '#itron_polly_tts_batch_transcribe' ).click(
-				function(){
-					$('#itron_polly_tts_batch_transcribe').hide();
-
-					itronPollyTTSProgressbar.progressbar({
-						value: false,
-						change: function() {
-							itronPollyTTSProgressLabel.text( "Starting" );
-						},
-						complete: function() {
-							itronPollyTTSProgressLabel.text( "Complete!" );
-						}
-					});
-					itronPollyTTSProcessStep();
-				}
-			);
-
-			$( '#itron_polly_tts_s3' ).change(
-				function() {
-					if ($( "#itron_polly_tts_s3" ).is( ':checked' )) {
-						$( "#itron_polly_tts_s3_bucket_name_box" ).show();
-					} else {
-						$( "#itron_polly_tts_s3_bucket_name_box" ).hide();
-					}
-				}
-			);
-
-			$( '#itron_polly_tts_bulk_update_div' ).hide();
-			$( '#itron_polly_tts_plugin_cost_info' ).hide();
-
 			$( '#itron_polly_tts_enable' ).change(
 				function() {
 					if ($( "#itron_polly_tts_enable" ).is( ':checked' )) {
 						$( "#itron_polly_tts_post_options" ).show();
 					} else {
 						$( "#itron_polly_tts_post_options" ).hide();
-					}
-				}
-			);
-
-			$( '.wrap input, .wrap select' ).not('#itron_polly_tts_update_all').change(
-				function() {
-					$( '#itron_polly_tts_update_all' ).prop("disabled", true);
-					$( '#itron_polly_tts_update_all' ).show();
-					$( '#label_itron_polly_tts_update_all' ).show();
-					$( '#itron_polly_tts_bulk_update_div' ).hide();
-					$( '#itron_polly_tts_update_all_pricing_message' ).hide();
-				}
-			);
-
-			$( '#itron_polly_tts_update_all' ).click(
-				function(e) {
-					e.stopPropagation();
-					e.preventDefault();
-
-					$( '#itron_polly_tts_update_all' ).hide();
-					$( "#itron_polly_tts_bulk_update_div" ).show();
-					$( '#itron_polly_tts_update_all_pricing_message' ).show();
-				}
-			);
-
-			$( '#itron_polly_tts_price_checker_button' ).click(
-				function(){
-					if ( $('#itron_polly_tts_plugin_cost_info').is(":hidden") ) {
-						$( '#itron_polly_tts_plugin_cost_info' ).show();
-					} else {
-						$( '#itron_polly_tts_plugin_cost_info' ).hide();
 					}
 				}
 			);
