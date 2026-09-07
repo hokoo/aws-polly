@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [master, 'release/**']
   release:
-    types: [published, released]
+    types: [published]
   workflow_dispatch:
     inputs:
       release_tag:
@@ -34,8 +34,6 @@ env:
 jobs:
   verify:
     name: Verify source and release zip
-    # Stable publication emits both events; use released for stable releases.
-    if: ${{ github.event_name != 'release' || github.event.action == 'released' || github.event.release.prerelease == true }}
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.release.outputs.tag }}
