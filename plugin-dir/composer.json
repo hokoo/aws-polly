@@ -33,7 +33,8 @@
     },
     "scripts": {
         "phpcs": "phpcs --standard=../phpcs.xml",
-        "phpcbf": "phpcbf --standard=../phpcs.xml"
+        "phpcbf": "phpcbf --standard=../phpcs.xml",
+        "pre-autoload-dump": "Aws\\Script\\Composer\\Composer::removeUnusedServices"
     },
     "config": {
         "allow-plugins": {
@@ -43,5 +44,11 @@
             "php": "8.1.0"
         },
         "sort-packages": true
+    },
+    "extra": {
+        "aws/aws-sdk-php": [
+            "Polly",
+            "S3"
+        ]
     }
 }

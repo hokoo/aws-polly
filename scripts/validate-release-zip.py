@@ -13,9 +13,27 @@ import zipfile
 
 SLUG = "ai-text-to-speech-using-aws-polly"
 ENTRYPOINT = "itron-polly-tts.php"
+MAX_RELEASE_FILES = 1500
+MAX_RELEASE_ENTRIES = 2000
+MAX_RELEASE_UNCOMPRESSED_BYTES = 15 * 1024 * 1024
+AWS_PRUNE_SCRIPT = "Aws\\Script\\Composer\\Composer::removeUnusedServices"
+AWS_SERVICE_DATA_ALLOWLIST = {
+    "kms", "polly", "s3", "signin", "sso", "sso-oidc", "sts",
+}
+AWS_CLIENT_NAMESPACE_ALLOWLIST = {
+    "Crypto", "Kms", "Polly", "S3", "SSO", "SSOOIDC", "Signin", "Sts",
+}
 
 
-def validate(archive_path, expected_version="", slug=SLUG, entrypoint=ENTRYPOINT):
+def validate(
+    archive_path,
+    expected_version="",
+    slug=SLUG,
+    entrypoint=ENTRYPOINT,
+    max_files=MAX_RELEASE_FILES,
+    max_entries=MAX_RELEASE_ENTRIES,
+    max_uncompressed_bytes=MAX_RELEASE_UNCOMPRESSED_BYTES,
+):
     with zipfile.ZipFile(archive_path) as archive:
         entries = archive.infolist()
         names = {entry.filename for entry in entries}
@@ -23,6 +41,22 @@ def validate(archive_path, expected_version="", slug=SLUG, entrypoint=ENTRYPOINT
             raise ValueError("archive is empty or contains duplicate entries")
         if archive.testzip() is not None:
             raise ValueError("archive checksum failed")
+
+        file_entries = [entry for entry in entries if not entry.is_dir()]
+        uncompressed_bytes = sum(entry.file_size for entry in file_entries)
+        if len(file_entries) > max_files:
+            raise ValueError(
+                f"archive contains {len(file_entries)} files; limit is {max_files}"
+            )
+        if len(entries) > max_entries:
+            raise ValueError(
+                f"archive contains {len(entries)} entries; limit is {max_entries}"
+            )
+        if uncompressed_bytes > max_uncompressed_bytes:
+            raise ValueError(
+                f"archive expands to {uncompressed_bytes} bytes; "
+                f"limit is {max_uncompressed_bytes}"
+            )
 
         for entry in entries:
             name = entry.filename
@@ -86,6 +120,47 @@ def validate(archive_path, expected_version="", slug=SLUG, entrypoint=ENTRYPOINT
             raise ValueError(f"plugin version {version} does not match {expected_version}")
 
         manifest = json.loads(read("composer.json"))
+        pre_autoload_dump = manifest.get("scripts", {}).get("pre-autoload-dump", [])
+        if isinstance(pre_autoload_dump, str):
+            pre_autoload_dump = [pre_autoload_dump]
+        retained_aws_services = set(
+            manifest.get("extra", {}).get("aws/aws-sdk-php", [])
+        )
+        if (
+            AWS_PRUNE_SCRIPT not in pre_autoload_dump
+            or not {"Polly", "S3"}.issubset(retained_aws_services)
+        ):
+            raise ValueError("AWS SDK unused-service pruning is not configured")
+
+        aws_data_prefix = f"{slug}/vendor/aws/aws-sdk-php/src/data/"
+        packaged_aws_services = {
+            name[len(aws_data_prefix):].split("/", 1)[0]
+            for name in names
+            if name.startswith(aws_data_prefix)
+            and "/" in name[len(aws_data_prefix):]
+        }
+        if packaged_aws_services != AWS_SERVICE_DATA_ALLOWLIST:
+            raise ValueError(
+                "unexpected AWS service data: "
+                + ", ".join(sorted(packaged_aws_services))
+            )
+        aws_source_prefix = f"{slug}/vendor/aws/aws-sdk-php/src/"
+        packaged_client_namespaces = {
+            relative.split("/", 1)[0]
+            for name in names
+            if name.startswith(aws_source_prefix)
+            for relative in [name[len(aws_source_prefix):]]
+            if "/" in relative and relative.endswith("Client.php")
+        }
+        unexpected_client_namespaces = (
+            packaged_client_namespaces - AWS_CLIENT_NAMESPACE_ALLOWLIST
+        )
+        if unexpected_client_namespaces:
+            raise ValueError(
+                "unused AWS service clients are packaged: "
+                + ", ".join(sorted(unexpected_client_namespaces))
+            )
+
         installed = json.loads(read("vendor/composer/installed.json"))
         if installed.get("dev") is not False:
             raise ValueError("dependencies were not installed with --no-dev")
@@ -109,7 +184,13 @@ def main():
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:
         print(f"Release ZIP validation failed: {error}", file=sys.stderr)
         return 1
-    print(f"Release ZIP validation passed: {args.archive} version {version}")
+    with zipfile.ZipFile(args.archive) as archive:
+        files = [entry for entry in archive.infolist() if not entry.is_dir()]
+        uncompressed_bytes = sum(entry.file_size for entry in files)
+    print(
+        f"Release ZIP validation passed: {args.archive} version {version}; "
+        f"{len(files)} files, {uncompressed_bytes} uncompressed bytes"
+    )
     return 0
 
 

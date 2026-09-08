@@ -34,6 +34,8 @@ class ReleaseZipTest(unittest.TestCase):
                 "packages": [{"name": name} for name in ("aws/aws-sdk-php", "hokoo/wp-lock", "psr/log")],
             }).encode(),
         })
+        for service in VALIDATOR.AWS_SERVICE_DATA_ALLOWLIST:
+            self.files[f"vendor/aws/aws-sdk-php/src/data/{service}/api-2.json.php"] = b"<?php return [];"
 
     def build(self):
         with zipfile.ZipFile(self.path, "w") as archive:
@@ -89,6 +91,48 @@ class ReleaseZipTest(unittest.TestCase):
         self.files["vendor/composer/installed.json"] = b'{"dev":true,"packages":[]}'
         self.build()
         with self.assertRaisesRegex(ValueError, "no-dev"):
+            VALIDATOR.validate(self.path)
+
+    def test_release_file_budget(self):
+        self.build()
+        with self.assertRaisesRegex(ValueError, "file.*limit"):
+            VALIDATOR.validate(self.path, max_files=1)
+
+    def test_release_uncompressed_size_budget(self):
+        self.build()
+        with self.assertRaisesRegex(ValueError, "expands.*limit"):
+            VALIDATOR.validate(self.path, max_uncompressed_bytes=1)
+
+    def test_release_entry_budget(self):
+        self.build()
+        with self.assertRaisesRegex(ValueError, "entries.*limit"):
+            VALIDATOR.validate(self.path, max_entries=1)
+
+    def test_aws_service_pruning_configuration(self):
+        manifest = json.loads(self.files["composer.json"])
+        for missing_key in ("script", "service"):
+            with self.subTest(missing_key=missing_key):
+                changed = json.loads(json.dumps(manifest))
+                if missing_key == "script":
+                    del changed["scripts"]["pre-autoload-dump"]
+                else:
+                    changed["extra"]["aws/aws-sdk-php"] = ["Polly"]
+                self.files["composer.json"] = json.dumps(changed).encode()
+                self.build()
+                with self.assertRaisesRegex(ValueError, "pruning is not configured"):
+                    VALIDATOR.validate(self.path)
+        self.files["composer.json"] = json.dumps(manifest).encode()
+
+    def test_unexpected_aws_service_data(self):
+        self.files["vendor/aws/aws-sdk-php/src/data/ec2/api-2.json.php"] = b"<?php return [];"
+        self.build()
+        with self.assertRaisesRegex(ValueError, "unexpected AWS service data"):
+            VALIDATOR.validate(self.path)
+
+    def test_unused_aws_client(self):
+        self.files["vendor/aws/aws-sdk-php/src/Ec2/Ec2Client.php"] = b"<?php // fixture"
+        self.build()
+        with self.assertRaisesRegex(ValueError, "unused AWS service clients.*Ec2"):
             VALIDATOR.validate(self.path)
 
 
