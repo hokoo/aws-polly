@@ -89,6 +89,8 @@ If you selected local WordPress storage in step 1, skip directly to step 4.
 11. Choose **Create bucket**.
 12. When the bucket appears in the bucket list, copy its exact name. WordPress needs the name only, such as `example-com-polly-audio-1234`; do not enter `s3://`, an ARN, or a web address in the bucket-name field.
 
+For separate development, staging, and production environments, or for multiple WordPress sites, create a different bucket for each installation and enter only that installation's bucket name in its plugin settings. Use names that identify the site and environment, such as `example-com-polly-production` and `example-com-polly-staging`. S3 bucket names must be globally unique.
+
 Official S3 bucket instructions: https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html
 
 = 4. Create the plugin permissions policy =
@@ -157,6 +159,22 @@ For **Amazon S3 storage**, first replace both occurrences of `YOUR-BUCKET-NAME` 
 
 The S3 policy has three separate jobs: `s3:ListBucket` lets the plugin verify the bucket, `s3:PutObject` lets it upload MP3 files, and `s3:DeleteObject` lets it remove obsolete MP3 files. Do not use broad policies such as `AdministratorAccess`, `AmazonPollyFullAccess`, or `AmazonS3FullAccess` in place of the policy above.
 
+For a simpler setup, related installations such as development and staging can share one IAM user, access key, and policy while still using separate buckets. The shared IAM policy must include every installation's bucket in both S3 statements. In `CheckAudioBucket`, replace the single `Resource` value with an array of bucket ARNs:
+
+    "Resource": [
+      "arn:aws:s3:::FIRST-BUCKET-NAME",
+      "arn:aws:s3:::SECOND-BUCKET-NAME"
+    ]
+
+In `ManageGeneratedAudio`, use a matching array of object ARNs, each ending in `/*`:
+
+    "Resource": [
+      "arn:aws:s3:::FIRST-BUCKET-NAME/*",
+      "arn:aws:s3:::SECOND-BUCKET-NAME/*"
+    ]
+
+Add both ARN forms for every additional site or environment bucket. Every installation using these shared credentials can access every bucket listed in the policy. For stronger isolation, especially for production or independently administered sites, create a separate IAM policy, IAM user, and access key containing only that installation's bucket. If you change the bucket configured in one installation, retain access to its previous bucket until all audio stored there has been removed; cleanup uses the bucket recorded when each audio file was generated.
+
 Official policy instructions and permission references: https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_create-console.html, https://docs.aws.amazon.com/polly/latest/dg/api-permissions-reference.html, and https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html
 
 = 5. Create a dedicated IAM user =
@@ -219,18 +237,20 @@ The easiest direct-delivery setup uses a dedicated public bucket:
 6. Replace `YOUR-BUCKET-NAME` in the policy below with the exact bucket name. Do not remove the `/*` from the end of the resource.
 7. Paste the complete policy into the editor and choose **Save changes**.
 
-    {
-      "Version": "2012-10-17",
-      "Statement": [
         {
-          "Sid": "PublicReadGeneratedAudio",
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": "s3:GetObject",
-          "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "PublicReadGeneratedAudio",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+            }
+          ]
         }
-      ]
-    }
+
+A bucket policy is attached to one bucket only. For separate environment or site buckets, repeat steps 1-7 for every bucket and save a separate policy containing that bucket's own ARN. Do not add another bucket's ARN to a policy attached to a different bucket.
 
 Use a bucket dedicated to plugin audio because this policy makes every object in that bucket downloadable by anyone who knows its URL. If AWS refuses to save the policy, the account-level **Block Public Access** setting may still prohibit public buckets. Do not change an account-wide security setting unless you understand how it affects the account's other buckets. In that situation, ask the AWS account administrator for help or use Amazon CloudFront with a private S3 origin and Origin Access Control, then enter the CloudFront distribution domain in the plugin settings.
 
