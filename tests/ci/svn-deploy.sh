@@ -14,12 +14,27 @@ RECOVERY_SEED_COPY="${WORKDIR}/recovery-seed-copy"
 RECOVERY_IMPORT="${WORKDIR}/recovery-import"
 TIMEOUT_REPOSITORY="${WORKDIR}/timeout-repository"
 TIMEOUT_WORKING_COPY="${WORKDIR}/timeout-working-copy"
+COMMIT_RESPONSE_REPOSITORY="${WORKDIR}/commit-response-repository"
+COMMIT_RESPONSE_WORKING_COPY="${WORKDIR}/commit-response-working-copy"
+FAILED_COMMIT_REPOSITORY="${WORKDIR}/failed-commit-repository"
+FAILED_COMMIT_WORKING_COPY="${WORKDIR}/failed-commit-working-copy"
+UNKNOWN_REPOSITORY="${WORKDIR}/unknown-repository"
+UNKNOWN_WORKING_COPY="${WORKDIR}/unknown-working-copy"
+UNKNOWN_EMPTY_REPOSITORY="${WORKDIR}/unknown-empty-repository"
+UNKNOWN_EMPTY_WORKING_COPY="${WORKDIR}/unknown-empty-working-copy"
 COLLISION_REPOSITORY="${WORKDIR}/collision-repository"
 COLLISION_WORKING_COPY="${WORKDIR}/collision-working-copy"
 MUTATION_REPOSITORY="${WORKDIR}/mutation-repository"
 MUTATION_WORKING_COPY="${WORKDIR}/mutation-working-copy"
 MUTATION_ACTOR_COPY="${WORKDIR}/mutation-actor-copy"
 MUTATION_SENTINEL="${WORKDIR}/mutation-sentinel"
+DUPLICATE_REPOSITORY="${WORKDIR}/duplicate-repository"
+DUPLICATE_WORKING_COPY="${WORKDIR}/duplicate-working-copy"
+DUPLICATE_ACTOR_COPY="${WORKDIR}/duplicate-actor-copy"
+DUPLICATE_IMPORT="${WORKDIR}/duplicate-import"
+EXACT_NO_TAGS_REPOSITORY="${WORKDIR}/exact-no-tags-repository"
+EXACT_NO_TAGS_WORKING_COPY="${WORKDIR}/exact-no-tags-working-copy"
+EXACT_NO_TAGS_IMPORT="${WORKDIR}/exact-no-tags-import"
 SVN_SHIM_DIR="${WORKDIR}/svn-shim"
 SLUG="ai-text-to-speech-using-aws-polly"
 
@@ -46,6 +61,7 @@ assert_tag_copy() {
 	local tag_revision="$2"
 	local version="$3"
 	local trunk_revision="$4"
+	local parent_created="${5:-false}"
 	local changed
 	local changed_paths
 
@@ -55,7 +71,12 @@ assert_tag_copy() {
 		*"A + tags/${version}/"*"(from trunk/:r${trunk_revision})"*) ;;
 		*) fail "tag ${version} was not copied from trunk revision ${trunk_revision}: ${changed}" ;;
 	esac
-	[ "${changed_paths}" = "A   tags/${version}/" ] || fail "tag revision ${tag_revision} contains changes beyond the server-side copy: ${changed_paths}"
+	if [ "${parent_created}" = true ]; then
+		[ "${changed_paths}" = "A   tags/
+A   tags/${version}/" ] || fail "tag revision ${tag_revision} did not atomically create the parent and version tag: ${changed_paths}"
+	else
+		[ "${changed_paths}" = "A   tags/${version}/" ] || fail "tag revision ${tag_revision} contains changes beyond the server-side copy: ${changed_paths}"
+	fi
 }
 
 make_candidate() {
@@ -101,6 +122,13 @@ cat > "${SVN_SHIM_DIR}/svn" <<'SH'
 #!/usr/bin/env bash
 set -u
 
+if [ "${SVN_TEST_FAIL_COMMIT_WITHOUT_APPLY:-false}" = true ] && [ "${1:-}" = commit ]; then
+	exit 75
+fi
+if [ "${SVN_TEST_FAIL_REMOTE_LIST:-false}" = true ] && [ "${1:-}" = list ]; then
+	exit 70
+fi
+
 if [ "${SVN_TEST_MUTATE_TRUNK:-false}" = true ] \
 	&& [ "${1:-}" = info ] \
 	&& [ "${2:-}" = --show-item ] \
@@ -108,12 +136,23 @@ if [ "${SVN_TEST_MUTATE_TRUNK:-false}" = true ] \
 	&& [ ! -e "${SVN_TEST_MUTATION_SENTINEL}" ]; then
 	"${REAL_SVN_BIN}" checkout -q "${SVN_TEST_REPOSITORY_URL}" "${SVN_TEST_MUTATION_WORKING_COPY}"
 	printf '%s\n' 'concurrent manual change' > "${SVN_TEST_MUTATION_WORKING_COPY}/trunk/concurrent-change.txt"
+	printf '%s\n' 'concurrent asset change' > "${SVN_TEST_MUTATION_WORKING_COPY}/assets/screenshot-1.png"
 	"${REAL_SVN_BIN}" add -q "${SVN_TEST_MUTATION_WORKING_COPY}/trunk/concurrent-change.txt"
-	"${REAL_SVN_BIN}" commit -q "${SVN_TEST_MUTATION_WORKING_COPY}/trunk/concurrent-change.txt" -m 'Simulate a concurrent trunk mutation'
+	"${REAL_SVN_BIN}" commit -q \
+		"${SVN_TEST_MUTATION_WORKING_COPY}/trunk/concurrent-change.txt" \
+		"${SVN_TEST_MUTATION_WORKING_COPY}/assets/screenshot-1.png" \
+		-m 'Simulate concurrent trunk and asset mutations'
 	touch "${SVN_TEST_MUTATION_SENTINEL}"
 fi
 
 "${REAL_SVN_BIN}" "$@"
+status="$?"
+if [ "${status}" -eq 0 ] \
+	&& [ "${SVN_TEST_FAIL_AFTER_COMMIT:-false}" = true ] \
+	&& [ "${1:-}" = commit ]; then
+	exit 75
+fi
+exit "${status}"
 SH
 chmod +x "${SVN_SHIM_DIR}/svn"
 
@@ -124,6 +163,7 @@ set -u
 if [ "${SVN_TEST_CREATE_COLLIDING_TAG:-false}" = true ]; then
 	"${REAL_SVNMUCC_BIN}" \
 		-m 'Create a concurrent immutable tag collision' \
+		mkdir "${SVN_TEST_COLLISION_DESTINATION%/*}" \
 		cp HEAD "${SVN_TEST_COLLISION_SOURCE}" "${SVN_TEST_COLLISION_DESTINATION}"
 fi
 
@@ -152,7 +192,7 @@ assert_revision 0
 
 deploy --version 1.0.8 --build-dir "${BUILD_V1}" --assets-dir "${ASSETS_V1}" >/dev/null
 assert_revision 2
-assert_tag_copy "${REPOSITORY}" 2 1.0.8 1
+assert_tag_copy "${REPOSITORY}" 2 1.0.8 1 true
 svn info "file://${REPOSITORY}/trunk" >/dev/null 2>&1 || fail 'initial publish did not create trunk'
 svn info "file://${REPOSITORY}/tags/1.0.8" >/dev/null 2>&1 || fail 'initial publish did not create the version tag'
 [ "$(svnlook cat "${REPOSITORY}" trunk/release-marker.txt)" = 'initial release' ] || fail 'initial trunk does not contain the candidate'
@@ -220,10 +260,91 @@ assert_revision 3 "${RECOVERY_REPOSITORY}"
 assert_tag_copy "${RECOVERY_REPOSITORY}" 3 1.0.9 2
 [ "$(svnlook cat "${RECOVERY_REPOSITORY}" tags/1.0.9/release-marker.txt)" = 'upgrade release' ] || fail 'recovery tag does not contain the committed trunk candidate'
 
+svnadmin create "${COMMIT_RESPONSE_REPOSITORY}"
+commit_response_output="$(
+	export PATH="${SVN_SHIM_DIR}:${PATH}"
+	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_FAIL_AFTER_COMMIT=true SVN_RECONCILE_DELAY=0
+	deploy_to \
+		"${COMMIT_RESPONSE_REPOSITORY}" \
+		"${COMMIT_RESPONSE_WORKING_COPY}" \
+		--version 1.0.8 \
+		--build-dir "${BUILD_V1}" \
+		--assets-dir "${ASSETS_V1}" 2>&1
+)"
+case "${commit_response_output}" in
+	*'RELEASE_STATE trunk_commit_response_uncertain status=75'*'RELEASE_STATE trunk_exact revision=1'*'RELEASE_STATE release_complete version=1.0.8'*) ;;
+	*) fail 'a successful phase-one commit with a failed client response was not reconciled' ;;
+esac
+assert_revision 2 "${COMMIT_RESPONSE_REPOSITORY}"
+assert_tag_copy "${COMMIT_RESPONSE_REPOSITORY}" 2 1.0.8 1 true
+
+svnadmin create "${FAILED_COMMIT_REPOSITORY}"
+if failed_commit_output="$(
+	export PATH="${SVN_SHIM_DIR}:${PATH}"
+	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_FAIL_COMMIT_WITHOUT_APPLY=true SVN_RECONCILE_DELAY=0
+	deploy_to \
+		"${FAILED_COMMIT_REPOSITORY}" \
+		"${FAILED_COMMIT_WORKING_COPY}" \
+		--version 1.0.8 \
+		--build-dir "${BUILD_V1}" \
+		--assets-dir "${ASSETS_V1}" 2>&1
+)"; then
+	fail 'a phase-one commit failure without a remote transaction was accepted'
+fi
+case "${failed_commit_output}" in
+	*'trunk_commit_response_uncertain status=75'*'no exact prepared revision was found'*) ;;
+	*) fail 'a failed phase-one commit did not report a retriable state' ;;
+esac
+assert_revision 0 "${FAILED_COMMIT_REPOSITORY}"
+svn info "file://${FAILED_COMMIT_REPOSITORY}/tags/1.0.8" >/dev/null 2>&1 && fail 'a failed phase-one commit created a tag'
+
+svnadmin create "${UNKNOWN_REPOSITORY}"
+svn mkdir -q \
+	"file://${UNKNOWN_REPOSITORY}/trunk" \
+	"file://${UNKNOWN_REPOSITORY}/tags" \
+	"file://${UNKNOWN_REPOSITORY}/assets" \
+	-m 'Seed WordPress.org repository roots'
+if unknown_output="$(
+	export PATH="${SVN_SHIM_DIR}:${PATH}"
+	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_FAIL_REMOTE_LIST=true SVN_RECONCILE_DELAY=0
+	deploy_to \
+		"${UNKNOWN_REPOSITORY}" \
+		"${UNKNOWN_WORKING_COPY}" \
+		--version 1.0.8 \
+		--build-dir "${BUILD_V1}" \
+		--assets-dir "${ASSETS_V1}" 2>&1
+)"; then
+	fail 'an unavailable remote tag state was treated as absent'
+fi
+case "${unknown_output}" in
+	*'tag could not be verified'*) ;;
+	*) fail 'an unavailable remote tag state did not stop before writes' ;;
+esac
+assert_revision 1 "${UNKNOWN_REPOSITORY}"
+
+svnadmin create "${UNKNOWN_EMPTY_REPOSITORY}"
+if unknown_empty_output="$(
+	export PATH="${SVN_SHIM_DIR}:${PATH}"
+	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_FAIL_REMOTE_LIST=true SVN_RECONCILE_DELAY=0
+	deploy_to \
+		"${UNKNOWN_EMPTY_REPOSITORY}" \
+		"${UNKNOWN_EMPTY_WORKING_COPY}" \
+		--version 1.0.8 \
+		--build-dir "${BUILD_V1}" \
+		--assets-dir "${ASSETS_V1}" 2>&1
+)"; then
+	fail 'an unavailable remote state was treated as an absent tags parent'
+fi
+case "${unknown_empty_output}" in
+	*'tag could not be verified'*) ;;
+	*) fail 'an unavailable empty-repository tag state did not stop before writes' ;;
+esac
+assert_revision 0 "${UNKNOWN_EMPTY_REPOSITORY}"
+
 svnadmin create "${TIMEOUT_REPOSITORY}"
 timeout_output="$(
 	export PATH="${SVN_SHIM_DIR}:${PATH}"
-	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_FAIL_AFTER_COPY=true SVN_TAG_RECONCILE_DELAY=0
+	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_FAIL_AFTER_COPY=true SVN_RECONCILE_DELAY=0
 	deploy_to \
 		"${TIMEOUT_REPOSITORY}" \
 		"${TIMEOUT_WORKING_COPY}" \
@@ -236,7 +357,7 @@ case "${timeout_output}" in
 	*) fail 'a successful tag copy with a failed client response was not reconciled' ;;
 esac
 assert_revision 2 "${TIMEOUT_REPOSITORY}"
-assert_tag_copy "${TIMEOUT_REPOSITORY}" 2 1.0.8 1
+assert_tag_copy "${TIMEOUT_REPOSITORY}" 2 1.0.8 1 true
 
 svnadmin create "${COLLISION_REPOSITORY}"
 svn import -q "${BUILD_CHANGED}" "file://${COLLISION_REPOSITORY}/collision-source" -m 'Seed different contents for a concurrent tag'
@@ -262,9 +383,9 @@ assert_revision 3 "${COLLISION_REPOSITORY}"
 [ "$(svnlook cat "${COLLISION_REPOSITORY}" tags/1.0.8/release-marker.txt)" = 'changed release with reused version' ] || fail 'concurrent tag collision did not preserve the immutable winner'
 
 svnadmin create "${MUTATION_REPOSITORY}"
-if mutation_output="$(
+mutation_output="$(
 	export PATH="${SVN_SHIM_DIR}:${PATH}"
-	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_MUTATE_TRUNK=true
+	export REAL_SVN_BIN REAL_SVNMUCC_BIN SVN_TEST_MUTATE_TRUNK=true SVN_RECONCILE_DELAY=0
 	export SVN_TEST_REPOSITORY_URL="file://${MUTATION_REPOSITORY}"
 	export SVN_TEST_MUTATION_WORKING_COPY="${MUTATION_ACTOR_COPY}"
 	export SVN_TEST_MUTATION_SENTINEL="${MUTATION_SENTINEL}"
@@ -274,15 +395,64 @@ if mutation_output="$(
 		--version 1.0.8 \
 		--build-dir "${BUILD_V1}" \
 		--assets-dir "${ASSETS_V1}" 2>&1
-)"; then
-	fail 'a concurrently modified trunk revision was tagged'
-fi
+)"
 case "${mutation_output}" in
-	*'committed trunk revision '*' does not match the exact candidate'*) ;;
-	*) fail 'a concurrent trunk mutation did not report the expected reason' ;;
+	*'RELEASE_STATE trunk_exact revision=1'*'RELEASE_STATE release_complete version=1.0.8 source_revision=1'*) ;;
+	*) fail 'a concurrent trunk mutation did not recover the exact prepared revision' ;;
 esac
-assert_revision 2 "${MUTATION_REPOSITORY}"
-svn info "file://${MUTATION_REPOSITORY}/tags/1.0.8" >/dev/null 2>&1 && fail 'a concurrent trunk mutation created a release tag'
+assert_revision 3 "${MUTATION_REPOSITORY}"
+assert_tag_copy "${MUTATION_REPOSITORY}" 3 1.0.8 1 true
+[ "$(svnlook cat "${MUTATION_REPOSITORY}" tags/1.0.8/release-marker.txt)" = 'initial release' ] || fail 'historical recovery tagged the wrong candidate'
+svnlook cat "${MUTATION_REPOSITORY}" trunk/concurrent-change.txt >/dev/null || fail 'historical recovery rolled back the newer trunk'
+[ "$(svnlook cat "${MUTATION_REPOSITORY}" assets/screenshot-1.png)" = 'concurrent asset change' ] || fail 'historical recovery rolled back newer assets'
+
+duplicate_trunk_metadata="$(python3 "${REPO_ROOT}/scripts/tree-release-metadata.py" "${BUILD_V1}")"
+IFS=$'\t' read -r duplicate_trunk_digest _ <<< "${duplicate_trunk_metadata}"
+duplicate_deployment_id="$(
+	printf '%s\n' "${SLUG}" '1.0.8' "${duplicate_trunk_digest}" 'none' \
+		| sha256sum | cut -c 1-32
+)"
+duplicate_commit_message="Prepare ${SLUG} 1.0.8 deployment=${duplicate_deployment_id} trunk=${duplicate_trunk_digest} assets=none"
+mkdir -p "${DUPLICATE_IMPORT}/trunk" "${DUPLICATE_IMPORT}/tags"
+cp -R "${BUILD_V1}/." "${DUPLICATE_IMPORT}/trunk/"
+svnadmin create "${DUPLICATE_REPOSITORY}"
+svn import -q "${DUPLICATE_IMPORT}" "file://${DUPLICATE_REPOSITORY}" -m "${duplicate_commit_message}"
+svn checkout -q "file://${DUPLICATE_REPOSITORY}" "${DUPLICATE_ACTOR_COPY}"
+printf '%s\n' 'conflicting reuse of the deployment id' > "${DUPLICATE_ACTOR_COPY}/trunk/release-marker.txt"
+svn commit -q "${DUPLICATE_ACTOR_COPY}/trunk/release-marker.txt" -m "${duplicate_commit_message}"
+
+duplicate_output="$(
+	deploy_to \
+		"${DUPLICATE_REPOSITORY}" \
+		"${DUPLICATE_WORKING_COPY}" \
+		--version 1.0.8 \
+		--build-dir "${BUILD_V1}"
+)"
+case "${duplicate_output}" in
+	*'RELEASE_STATE trunk_exact revision=1'*'RELEASE_STATE release_complete version=1.0.8 source_revision=1'*) ;;
+	*) fail 'historical recovery stopped at a newer conflicting reuse of the deployment id' ;;
+esac
+assert_revision 3 "${DUPLICATE_REPOSITORY}"
+assert_tag_copy "${DUPLICATE_REPOSITORY}" 3 1.0.8 1
+[ "$(svnlook cat "${DUPLICATE_REPOSITORY}" tags/1.0.8/release-marker.txt)" = 'initial release' ] || fail 'duplicate deployment-id recovery tagged the conflicting revision'
+
+mkdir -p "${EXACT_NO_TAGS_IMPORT}/trunk"
+cp -R "${BUILD_V1}/." "${EXACT_NO_TAGS_IMPORT}/trunk/"
+svnadmin create "${EXACT_NO_TAGS_REPOSITORY}"
+svn import -q "${EXACT_NO_TAGS_IMPORT}" "file://${EXACT_NO_TAGS_REPOSITORY}" -m 'Seed an exact trunk without a tags parent'
+exact_no_tags_output="$(
+	deploy_to \
+		"${EXACT_NO_TAGS_REPOSITORY}" \
+		"${EXACT_NO_TAGS_WORKING_COPY}" \
+		--version 1.0.8 \
+		--build-dir "${BUILD_V1}"
+)"
+case "${exact_no_tags_output}" in
+	*'RELEASE_STATE trunk_exact revision=1'*'create_parent=true'*'RELEASE_STATE release_complete version=1.0.8 source_revision=1'*) ;;
+	*) fail 'an exact trunk without a tags parent was not recovered atomically' ;;
+esac
+assert_revision 2 "${EXACT_NO_TAGS_REPOSITORY}"
+assert_tag_copy "${EXACT_NO_TAGS_REPOSITORY}" 2 1.0.8 1 true
 
 BUILD_ROLLBACK="${WORKDIR}/build-rollback"
 make_candidate "${BUILD_ROLLBACK}" 1.0.7 1.0.7 'accidental rollback'
