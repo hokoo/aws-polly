@@ -37,6 +37,8 @@ Key features:
 
 Follow the steps below in order. They use the English names shown in the AWS and WordPress interfaces; translated interfaces place the same controls in the same sections.
 
+If you are configuring one WordPress site, follow the steps exactly as written. The standard setup uses one IAM policy, one IAM user, one access key, and one bucket only when S3 storage is selected. You do not need the multiple-site options described in the FAQ.
+
 You must sign in to AWS with an account that is allowed to create IAM policies, IAM users, access keys, and, when S3 storage is used, S3 buckets. In a company AWS account, these operations may be restricted; if AWS shows an authorization error, ask the AWS account administrator to complete the corresponding step.
 
 The AWS terms used in this guide mean:
@@ -219,18 +221,20 @@ The easiest direct-delivery setup uses a dedicated public bucket:
 6. Replace `YOUR-BUCKET-NAME` in the policy below with the exact bucket name. Do not remove the `/*` from the end of the resource.
 7. Paste the complete policy into the editor and choose **Save changes**.
 
-    {
-      "Version": "2012-10-17",
-      "Statement": [
         {
-          "Sid": "PublicReadGeneratedAudio",
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": "s3:GetObject",
-          "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "PublicReadGeneratedAudio",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+            }
+          ]
         }
-      ]
-    }
+
+This bucket policy is saved on the selected bucket and grants public read access only to objects in that bucket.
 
 Use a bucket dedicated to plugin audio because this policy makes every object in that bucket downloadable by anyone who knows its URL. If AWS refuses to save the policy, the account-level **Block Public Access** setting may still prohibit public buckets. Do not change an account-wide security setting unless you understand how it affects the account's other buckets. In that situation, ask the AWS account administrator for help or use Amazon CloudFront with a private S3 origin and Origin Access Control, then enter the CloudFront distribution domain in the plugin settings.
 
@@ -337,6 +341,38 @@ Yes. The plugin supports storing generated audio in Amazon S3 and serving it thr
 = Does it work per post? =
 
 Yes. You can enable audio generation for individual posts and the plugin will keep track of queued, running, and ready states.
+
+= Can I reuse AWS access for multiple WordPress sites? =
+
+Yes. This is optional; a single WordPress site does not need any of the changes described below.
+
+A site copy is another WordPress installation, for example a test or staging copy. Each installation can use a separate S3 bucket while sharing AWS access with other installations. Enter only that installation's bucket name in its plugin settings.
+
+For the simplest shared setup, reuse the same IAM user and access key in each installation. Edit the existing `WordPressPollyPlugin` customer managed policy instead of creating another policy. Add every bucket to `CheckAudioBucket` by replacing its single `Resource` value with an array of bucket ARNs:
+
+    "Resource": [
+      "arn:aws:s3:::FIRST-BUCKET-NAME",
+      "arn:aws:s3:::SECOND-BUCKET-NAME"
+    ]
+
+In `ManageGeneratedAudio`, use a matching array of object ARNs, each ending in `/*`:
+
+    "Resource": [
+      "arn:aws:s3:::FIRST-BUCKET-NAME/*",
+      "arn:aws:s3:::SECOND-BUCKET-NAME/*"
+    ]
+
+Add both ARN forms for every additional bucket. All installations using this IAM user can access every bucket listed in the policy. Changing or rotating the shared access key requires updating every installation that uses it.
+
+The same customer managed policy can also be attached to multiple IAM users, so a new policy is not required for every user. However, every attached user receives access to all buckets listed in that policy, and later policy changes affect all attached users.
+
+Sharing one IAM user and policy is possible across different websites or projects. For unrelated projects, production sites, or sites managed by different people, separate IAM users, access keys, and policies limit the effect of an exposed credential or an accidental policy change. This separation is optional and is not required for a basic one-site setup.
+
+The public-read bucket policy from configuration step 8 is different from the IAM policy. A bucket policy is saved on one specific bucket, so repeat step 8 for each additional bucket and replace `YOUR-BUCKET-NAME` with that bucket's own name. The same policy template can be copied, but one saved bucket policy cannot be attached to several buckets.
+
+If an installation changes buckets, keep its old bucket ARNs in the IAM policy until the previously generated audio has been removed. Cleanup uses the bucket recorded when each audio file was generated.
+
+Official IAM managed-policy reference: https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html
 
 == Changelog ==
 
