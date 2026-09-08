@@ -4,7 +4,7 @@ Tags: text-to-speech, audio, aws polly, speech synthesis, podcast
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPL-3.0-only
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -375,6 +375,13 @@ If an installation changes buckets, keep its old bucket ARNs in the IAM policy u
 Official IAM managed-policy reference: https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html
 
 == Changelog ==
+
+= 1.0.9 =
+
+* Reduced the release archive by removing unused AWS SDK services while retaining the required Amazon Polly and Amazon S3 clients.
+* Added validated, recoverable WordPress.org SVN publishing with immutable release tags.
+* Clarified the standard single-site AWS setup and optional IAM user, access key, and managed-policy reuse across multiple sites.
+* Corrected the public-read bucket policy formatting and explained that the policy must be saved separately on each S3 bucket.
 
 = 1.0.8 =
 
